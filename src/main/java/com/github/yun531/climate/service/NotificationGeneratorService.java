@@ -26,7 +26,7 @@ public class NotificationGeneratorService {
                                  boolean receiveWarnings,
                                  @Nullable Instant since) {
 
-        Instant effectiveSince = (since != null) ? since : Instant.now().minus(90, ChronoUnit.MINUTES); // todo: -90 왜 해놨냐, warning 에서 꼬이나?
+        Instant effectiveSince = (since != null) ? since : Instant.now();
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
         if (receiveWarnings)
             enabled.add(AlertTypeEnum.WARNING_ISSUED);
@@ -37,7 +37,7 @@ public class NotificationGeneratorService {
                                  @Nullable Set<AlertTypeEnum> enabledTypes,
                                  @Nullable Instant since) {
 
-        Instant effectiveSince = (since != null) ? since : Instant.now().minus(90, ChronoUnit.MINUTES);
+        Instant effectiveSince = (since != null) ? since : Instant.now();
         return generate(regionIds, enabledTypes, effectiveSince, Locale.KOREA);
     }
 
@@ -91,6 +91,7 @@ public class NotificationGeneratorService {
         return new ArrayList<>(map.values());
     }
 
+
     /** <type>|<regionId>|<occurredAt> 형태로 생성 */
     private String keyOf(AlertEvent e) {
         return (e.type() == null ? "?" : e.type().name())
@@ -100,8 +101,7 @@ public class NotificationGeneratorService {
 
     /** 간단 문자열 포맷터 */
     private String format(AlertEvent e, Locale locale) {
-        String ts = e.occurredAt() == null ? ""
-                : DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+        String ts = e.occurredAt() == null ? "" : DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 .withLocale(locale)
                 .withZone(ZoneId.of("Asia/Seoul"))
                 .format(e.occurredAt());
@@ -125,10 +125,51 @@ public class NotificationGeneratorService {
                 return "지역 %d | %s | %s %s 발효"
                         .formatted(e.regionId(), ts, kindLabel, levelLabel);
             }
+            case RAIN_FORECAST -> {
+                // 새로운 구조화 페이로드(hourlyParts/dayParts)를 우선 조합
+                String hourlyJoined = joinParts(e.payload().get("hourlyParts"));
+                String dayJoined    = joinParts(e.payload().get("dayParts"));
+
+                if (!hourlyJoined.isEmpty() || !dayJoined.isEmpty()) {
+                    List<String> pieces = new ArrayList<>(2);
+                    if (!hourlyJoined.isEmpty()) pieces.add(hourlyJoined);
+                    if (!dayJoined.isEmpty())    pieces.add(dayJoined);
+                    String body = String.join(", ", pieces) + " 비 예보";
+                    return "지역 %d | %s".formatted(e.regionId(), body);
+                }
+
+                Object text = e.payload().get("text");
+                if (text != null && !text.toString().isBlank()) {
+                    return "지역 %d | %s".formatted(e.regionId(), text.toString().trim());
+                }
+
+                return "지역 %d | 비 예보 없음".formatted(e.regionId());
+            }
             default -> {
                 return "지역 %d | %s | %s"
                         .formatted(e.regionId(), ts, e.type() == null ? "UNKNOWN" : e.type().name());
             }
         }
+    }
+
+    /** payload에서 리스트 계열(hourlyParts/dayParts 등)을 안전하게 조인 */
+    @SuppressWarnings("unchecked")
+    private String joinParts(Object raw) {
+        if (raw == null) return "";
+        if (raw instanceof String s) return s.trim();
+
+        // List<String> 형태 권장
+        if (raw instanceof Collection<?> col) {
+            List<String> items = new ArrayList<>(col.size());
+            for (Object o : col) {
+                if (o == null) continue;
+                String s = o.toString().trim();
+                if (!s.isEmpty()) items.add(s);
+            }
+            return String.join(", ", items);
+        }
+
+        // 배열 등 기타 타입 대응
+        return raw.toString().trim();
     }
 }

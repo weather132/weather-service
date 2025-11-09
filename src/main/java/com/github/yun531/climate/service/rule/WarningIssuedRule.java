@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +28,9 @@ public class WarningIssuedRule implements AlertRule {
     public List<AlertEvent> evaluate(List<Long> regionIds, Instant since) {
         // 지역별 모든 kind에 대해 각 kind의 최신 1건을 가져온다
         Map<Long, Map<WarningKind, WarningStateDto>> latest = warningService.findLatestByRegionAndKind(regionIds);
-
         List<AlertEvent> out = new ArrayList<>();
+
+        Instant adjustedSince = (since == null) ? null : since.minus(90, ChronoUnit.MINUTES);    // 특보 발효 시각과의 시차 보정용
 
         for (Long regionId : regionIds) {
             Map<WarningKind, WarningStateDto> byKind = latest.get(regionId);
@@ -38,7 +40,7 @@ public class WarningIssuedRule implements AlertRule {
                 WarningStateDto w = e.getValue();
                 if (w == null) continue;
 
-                boolean isNew = (since == null) || warningService.isNewlyIssuedSince(w, since);
+                boolean isNew = (adjustedSince == null) || warningService.isNewlyIssuedSince(w, adjustedSince);
                 if (!isNew) continue;
 
                 Instant occurredAt = (w.getUpdatedAt() != null) ? w.getUpdatedAt() : Instant.now();

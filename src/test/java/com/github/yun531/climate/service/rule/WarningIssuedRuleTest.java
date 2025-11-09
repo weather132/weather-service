@@ -10,6 +10,7 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -50,6 +51,7 @@ class WarningIssuedRuleTest {
         WarningIssuedRule rule = new WarningIssuedRule(warningService);
         Long R = 200L;
         Instant since = Instant.parse("2025-11-04T06:30:00Z");
+        Instant adjustedSince = since.minus(90, ChronoUnit.MINUTES);
 
         var dtoRain = new WarningStateDto(R, WarningKind.RAIN, WarningLevel.WARNING, Instant.parse("2025-11-04T07:00:00Z")); // 포함
         var dtoHeat = new WarningStateDto(R, WarningKind.HEAT, WarningLevel.ADVISORY, Instant.parse("2025-11-04T06:00:00Z")); // 제외
@@ -60,8 +62,8 @@ class WarningIssuedRuleTest {
                         WarningKind.HEAT, dtoHeat
                 )));
 
-        when(warningService.isNewlyIssuedSince(dtoRain, since)).thenReturn(true);
-        when(warningService.isNewlyIssuedSince(dtoHeat, since)).thenReturn(false);
+        when(warningService.isNewlyIssuedSince(dtoRain, adjustedSince)).thenReturn(true);
+        when(warningService.isNewlyIssuedSince(dtoHeat, adjustedSince)).thenReturn(false);
 
         var events = rule.evaluate(List.of(R), since);
 

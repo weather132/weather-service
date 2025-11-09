@@ -95,6 +95,34 @@ class ClimateServiceTest {
                 .findPopInfoBySnapIdsAndRegionId(List.of(1L, 10L), regionId);
     }
 
+    @Test
+    void loadForecastSeries_현재24_ampm7x2_매핑검증() {
+        Long regionId = 55L;
+        Long snapId = 1L;
+
+        POPSnapDto dto = new POPSnapDto();
+        dto.setSnapId(snapId);
+        dto.setRegionId(regionId);
+        fillHourly(dto, 0);          // 0,1,2,...,23
+        fillAmpm7x2(dto, new byte[][]{
+                {60, 10}, {10, 70}, {65, 65}, {0, 0}, {80, 0}, {0, 80}, {50, 50}
+        });
+
+        when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(snapId), regionId))
+                .thenReturn(List.of(dto));
+
+        ClimateService.ForecastSeries fs = climateService.loadForecastSeries(regionId, snapId);
+        assertThat(fs.hourly24()).hasSize(24);
+        for (int i = 0; i < 24; i++) assertThat(fs.hourly24()[i]).isEqualTo(i);
+
+        assertThat(fs.ampm7x2()).hasDimensions(7, 2);
+        assertThat(fs.ampm7x2()[0][0]).isEqualTo((byte)60);
+        assertThat(fs.ampm7x2()[0][1]).isEqualTo((byte)10);
+        assertThat(fs.ampm7x2()[1][1]).isEqualTo((byte)70);
+        assertThat(fs.ampm7x2()[4][0]).isEqualTo((byte)80);
+        assertThat(fs.ampm7x2()[5][1]).isEqualTo((byte)80);
+    }
+
     // ---- helpers ----
     private void fillHourly(POPSnapDto d, int base) {
         d.setPopA00((byte)(base + 0));  d.setPopA01((byte)(base + 1));  d.setPopA02((byte)(base + 2));  d.setPopA03((byte)(base + 3));
@@ -103,5 +131,16 @@ class ClimateServiceTest {
         d.setPopA12((byte)(base +12));  d.setPopA13((byte)(base +13));  d.setPopA14((byte)(base +14));  d.setPopA15((byte)(base +15));
         d.setPopA16((byte)(base +16));  d.setPopA17((byte)(base +17));  d.setPopA18((byte)(base +18));  d.setPopA19((byte)(base +19));
         d.setPopA20((byte)(base +20));  d.setPopA21((byte)(base +21));  d.setPopA22((byte)(base +22));  d.setPopA23((byte)(base +23));
+    }
+
+    private void fillAmpm7x2(POPSnapDto d, byte[][] v) {
+        // v[d][0]=am, v[d][1]=pm, d=0..6
+        d.setPopA0dAm(v[0][0]); d.setPopA0dPm(v[0][1]);
+        d.setPopA1dAm(v[1][0]); d.setPopA1dPm(v[1][1]);
+        d.setPopA2dAm(v[2][0]); d.setPopA2dPm(v[2][1]);
+        d.setPopA3dAm(v[3][0]); d.setPopA3dPm(v[3][1]);
+        d.setPopA4dAm(v[4][0]); d.setPopA4dPm(v[4][1]);
+        d.setPopA5dAm(v[5][0]); d.setPopA5dPm(v[5][1]);
+        d.setPopA6dAm(v[6][0]); d.setPopA6dPm(v[6][1]);
     }
 }
