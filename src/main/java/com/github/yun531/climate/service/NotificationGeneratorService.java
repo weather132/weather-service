@@ -22,16 +22,11 @@ public class NotificationGeneratorService {
 
     private final List<AlertRule> rules; // @Component 룰 자동 주입 (RAIN_ONSET, WARNING_ISSUED 등)
 
-    private static final String PAYLOAD_SRC_RULE = "_srcRule";
-
-    /**
-     * 간편 버전: 특보 알림 포함 여부로 룰 선택
-     */
     public List<String> generate(List<Long> regionIds,
                                  boolean receiveWarnings,
                                  @Nullable Instant since) {
 
-        Instant effectiveSince = (since != null) ? since : Instant.now().minus(90, ChronoUnit.MINUTES);
+        Instant effectiveSince = (since != null) ? since : Instant.now().minus(90, ChronoUnit.MINUTES); // todo: -90 왜 해놨냐, warning 에서 꼬이나?
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
         if (receiveWarnings)
             enabled.add(AlertTypeEnum.WARNING_ISSUED);
@@ -46,9 +41,6 @@ public class NotificationGeneratorService {
         return generate(regionIds, enabledTypes, effectiveSince, Locale.KOREA);
     }
 
-    /**
-     * 고급 버전: 실행할 룰 타입 지정
-     */
     public List<String> generate(List<Long> regionIds,
                                  @Nullable Set<AlertTypeEnum> enabledTypes,
                                  @Nullable Instant since,
@@ -106,7 +98,7 @@ public class NotificationGeneratorService {
                 + "|" + (e.occurredAt() == null ? "?" : e.occurredAt().toString());
     }
 
-    /** 간단 문자열 포맷터 (필요 시 외부 클래스로 분리 가능) */
+    /** 간단 문자열 포맷터 */
     private String format(AlertEvent e, Locale locale) {
         String ts = e.occurredAt() == null ? ""
                 : DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
