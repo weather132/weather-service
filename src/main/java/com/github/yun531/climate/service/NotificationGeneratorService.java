@@ -51,7 +51,7 @@ public class NotificationGeneratorService {
         // 지역 최대 3개 제한 (초과 시 앞에서 3개만 사용)
         List<Long> targetRegions = regionIds.size() > 3 ? regionIds.subList(0, 3) : regionIds;
 
-        // 실행할 타입 결정 (기본은 RAIN_ONSET만)
+        // 실행할 타입 결정 (기본은 RAIN_ONSET만)  // todo 함수로 리펙토링
         final Set<AlertTypeEnum> selected = (enabledTypes == null || enabledTypes.isEmpty())
                 ? EnumSet.of(AlertTypeEnum.RAIN_ONSET)
                 : EnumSet.copyOf(enabledTypes);

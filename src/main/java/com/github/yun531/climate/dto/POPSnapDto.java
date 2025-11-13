@@ -14,7 +14,7 @@ public class POPSnapDto {
     private long snapId;
     private long regionId;
 
-    // ---- 시간대별 POP (0~23시) ----
+    // ---- 시간대별 POP (0~23시) ----  // todo list로 수정
     private Byte popA00; private Byte popA01; private Byte popA02; private Byte popA03; private Byte popA04;
     private Byte popA05; private Byte popA06; private Byte popA07; private Byte popA08; private Byte popA09;
     private Byte popA10; private Byte popA11; private Byte popA12; private Byte popA13; private Byte popA14;

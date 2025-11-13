@@ -23,7 +23,7 @@ public class WarningState {
     @Column(name = "region_id", nullable = false)
     private long regionId;                  // 지역코드
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING)   // Enumerated 지원 안하는 DB 있음, 주의
     @Column(name = "kind", length = 16)
     private WarningKind kind;                    // 호우 / 폭염 / 강풍 / 태풍 ...
 

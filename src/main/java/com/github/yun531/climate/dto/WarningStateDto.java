@@ -16,12 +16,12 @@ import java.time.Instant;
 @NoArgsConstructor
 public class WarningStateDto {
 
-    private long regionId;          // 지역 코드
+    private long regionId;          // 지역 코드  // todo 빌더 고류, 디폴트 인자
     private WarningKind kind;       // 호우 / 폭염 / 강풍 / 태풍 ...
     private WarningLevel level;     // 예비특보 / 주의보 / 경보
     private Instant updatedAt;      // 특보가 발효되거나 갱신된 시각
 
-    public static WarningStateDto from(WarningState e) {
+    public static WarningStateDto from(WarningState e) {  // todo 생성자
         return new WarningStateDto(
                 e.getRegionId(),
                 e.getKind(),
