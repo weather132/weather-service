@@ -8,6 +8,8 @@ import io.micrometer.common.lang.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -44,10 +46,16 @@ public class ClimateService {
         }
 
         if (cur == null || prv == null) {
-            return new PopSeries(null, null);
+            return new PopSeries(null, null, 0);
         }
 
-        return new PopSeries(cur.getHourly(), prv.getHourly());
+        LocalDateTime curReportTime = cur.getReportTime();
+        LocalDateTime prvReportTime = prv.getReportTime();
+
+        long minutes = Duration.between(prvReportTime, curReportTime).toMinutes();
+        int reportTimeGap = (int) Math.round(minutes / 60.0);
+
+        return new PopSeries(cur.getHourly(), prv.getHourly(), reportTimeGap);
     }
 
     /** 예보 요약용: 스냅에서 시간대 [24] + 오전/오후[14] */
@@ -66,7 +74,8 @@ public class ClimateService {
 
     /** 판정용 입력 구조체 (현재 PopSeries24, 이전 PopSeries24) */
     public record PopSeries(@Nullable PopSeries24 current,
-                            @Nullable PopSeries24 previous) {}
+                            @Nullable PopSeries24 previous,
+                            int reportTimeGap) {}
 
     /** 예보 요약용 구조체 (시간대 PopSeries24, 일자별 PopDailySeries7) */
     public record ForecastSeries(@Nullable PopSeries24 hourly,

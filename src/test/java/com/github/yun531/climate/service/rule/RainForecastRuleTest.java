@@ -1,18 +1,22 @@
 package com.github.yun531.climate.service.rule;
 
 
+import com.github.yun531.climate.domain.PopDailySeries7;
+import com.github.yun531.climate.domain.PopSeries24;
 import com.github.yun531.climate.service.ClimateService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RainForecastRuleTest {
@@ -21,63 +25,86 @@ class RainForecastRuleTest {
     ClimateService climateService;
 
     @Test
-    void dayParts_ampm7x2_생성검증() {
-        // D+0 (오전 70, 오후 10), D+1 (오전 10, 오후 70) D+2 (오전 65, 오후 65), D+3 (오전 0, 오후 0), D+4 오전 80
-        Byte[][] ampm = new Byte[][]{
-                {(byte)70, (byte)10}, {(byte)10, (byte)70}, {(byte)65, (byte)65},
-                {(byte)0, (byte)0}, {(byte)80, (byte)0}, {(byte)0, (byte)0}, {(byte)0, (byte)0}
-        };
-        int[] hourly = new int[24];
+    void dayParts_ampm7x2_플래그_생성검증() {
+        PopDailySeries7 daily = new PopDailySeries7(List.of(
+                new PopDailySeries7.DailyPop(70, 10),
+                new PopDailySeries7.DailyPop(10, 70),
+                new PopDailySeries7.DailyPop(65, 65),
+                new PopDailySeries7.DailyPop(0, 0),
+                new PopDailySeries7.DailyPop(80, 0),
+                new PopDailySeries7.DailyPop(0, 0),
+                new PopDailySeries7.DailyPop(0, 0)
+        ));
+
+        // 시간대별 POP 은 해당 테스트에서 의미가 없으므로 0으로 채움
+        PopSeries24 hourly = new PopSeries24(Collections.nCopies(24, 0));
 
         when(climateService.loadForecastSeries(1L, 1L))
-                .thenReturn(new ClimateService.ForecastSeries(hourly, ampm));
+                .thenReturn(new ClimateService.ForecastSeries(hourly, daily));
 
         RainForecastRule rule = new RainForecastRule(climateService);
 
-        var events = rule.evaluate(List.of(1L), Instant.parse("2025-11-04T00:00:00Z"));
+        // when
+        var events = rule.evaluate(List.of(1L), Instant.parse("2025-11-18T08:00:00Z"));
+
+        // then
         assertThat(events).hasSize(1);
 
         Map<String, Object> payload = events.get(0).payload();
+
         @SuppressWarnings("unchecked")
-        List<String> dayParts = (List<String>) payload.get("dayParts");
+        List<List<Integer>> dayParts = (List<List<Integer>>) payload.get("dayParts");
 
-        assertThat(dayParts).contains("오늘 오전");
-        assertThat(dayParts).contains("내일 오후");
-        assertThat(dayParts).contains("모레 오전");
-        assertThat(dayParts).contains("모레 오후");
-        assertThat(dayParts).contains("4일 후 오전");
-
-//        dayParts.forEach(System.out::println);
+        // TH = 60 기준
+        assertThat(dayParts).containsExactly(
+                List.of(1, 0),
+                List.of(0, 1),
+                List.of(1, 1),
+                List.of(0, 0),
+                List.of(1, 0),
+                List.of(0, 0),
+                List.of(0, 0)
+        );
     }
 
     @Test
-    void hourlyParts_오늘_내일_라벨과_시각형태를_반환한다() {
-        // 연속 POP≥60 구간을 일부 포함(임계치=60)
-        int[] hourly = new int[24];
-        // 오늘: 2~4시 비
-        hourly[2] = 60; hourly[3] = 60; hourly[4] = 60;
-        // 내일 라벨은 현재 시각에 따라 달라질 수 있으므로 두 번째 블록은 생략
+    void hourlyParts_연속구간_start_end_인덱스를_반환한다() {
+        List<Integer> hourlyValues = new ArrayList<>(Collections.nCopies(24, 0));
+        hourlyValues.set(2, 60);
+        hourlyValues.set(3, 60);
+        hourlyValues.set(4, 60);
 
-        Byte[][] ampm = new Byte[][]{
-                {(byte)0,(byte)0},{(byte)0,(byte)0},{(byte)0,(byte)0},
-                {(byte)0,(byte)0},{(byte)0,(byte)0},{(byte)0,(byte)0},{(byte)0,(byte)0}
-        };
+        PopSeries24 hourly = new PopSeries24(hourlyValues);
 
-        when(climateService.loadForecastSeries(9L, 1L))
-                .thenReturn(new ClimateService.ForecastSeries(hourly, ampm));
+        // 일자별 POP 은 해당 테스트에서 의미 없으므로 모두 0
+        PopDailySeries7 daily = new PopDailySeries7(List.of(
+                new PopDailySeries7.DailyPop(0, 0),
+                new PopDailySeries7.DailyPop(0, 0),
+                new PopDailySeries7.DailyPop(0, 0),
+                new PopDailySeries7.DailyPop(0, 0),
+                new PopDailySeries7.DailyPop(0, 0),
+                new PopDailySeries7.DailyPop(0, 0),
+                new PopDailySeries7.DailyPop(0, 0)
+        ));
+
+        when(climateService.loadForecastSeries(1L, 1L))
+                .thenReturn(new ClimateService.ForecastSeries(hourly, daily));
 
         RainForecastRule rule = new RainForecastRule(climateService);
-        var events = rule.evaluate(List.of(9L), Instant.now());
 
+        // when
+        var events = rule.evaluate(List.of(1L), Instant.now());
+
+        // then
         assertThat(events).hasSize(1);
+
         @SuppressWarnings("unchecked")
-        List<String> hourlyParts = (List<String>) events.get(0).payload().get("hourlyParts");
+        List<List<Integer>> hourlyParts =
+                (List<List<Integer>>) events.get(0).payload().get("hourlyParts");
 
-        // 내용이 비어있지 않고, "오늘" 또는 "내일"과 "시" 표기가 포함되는지만 확인
-        assertThat(hourlyParts).isNotEmpty();
-        assertThat(String.join(" ", hourlyParts)).contains("시");
-        assertThat(String.join(" ", hourlyParts)).containsAnyOf("오늘", "내일");
-
-//        hourlyParts.forEach(System.out::println);
+        // 2~4시 하나의 구간만 나와야 하므로 [2,4] 하나만 존재
+        assertThat(hourlyParts).containsExactly(
+                List.of(2, 4)
+        );
     }
 }

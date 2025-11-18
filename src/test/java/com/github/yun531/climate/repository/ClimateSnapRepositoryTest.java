@@ -21,11 +21,13 @@ import static org.assertj.core.api.Assertions.assertThat;
         "TRUNCATE TABLE climate_snap",
         "SET FOREIGN_KEY_CHECKS = 1",
         "insert into climate_snap values " +
-                "(10, 1,  1,2,3,4,5,6,7,8,9,10,11,12,13,12,11,10,9,8,7,6,5,4,3,2," +
+                "(10, 1, '2025-11-18 08:00:00'," +
+                    " 1,2,3,4,5,6,7,8,9,10,11,12,13,12,11,10,9,8,7,6,5,4,3,2," +
                     " 5,5, 7,7, 8,8, 7,7, 6,6, 5,5, 6,6," +
                     " 50,40,50,60,60, 60,40,30,20,10, 0,0,10,20,20, 30,40,60,10,0, 20,40,70,40," +
                     " 70,40, 40,40, 30,30, 40,40, 30,60, 50,50, 40,40)," +
-                "(1, 1,  1,2,3,4,5,6,7,8,9,10,11,12,13,12,11,10,9,8,7,6,5,4,3,2," +
+                "(1, 1, '2025-11-18 11:00:00'," +
+                    " 1,2,3,4,5,6,7,8,9,10,11,12,13,12,11,10,9,8,7,6,5,4,3,2," +
                     " 5,5, 7,7, 8,8, 7,7, 6,6, 5,5, 6,6," +
                     " 40,50,60,60,60, 60,30,20,10,0, 0,10,20,20,30, 60,60,60,0,20, 40,70,40,60," +
                     " 30,30, 40,40, 30,60, 50,50, 40,40, 20,20, 0,0)"
@@ -54,14 +56,17 @@ class ClimateSnapRepositoryTest {
         assertThat(s1.getRegionId()).isEqualTo(regionId);
         assertThat(s10.getRegionId()).isEqualTo(regionId);
 
+        assertThat(s1.getReportTime()).isNotNull();
+        assertThat(s10.getReportTime()).isNotNull();
+
         // 스키마/데이터에 기초한 POP 검증
         // snap_id=1  → POP_A00=40, POP_A23=60
-        assertThat(s1.getPopA00()).isEqualTo((byte) 40);
-        assertThat(s1.getPopA23()).isEqualTo((byte) 60);
+        assertThat(s1.getHourly().get(0)).isEqualTo((byte) 40);
+        assertThat(s1.getHourly().get(23)).isEqualTo((byte) 60);
 
         // snap_id=10 → POP_A00=50, POP_A23=40
-        assertThat(s10.getPopA00()).isEqualTo((byte) 50);
-        assertThat(s10.getPopA23()).isEqualTo((byte) 40);
+        assertThat(s10.getHourly().get(0)).isEqualTo((byte) 50);
+        assertThat(s10.getHourly().get(23)).isEqualTo((byte) 40);
     }
 
     @Test

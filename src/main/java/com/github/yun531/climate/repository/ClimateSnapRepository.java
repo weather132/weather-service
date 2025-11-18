@@ -19,10 +19,9 @@ public interface ClimateSnapRepository extends JpaRepository<ClimateSnap, Long> 
     // snap_id와 region_id를 함께 조건으로 조회
     ClimateSnap findBySnapIdAndRegionId(Long snapId, Long regionId);
 
-    // todo querydsl 검색
     @Query("""
         SELECT new com.github.yun531.climate.dto.POPSnapDto(
-            c.snapId, c.regionId,
+            c.snapId, c.regionId, c.reportTime,
             c.popA00, c.popA01, c.popA02, c.popA03, c.popA04,
             c.popA05, c.popA06, c.popA07, c.popA08, c.popA09,
             c.popA10, c.popA11, c.popA12, c.popA13, c.popA14,

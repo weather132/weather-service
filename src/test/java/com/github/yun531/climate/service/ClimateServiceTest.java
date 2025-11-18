@@ -1,13 +1,17 @@
 package com.github.yun531.climate.service;
 
+import com.github.yun531.climate.domain.PopDailySeries7;
+import com.github.yun531.climate.domain.PopSeries24;
 import com.github.yun531.climate.dto.POPSnapDto;
 import com.github.yun531.climate.repository.ClimateSnapRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,64 +31,104 @@ class ClimateServiceTest {
     }
 
     @Test
-    void loadPopSeries_정상_현재24_이전시프트23_길이검증_및_값검증() {
+    void loadPopSeries_정상_현재이전_길이_gap_값검증() {
         // given
         Long regionId = 100L;
         Long curId = 1L;
         Long prvId = 10L;
 
+        // 이전 리포트 시각: 2025-01-01T08:00
+        LocalDateTime prvTime = LocalDateTime.of(2025, 1, 1, 8, 0,0);
+        // 현재 리포트 시각: 3시간 뒤
+        LocalDateTime curTime = prvTime.plusHours(3);
+
+        // current: 0..23
+        List<Integer> curHourly = rangeList(0, 24);      // [0,1,...,23]
+        // previous: 10..33
+        List<Integer> prvHourly = rangeList(10, 24);     // [10,11,...,33]
+
         POPSnapDto cur = new POPSnapDto();
         cur.setSnapId(curId);
         cur.setRegionId(regionId);
-        fillHourly(cur, 0);            // 0,1,2,...,23
+        cur.setReportTime(curTime);
+        cur.setHourly(new PopSeries24(curHourly));
 
         POPSnapDto prv = new POPSnapDto();
         prv.setSnapId(prvId);
         prv.setRegionId(regionId);
-        fillHourly(prv, 10);           // 10,11,12,...,33
+        prv.setReportTime(prvTime);
+        prv.setHourly(new PopSeries24(prvHourly));
 
+        // 일부러 순서를 뒤집어서 반환해도 snapId 로 제대로 매핑되는지 확인
         when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(curId, prvId), regionId))
-                .thenReturn(List.of(cur, prv));   // mocking
+                .thenReturn(List.of(prv, cur));
 
         // when
         ClimateService.PopSeries series = climateService.loadPopSeries(regionId, curId, prvId);
 
         // then
-        assertThat(series.current()).hasSize(24);
-        assertThat(series.previousShifted()).hasSize(23);
+        assertThat(series.current()).isNotNull();
+        assertThat(series.previous()).isNotNull();
+
+        assertThat(series.current().size()).isEqualTo(24);
+        assertThat(series.previous().size()).isEqualTo(24);
 
         // current: 0..23
         for (int i = 0; i < 24; i++) {
-            assertThat(series.current()[i]).isEqualTo(i);
+            assertThat(series.current().get(i)).isEqualTo(i);
         }
-        // prvShift: prv[1..23] → 11..33
-        for (int i = 0; i < 23; i++) {
-            assertThat(series.previousShifted()[i]).isEqualTo(11 + i);
+        // previous: 10..33
+        for (int i = 0; i < 24; i++) {
+            assertThat(series.previous().get(i)).isEqualTo(10 + i);
         }
 
-        // given
-        // null → 0 변환 확인 (예: A05 null)
-        cur.setPopA05(null);
+        // 리포트 시각 차이(3시간)가 reportTimeGap 으로 반영되었는지 확인
+        assertThat(series.reportTimeGap()).isEqualTo(3);
+    }
+
+    @Test
+    void loadPopSeries_스냅하나라도없으면_null과_gap0반환() {
+        Long regionId = 200L;
+        Long curId = 1L;
+        Long prvId = 10L;
+
+        POPSnapDto onlyCur = new POPSnapDto();
+        onlyCur.setSnapId(curId);
+        onlyCur.setRegionId(regionId);
+        onlyCur.setReportTime(LocalDateTime.now());
+        onlyCur.setHourly(new PopSeries24(rangeList(0, 24)));
+
+        // 이전 스냅이 없는 경우 (cur 만 반환)
         when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(curId, prvId), regionId))
-                .thenReturn(List.of(cur, prv));
+                .thenReturn(List.of(onlyCur));
 
-        // when
-        series = climateService.loadPopSeries(regionId, curId, prvId);
+        ClimateService.PopSeries series = climateService.loadPopSeries(regionId, curId, prvId);
 
-        // then
-        assertThat(series.current()[5]).isEqualTo(0);
+        assertThat(series.current()).isNull();
+        assertThat(series.previous()).isNull();
+        assertThat(series.reportTimeGap()).isEqualTo(0);
     }
 
     @Test
     void loadDefaultPopSeries_레포호출파라미터_검증() {
         // given
         Long regionId = 7L;
-        POPSnapDto cur = new POPSnapDto(); cur.setSnapId(1L); cur.setRegionId(regionId);
-        POPSnapDto prv = new POPSnapDto(); prv.setSnapId(10L); prv.setRegionId(regionId);
-        fillHourly(cur, 0);
-        fillHourly(prv, 1);
+        Long curId = 1L;   // SNAP_CURRENT_DEFAULT
+        Long prvId = 10L;  // SNAP_PREV_DEFAULT
 
-        when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(1L, 10L), regionId))
+        POPSnapDto cur = new POPSnapDto();
+        cur.setSnapId(curId);
+        cur.setRegionId(regionId);
+        cur.setReportTime(LocalDateTime.now());
+        cur.setHourly(new PopSeries24(rangeList(0, 24)));
+
+        POPSnapDto prv = new POPSnapDto();
+        prv.setSnapId(prvId);
+        prv.setRegionId(regionId);
+        prv.setReportTime(LocalDateTime.now().minusHours(3));
+        prv.setHourly(new PopSeries24(rangeList(10, 24)));
+
+        when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(curId, prvId), regionId))
                 .thenReturn(List.of(cur, prv));
 
         // when
@@ -96,51 +140,77 @@ class ClimateServiceTest {
     }
 
     @Test
-    void loadForecastSeries_현재24_ampm7x2_매핑검증() {
+    void loadForecastSeries_hourly와_daily_매핑검증() {
         Long regionId = 55L;
         Long snapId = 1L;
 
-        POPSnapDto dto = new POPSnapDto();
-        dto.setSnapId(snapId);
-        dto.setRegionId(regionId);
-        fillHourly(dto, 0);          // 0,1,2,...,23
-        fillAmpm7x2(dto, new byte[][]{
-                {60, 10}, {10, 70}, {65, 65}, {0, 0}, {80, 0}, {0, 80}, {50, 50}
-        });
+        POPSnapDto popSnapDto = new POPSnapDto();
+        popSnapDto.setSnapId(snapId);
+        popSnapDto.setRegionId(regionId);
+        popSnapDto.setReportTime(LocalDateTime.now());
+
+        // hourly: 0..23
+        popSnapDto.setHourly(new PopSeries24(rangeList(0, 24)));
+
+        // daily: 7일치 AM/PM
+        PopDailySeries7 daily = new PopDailySeries7(List.of(
+                new PopDailySeries7.DailyPop(60, 10),
+                new PopDailySeries7.DailyPop(10, 70),
+                new PopDailySeries7.DailyPop(65, 65),
+                new PopDailySeries7.DailyPop(0, 0),
+                new PopDailySeries7.DailyPop(80, 0),
+                new PopDailySeries7.DailyPop(0, 80),
+                new PopDailySeries7.DailyPop(50, 50)
+        ));
+        popSnapDto.setDaily(daily);
 
         when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(snapId), regionId))
-                .thenReturn(List.of(dto));
+                .thenReturn(List.of(popSnapDto));
+
+        // when
+        ClimateService.ForecastSeries fs = climateService.loadForecastSeries(regionId, snapId);
+
+        // then
+        assertThat(fs.hourly()).isNotNull();
+        assertThat(fs.daily()).isNotNull();
+
+        // hourly 0..23
+        assertThat(fs.hourly().size()).isEqualTo(24);
+        for (int i = 0; i < 24; i++) {
+            assertThat(fs.hourly().get(i)).isEqualTo(i);
+        }
+
+        // daily 7일 AM/PM
+        assertThat(fs.daily().getDays()).hasSize(7);
+        assertThat(fs.daily().getDays().get(0).getAm()).isEqualTo(60);
+        assertThat(fs.daily().getDays().get(0).getPm()).isEqualTo(10);
+        assertThat(fs.daily().getDays().get(1).getPm()).isEqualTo(70);
+        assertThat(fs.daily().getDays().get(4).getAm()).isEqualTo(80);
+        assertThat(fs.daily().getDays().get(5).getPm()).isEqualTo(80);
+    }
+
+    @Test
+    void loadForecastSeries_행없으면_null들_반환() {
+        Long regionId = 99L;
+        Long snapId = 1L;
+
+        when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(snapId), regionId))
+                .thenReturn(List.of());   // 빈 리스트
 
         ClimateService.ForecastSeries fs = climateService.loadForecastSeries(regionId, snapId);
-        assertThat(fs.hourly24()).hasSize(24);
-        for (int i = 0; i < 24; i++) assertThat(fs.hourly24()[i]).isEqualTo(i);
 
-        assertThat(fs.ampm7x2()).hasDimensions(7, 2);
-        assertThat(fs.ampm7x2()[0][0]).isEqualTo((byte)60);
-        assertThat(fs.ampm7x2()[0][1]).isEqualTo((byte)10);
-        assertThat(fs.ampm7x2()[1][1]).isEqualTo((byte)70);
-        assertThat(fs.ampm7x2()[4][0]).isEqualTo((byte)80);
-        assertThat(fs.ampm7x2()[5][1]).isEqualTo((byte)80);
+        assertThat(fs.hourly()).isNull();
+        assertThat(fs.daily()).isNull();
     }
 
     // ---- helpers ----
-    private void fillHourly(POPSnapDto d, int base) {
-        d.setPopA00((byte)(base + 0));  d.setPopA01((byte)(base + 1));  d.setPopA02((byte)(base + 2));  d.setPopA03((byte)(base + 3));
-        d.setPopA04((byte)(base + 4));  d.setPopA05((byte)(base + 5));  d.setPopA06((byte)(base + 6));  d.setPopA07((byte)(base + 7));
-        d.setPopA08((byte)(base + 8));  d.setPopA09((byte)(base + 9));  d.setPopA10((byte)(base +10));  d.setPopA11((byte)(base +11));
-        d.setPopA12((byte)(base +12));  d.setPopA13((byte)(base +13));  d.setPopA14((byte)(base +14));  d.setPopA15((byte)(base +15));
-        d.setPopA16((byte)(base +16));  d.setPopA17((byte)(base +17));  d.setPopA18((byte)(base +18));  d.setPopA19((byte)(base +19));
-        d.setPopA20((byte)(base +20));  d.setPopA21((byte)(base +21));  d.setPopA22((byte)(base +22));  d.setPopA23((byte)(base +23));
-    }
 
-    private void fillAmpm7x2(POPSnapDto d, byte[][] v) {
-        // v[d][0]=am, v[d][1]=pm, d=0..6
-        d.setPopA0dAm(v[0][0]); d.setPopA0dPm(v[0][1]);
-        d.setPopA1dAm(v[1][0]); d.setPopA1dPm(v[1][1]);
-        d.setPopA2dAm(v[2][0]); d.setPopA2dPm(v[2][1]);
-        d.setPopA3dAm(v[3][0]); d.setPopA3dPm(v[3][1]);
-        d.setPopA4dAm(v[4][0]); d.setPopA4dPm(v[4][1]);
-        d.setPopA5dAm(v[5][0]); d.setPopA5dPm(v[5][1]);
-        d.setPopA6dAm(v[6][0]); d.setPopA6dPm(v[6][1]);
+    /** base부터 base+count-1 까지 int 리스트 생성 */
+    private static List<Integer> rangeList(int base, int count) {
+        List<Integer> out = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            out.add(base + i);
+        }
+        return out;
     }
 }
