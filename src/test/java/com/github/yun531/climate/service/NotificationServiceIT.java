@@ -1,5 +1,6 @@
 package com.github.yun531.climate.service;
 
+import com.github.yun531.climate.service.rule.AlertEvent;
 import com.github.yun531.climate.service.rule.AlertTypeEnum;
 import com.github.yun531.climate.service.rule.RainOnsetChangeRule;
 import com.github.yun531.climate.service.rule.WarningIssuedRule;
@@ -63,14 +64,16 @@ import static org.mockito.Mockito.*;
                 "(1, 'HEAT',  'WARNING',  '2025-11-04 06:30:00')," +
                 "(2, 'WIND',  'ADVISORY', '2025-11-04 07:15:00')"
 })
-@Import(NotificationGeneratorServiceIT.SpyConfig.class)
-class NotificationGeneratorServiceIT {
+@Import(NotificationServiceIT.SpyConfig.class)
+class NotificationServiceIT {
 
     @Autowired
-    private NotificationGeneratorService service;
+    private NotificationService service;
 
-    @Autowired private RainOnsetChangeRule rainRule;      // 이제 테스트 설정이 주입
-    @Autowired private WarningIssuedRule warningRule;     // 이제 테스트 설정이 주입
+    @Autowired
+    private RainOnsetChangeRule rainRule;      // SpyConfig 에서 주입되는 spy
+    @Autowired
+    private WarningIssuedRule warningRule;     // SpyConfig 에서 주입되는 spy
 
     @TestConfiguration
     static class SpyConfig {
@@ -85,34 +88,38 @@ class NotificationGeneratorServiceIT {
     }
 
     @Test
-    @DisplayName("receiveWarnings=false: 비 시작 알림만 생성되고 특보 알림은 제외된다")
+    @DisplayName("receiveWarnings=false: 비 시작(AlertType=RAIN_ONSET) 알림만 생성되고 특보(WARNING_ISSUED)는 제외된다")
     void only_rain_when_receiveWarnings_false() {
         var since = LocalDateTime.parse("2025-11-04T04:00:00");
 
-        var messages = service.generate(List.of(1), false, since);
+        // when
+        List<AlertEvent> events = service.generate(List.of(1), false, since);
 
-        assertThat(messages).isNotEmpty();
-        assertThat(String.join("\n", messages))
-                .contains("지역 1")
-                .contains("비 시작")
-                .doesNotContain("발효");
+        // then
+        assertThat(events).isNotEmpty();
+        assertThat(events)
+                .extracting(AlertEvent::type)
+                .contains(AlertTypeEnum.RAIN_ONSET)
+                .doesNotContain(AlertTypeEnum.WARNING_ISSUED);
 
         verify(rainRule, times(1)).evaluate(any(), any());
         verify(warningRule, never()).evaluate(any(), any());
     }
 
     @Test
-    @DisplayName("receiveWarnings=true: 비 시작 + 특보 발효 알림 모두 생성된다")
+    @DisplayName("receiveWarnings=true: 비 시작 + 특보 발효(AlertType=RAIN_ONSET, WARNING_ISSUED) 모두 생성된다")
     void rain_and_warnings_when_receiveWarnings_true() {
         var since = LocalDateTime.parse("2025-11-04T04:00:00");
         int regionId01 = 1, regionId02 = 2;
 
-        var messages = service.generate(List.of(regionId01, regionId02), true, since);
+        // when
+        List<AlertEvent> events = service.generate(List.of(regionId01, regionId02), true, since);
 
-        assertThat(messages).isNotEmpty();
-        var joined = String.join("\n", messages);
-        assertThat(joined).contains("비 시작");
-        assertThat(joined).contains("발효");
+        // then
+        assertThat(events).isNotEmpty();
+        assertThat(events)
+                .extracting(AlertEvent::type)
+                .contains(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED);
 
         verify(rainRule, times(1)).evaluate(any(), any());
         verify(warningRule, times(1)).evaluate(any(), any());
@@ -124,10 +131,10 @@ class NotificationGeneratorServiceIT {
         var since = LocalDateTime.parse("2025-11-04T04:00:00");
         var regionIds = List.of(10, 11, 12, 13); // 4개 입력
 
-        // 실행
-        service.generate(regionIds, EnumSet.of(AlertTypeEnum.RAIN_ONSET), since, Locale.KOREA);
+        // when
+        service.generate(regionIds, EnumSet.of(AlertTypeEnum.RAIN_ONSET), since);
 
-        // 전달된 인자 캡처
+        // then: 전달된 인자 캡처
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Integer>> captor = ArgumentCaptor.forClass(List.class);
         verify(rainRule, times(1)).evaluate(captor.capture(), any());
@@ -137,46 +144,48 @@ class NotificationGeneratorServiceIT {
     }
 
     @Test
-    @DisplayName("정렬: 룰 → 지역 → 타입명 → 시각 순으로 정렬된다")
+    @DisplayName("정렬: 타입 → 지역 → 타입명 → 시각 순으로 정렬된다")
     void sort_rule_applied() {
-        // given
         var since = LocalDateTime.parse("2025-11-04T04:00:00");
         int regionId01 = 1, regionId02 = 1;
 
         // when
-        var messages = service.generate(
+        List<AlertEvent> events = service.generate(
                 List.of(regionId01, regionId02),
                 EnumSet.of(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED),
-                since,
-                Locale.KOREA
+                since
         );
 
-        // then
-        assertThat(messages).isNotEmpty();
+        assertThat(events).isNotEmpty();
 
-        // 1) 룰 블록 우선: '비 시작'(RAIN_ONSET) 들이 '발효'(WARNING_ISSUED) 보다 앞에 와야 한다
+        // 1) 타입 순서 검증: 같은 리스트 내에서 RAIN_ONSET 들이 WARNING_ISSUED 들보다 앞에 오는지
         List<Integer> rainIdx = new ArrayList<>();
         List<Integer> warnIdx = new ArrayList<>();
-        for (int i = 0; i < messages.size(); i++) {
-            String m = messages.get(i);
-            if (m.contains("비 시작")) rainIdx.add(i);
-            if (m.contains("발효"))    warnIdx.add(i);
+        for (int i = 0; i < events.size(); i++) {
+            AlertEvent e = events.get(i);
+            if (e.type() == AlertTypeEnum.RAIN_ONSET) {
+                rainIdx.add(i);
+            }
+            if (e.type() == AlertTypeEnum.WARNING_ISSUED) {
+                warnIdx.add(i);
+            }
         }
         assertThat(rainIdx).isNotEmpty();
         assertThat(warnIdx).isNotEmpty();
-        // 가장 뒤의 '비 시작' 인덱스 < 가장 앞의 '발효' 인덱스
-        assertThat(Collections.max(rainIdx)).isLessThan(Collections.min(warnIdx));
 
-        // 2) 같은 룰 블록(비 시작) 내에서는 지역 번호가 오름차순인지 대략 확인
-        int firstRain = rainIdx.get(0);
-        int lastRain  = rainIdx.get(rainIdx.size() - 1);
-        List<String> rainMsgs = messages.subList(firstRain, lastRain + 1);
+        int lastRainIndex = Collections.max(rainIdx);
+        int firstWarnIndex = Collections.min(warnIdx);
 
-        var regionNums = rainMsgs.stream()
-                .map(s -> {
-                    var m = java.util.regex.Pattern.compile("지역\\s+(\\d+)").matcher(s);
-                    return m.find() ? Integer.parseInt(m.group(1)) : Integer.MAX_VALUE;
-                })
+        assertThat(lastRainIndex).isLessThan(firstWarnIndex);
+
+        // 2) 같은 타입 블록 내에서는 regionId 오름차순인지 대략 확인
+        List<AlertEvent> rainEvents = events.stream()
+                .filter(e -> e.type() == AlertTypeEnum.RAIN_ONSET)
+                .toList();
+
+        List<Integer> regionNums = rainEvents.stream()
+                .map(AlertEvent::regionId)
+                .map(Integer::valueOf)
                 .toList();
 
         assertThat(regionNums).isSorted(); // region asc
