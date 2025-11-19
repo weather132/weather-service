@@ -7,9 +7,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface WarningStateRepository extends JpaRepository<WarningState, Long> {
+public interface WarningStateRepository extends JpaRepository<WarningState, Integer> {
 
-    List<WarningState> findByRegionIdIn(Collection<Long> regionIds);
+    List<WarningState> findByRegionIdIn(Collection<Integer> regionIds);
 
-    Optional<WarningState> findTopByRegionIdOrderByUpdatedAtDesc(long regionId);
+    Optional<WarningState> findTopByRegionIdOrderByUpdatedAtDesc(int regionId);
 }

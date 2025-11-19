@@ -1,13 +1,13 @@
 package com.github.yun531.climate.entity;
 
-import java.time.Instant;
+import com.github.yun531.climate.domain.WarningKind;
+import com.github.yun531.climate.domain.WarningLevel;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Generated;
 import org.hibernate.generator.EventType;
 
-import com.github.yun531.climate.domain.WarningKind;
-import com.github.yun531.climate.domain.WarningLevel;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -21,10 +21,10 @@ public class WarningState {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "warning_id")
-    private long warningId;                 // PK
+    private Integer warningId;                 // PK
 
     @Column(name = "region_id", nullable = false)
-    private long regionId;                  // 지역코드
+    private Integer regionId;                  // 지역코드
 
     @Enumerated(EnumType.STRING)   // Enumerated 지원 안하는 DB 있음, 주의
     @Column(name = "kind", length = 16)
@@ -37,5 +37,5 @@ public class WarningState {
 
     @Generated(event = { EventType.INSERT, EventType.UPDATE })
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
-    private Instant updatedAt;              // 특보 발효/갱신 시각
-}   // todo: Instant 를 LocalDateTime로 변경 (좀 많음)
+    private LocalDateTime updatedAt;              // 특보 발효/갱신 시각
+}

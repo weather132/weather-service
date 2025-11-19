@@ -1,6 +1,9 @@
 package com.github.yun531.climate.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,10 +17,10 @@ public class ClimateSnap {
 
     @Id
     @Column(name = "snap_id")
-    private long snapId;
+    private Integer snapId;
 
     @Column(name = "region_id", nullable = false)
-    private long regionId;
+    private Integer regionId;
 
     @Column(name = "report_time", nullable = false)
     private LocalDateTime reportTime;

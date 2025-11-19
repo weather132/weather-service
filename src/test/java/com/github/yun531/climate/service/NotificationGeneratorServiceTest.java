@@ -13,11 +13,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,13 +49,13 @@ class NotificationGeneratorServiceTest {
     @DisplayName("기본값: enabledTypes가 null/empty면 RAIN_ONSET만 실행된다")
     void default_selects_only_rain_rule() {
         // given
-        Instant t = Instant.parse("2025-11-04T05:00:00Z");
+        LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
         when(rainRule.evaluate(anyList(), any())).thenReturn(List.of(
-                rainEvent(1L, t, 5, 70)
+                rainEvent(1, t, 5, 70)
         ));
 
         // when (enabledTypes null -> 디폴트는 RAIN_ONSET만)
-        List<String> out = service.generate(List.of(1L), null, t, Locale.KOREA);
+        List<String> out = service.generate(List.of(1), null, t, Locale.KOREA);
 
         // then
         assertThat(out).hasSize(1);
@@ -68,18 +69,18 @@ class NotificationGeneratorServiceTest {
     @DisplayName("enabledTypes에 RAIN_ONSET, WARNING_ISSUED를 주면 두 룰 모두 실행된다")
     void enabled_both_rules() {
         // given
-        Instant t1 = Instant.parse("2025-11-04T05:00:00Z");
-        Instant t2 = Instant.parse("2025-11-04T06:00:00Z");
+        LocalDateTime t1 = LocalDateTime.parse("2025-11-04T05:00:00");
+        LocalDateTime t2 = LocalDateTime.parse("2025-11-04T06:00:00");
         when(rainRule.evaluate(anyList(), any())).thenReturn(List.of(
-                rainEvent(1L, t1, 5, 70)
+                rainEvent(1, t1, 5, 70)
         ));
         when(warnRule.evaluate(anyList(), any())).thenReturn(List.of(
-                warningEvent(2L, t2, WarningKind.RAIN, WarningLevel.WARNING)
+                warningEvent(2, t2, WarningKind.RAIN, WarningLevel.WARNING)
         ));
 
         // when
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED);
-        List<String> out = service.generate(List.of(1L, 2L), enabled, t1, Locale.KOREA);
+        List<String> out = service.generate(List.of(1, 2), enabled, t1, Locale.KOREA);
 
         // then
         assertThat(out).hasSize(2);
@@ -92,16 +93,16 @@ class NotificationGeneratorServiceTest {
     @DisplayName("receiveWarnings = true이면 WARNING_ISSUED 룰도 함께 실행된다")
     void generate_with_receiveWarnings_true_runs_warning_rule() {
         // given
-        Instant t = Instant.parse("2025-11-04T05:00:00Z");
+        LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
         when(rainRule.evaluate(anyList(), any())).thenReturn(List.of(
-                rainEvent(1L, t, 5, 70)
+                rainEvent(1, t, 5, 70)
         ));
         when(warnRule.evaluate(anyList(), any())).thenReturn(List.of(
-                warningEvent(1L, t, WarningKind.RAIN, WarningLevel.ADVISORY)
+                warningEvent(1, t, WarningKind.RAIN, WarningLevel.ADVISORY)
         ));
 
         // when (since=null로 호출 → 내부에서 90분 윈도우를 적용)
-        List<String> out = service.generate(List.of(1L), true, null);
+        List<String> out = service.generate(List.of(1), true, null);
 
         // then
         assertThat(out).hasSize(2);
@@ -114,15 +115,15 @@ class NotificationGeneratorServiceTest {
     @DisplayName("deduplicate: 동일 (type|region|occurredAt) 이벤트는 한 번만 출력된다")
     void deduplicate_removes_duplicates() {
         // given
-        Instant t = Instant.parse("2025-11-04T05:00:00Z");
-        AlertEvent dup1 = rainEvent(1L, t, 5, 70);
-        AlertEvent dup2 = rainEvent(1L, t, 5, 70); // 같은 키(type|region|t)
+        LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
+        AlertEvent dup1 = rainEvent(1, t, 5, 70);
+        AlertEvent dup2 = rainEvent(1, t, 5, 70); // 같은 키(type|region|t)
 
         when(rainRule.evaluate(anyList(), any())).thenReturn(List.of(dup1, dup2));
 
         // when
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
-        List<String> out = service.generate(List.of(1L), enabled, t, Locale.KOREA);
+        List<String> out = service.generate(List.of(1), enabled, t, Locale.KOREA);
 
         // then
         assertThat(out).hasSize(1);
@@ -137,37 +138,37 @@ class NotificationGeneratorServiceTest {
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
 
         // when
-        List<Long> input = List.of(10L, 11L, 12L, 13L); // 4개 입력
-        service.generate(input, enabled, Instant.parse("2025-11-04T05:00:00Z"), Locale.KOREA);
+        List<Integer> input = List.of(10, 11, 12, 13); // 4개 입력
+        service.generate(input, enabled, LocalDateTime.parse("2025-11-04T05:00:00"), Locale.KOREA);
 
         // then: 전달된 regionIds는 앞 3개만
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<Long>> captor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<Integer>> captor = ArgumentCaptor.forClass(List.class);
         verify(rainRule, times(1)).evaluate(captor.capture(), any());
-        List<Long> passed = captor.getValue();
-        assertThat(passed).containsExactly(10L, 11L, 12L);
+        List<Integer> passed = captor.getValue();
+        assertThat(passed).containsExactly(10, 11, 12);
     }
 
     @Test
     @DisplayName("정렬: 지역 → 타입명 → 발생시각 순으로 정렬된다")
     void sort_by_region_type_then_time() {
         // given
-        Instant t1 = Instant.parse("2025-11-04T05:00:00Z");
-        Instant t2 = Instant.parse("2025-11-04T06:00:00Z");
+        LocalDateTime t1 = LocalDateTime.parse("2025-11-04T05:00:00");
+        LocalDateTime t2 = LocalDateTime.parse("2025-11-04T06:00:00");
 
         // region 2에 비 시작, region 1에 특보, region 1에 비 시작(시각 t2)
         when(rainRule.evaluate(anyList(), any())).thenReturn(List.of(
-                rainEvent(2L, t1, 5, 70),
-                rainEvent(1L, t2, 6, 80)
+                rainEvent(2, t1, 5, 70),
+                rainEvent(1, t2, 6, 80)
         ));
         when(warnRule.evaluate(anyList(), any())).thenReturn(List.of(
-                warningEvent(1L, t1, WarningKind.RAIN, WarningLevel.WARNING)
+                warningEvent(1, t1, WarningKind.RAIN, WarningLevel.WARNING)
         ));
 
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED);
 
         // when
-        List<String> out = service.generate(List.of(1L, 2L), enabled, Instant.parse("2025-11-04T04:00:00Z"), Locale.KOREA);
+        List<String> out = service.generate(List.of(1, 2), enabled, LocalDateTime.parse("2025-11-04T04:00:00"), Locale.KOREA);
 
         // then: 정렬 규칙 = 룰 식별자(_srcRule) asc, region asc, type name asc, time asc
         //  - "RainOnsetChangeRule" < "WarningIssuedRule" 이므로 비 시작 2건이 먼저 묶임
@@ -192,15 +193,15 @@ class NotificationGeneratorServiceTest {
     @Test
     @DisplayName("since 값이 룰 evaluate 로 그대로 전달된다")
     void since_is_forwarded_to_rules() {
-        Instant since = Instant.parse("2025-11-04T05:55:00Z");
+        LocalDateTime since = LocalDateTime.parse("2025-11-04T05:55:00");
         when(rainRule.evaluate(anyList(), any())).thenReturn(List.of());
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
 
         // when
-        service.generate(List.of(1L), enabled, since, Locale.KOREA);
+        service.generate(List.of(1), enabled, since, Locale.KOREA);
 
         // then
-        ArgumentCaptor<Instant> captor = ArgumentCaptor.forClass(Instant.class);
+        ArgumentCaptor<LocalDateTime> captor = ArgumentCaptor.forClass(LocalDateTime.class);
         verify(rainRule).evaluate(anyList(), captor.capture());
         assertThat(captor.getValue()).isEqualTo(since);
     }
@@ -216,14 +217,14 @@ class NotificationGeneratorServiceTest {
         payload.put("dayParts", List.of("내일 오전"));
 
         when(forecastRule.evaluate(anyList(), any())).thenReturn(List.of(
-                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 1L, Instant.parse("2025-11-04T05:00:00Z"), payload)
+                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 1, LocalDateTime.parse("2025-11-04T05:00:00"), payload)
         ));
 
         NotificationGeneratorService svc = new NotificationGeneratorService(List.of(rainRule, warnRule, forecastRule));
 
         // when
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
-        List<String> out = svc.generate(List.of(1L), enabled, Instant.parse("2025-11-04T04:00:00Z"), Locale.KOREA);
+        List<String> out = svc.generate(List.of(1), enabled, LocalDateTime.parse("2025-11-04T04:00:00"), Locale.KOREA);
 
         // then
         assertThat(out).hasSize(1);
@@ -237,7 +238,7 @@ class NotificationGeneratorServiceTest {
         AlertRule forecastRule = mock(AlertRule.class);
         when(forecastRule.supports()).thenReturn(AlertTypeEnum.RAIN_FORECAST);
 
-        Instant t = Instant.parse("2025-11-04T05:00:00Z");
+        LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
 
         Map<String, Object> p1 = new HashMap<>();
         p1.put("hourlyParts", List.of("오늘 09~12시"));
@@ -252,9 +253,9 @@ class NotificationGeneratorServiceTest {
         p3.put("dayParts", List.of("모레 오후"));
 
         when(forecastRule.evaluate(anyList(), any())).thenReturn(List.of(
-                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 1L, t, p1),
-                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 2L, t, p2),
-                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 3L, t, p3)
+                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 1, t, p1),
+                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 2, t, p2),
+                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 3, t, p3)
         ));
 
         // SUT: forecastRule만 활성화
@@ -262,7 +263,7 @@ class NotificationGeneratorServiceTest {
 
         // when
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
-        List<String> out = svc.generate(List.of(1L, 2L, 3L), enabled, Instant.parse("2025-11-04T04:00:00Z"), Locale.KOREA);
+        List<String> out = svc.generate(List.of(1, 2, 3), enabled, LocalDateTime.parse("2025-11-04T04:00:00"), Locale.KOREA);
 
         // then: 3개 지역 각각 한 줄
         assertThat(out).hasSize(3);
@@ -272,16 +273,16 @@ class NotificationGeneratorServiceTest {
 
         // 전달된 regionIds가 정확히 [1,2,3]인지 검증
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<Long>> captor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<Integer>> captor = ArgumentCaptor.forClass(List.class);
         verify(forecastRule, times(1)).evaluate(captor.capture(), any());
-        assertThat(captor.getValue()).containsExactly(1L, 2L, 3L);
+        assertThat(captor.getValue()).containsExactly(1, 2, 3);
 
 //        System.out.println("=== 실제 생성된 문자열 출력 ===");
 //        out.forEach(System.out::println);
     }
 
     // ---- helpers ----
-    private static AlertEvent rainEvent(long regionId, Instant t, int hour, int pop) {
+    private static AlertEvent rainEvent(int regionId, LocalDateTime t, int hour, int pop) {
         return new AlertEvent(
                 AlertTypeEnum.RAIN_ONSET,
                 regionId,
@@ -290,7 +291,7 @@ class NotificationGeneratorServiceTest {
         );
     }
 
-    private static AlertEvent warningEvent(long regionId, Instant t, WarningKind kind, WarningLevel level) {
+    private static AlertEvent warningEvent(int regionId, LocalDateTime t, WarningKind kind, WarningLevel level) {
         return new AlertEvent(
                 AlertTypeEnum.WARNING_ISSUED,
                 regionId,

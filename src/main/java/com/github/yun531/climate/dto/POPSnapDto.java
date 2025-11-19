@@ -16,16 +16,16 @@ import java.util.List;
 @NoArgsConstructor
 public class POPSnapDto {
 
-    private long snapId;
-    private long regionId;
+    private int snapId;
+    private int regionId;
     private LocalDateTime reportTime;
 
     private PopSeries24 hourly;         // ---- 시간대별 POP (0~23시) ---- //
     private PopDailySeries7 daily;      // ---- 일자별 (0~6일) 오전/오후 POP ----
 
     public POPSnapDto(
-            long snapId,
-            long regionId,
+            Integer snapId,
+            Integer regionId,
             LocalDateTime reportTime,
             Integer popA00, Integer popA01, Integer popA02, Integer popA03, Integer popA04,
             Integer popA05, Integer popA06, Integer popA07, Integer popA08, Integer popA09,

@@ -3,13 +3,14 @@ package com.github.yun531.climate.service.rule;
 
 import com.github.yun531.climate.domain.PopDailySeries7;
 import com.github.yun531.climate.domain.PopSeries24;
+import com.github.yun531.climate.domain.SnapKindEnum;
 import com.github.yun531.climate.service.ClimateService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -35,17 +36,18 @@ class RainForecastRuleTest {
                 new PopDailySeries7.DailyPop(0, 0),
                 new PopDailySeries7.DailyPop(0, 0)
         ));
+        int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
 
         // 시간대별 POP 은 해당 테스트에서 의미가 없으므로 0으로 채움
         PopSeries24 hourly = new PopSeries24(Collections.nCopies(24, 0));
 
-        when(climateService.loadForecastSeries(1L, 1L))
+        when(climateService.loadForecastSeries(1, snapId))
                 .thenReturn(new ClimateService.ForecastSeries(hourly, daily));
 
         RainForecastRule rule = new RainForecastRule(climateService);
 
         // when
-        var events = rule.evaluate(List.of(1L), Instant.parse("2025-11-18T08:00:00Z"));
+        var events = rule.evaluate(List.of(1), LocalDateTime.parse("2025-11-18T08:00:00"));
 
         // then
         assertThat(events).hasSize(1);
@@ -87,13 +89,15 @@ class RainForecastRuleTest {
                 new PopDailySeries7.DailyPop(0, 0)
         ));
 
-        when(climateService.loadForecastSeries(1L, 1L))
+        int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
+
+        when(climateService.loadForecastSeries(1, snapId))
                 .thenReturn(new ClimateService.ForecastSeries(hourly, daily));
 
         RainForecastRule rule = new RainForecastRule(climateService);
 
         // when
-        var events = rule.evaluate(List.of(1L), Instant.now());
+        var events = rule.evaluate(List.of(1), LocalDateTime.now());
 
         // then
         assertThat(events).hasSize(1);

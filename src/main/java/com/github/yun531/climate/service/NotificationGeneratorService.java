@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -21,35 +21,35 @@ public class NotificationGeneratorService {
 
     private final List<AlertRule> rules; // @Component 룰 자동 주입 (RAIN_ONSET, WARNING_ISSUED 등)
 
-    public List<String> generate(List<Long> regionIds,
+    public List<String> generate(List<Integer> regionIds,
                                  boolean receiveWarnings,
-                                 @Nullable Instant since) {
+                                 @Nullable LocalDateTime since) {
 
-        Instant effectiveSince = (since != null) ? since : Instant.now();
+        LocalDateTime effectiveSince = (since != null) ? since : LocalDateTime.now();
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
         if (receiveWarnings)
             enabled.add(AlertTypeEnum.WARNING_ISSUED);
 
         return generate(regionIds, enabled, effectiveSince, Locale.KOREA);
     }
-    public List<String> generate(List<Long> regionIds,
+    public List<String> generate(List<Integer> regionIds,
                                  @Nullable Set<AlertTypeEnum> enabledTypes,
-                                 @Nullable Instant since) {
+                                 @Nullable LocalDateTime since) {
 
-        Instant effectiveSince = (since != null) ? since : Instant.now();
+        LocalDateTime effectiveSince = (since != null) ? since : LocalDateTime.now();
         return generate(regionIds, enabledTypes, effectiveSince, Locale.KOREA);
     }
 
-    public List<String> generate(List<Long> regionIds,
+    public List<String> generate(List<Integer> regionIds,
                                  @Nullable Set<AlertTypeEnum> enabledTypes,
-                                 @Nullable Instant since,
+                                 @Nullable LocalDateTime since,
                                  Locale locale) {
 
         if (regionIds == null || regionIds.isEmpty())
             return List.of();
 
         // 지역 최대 3개 제한 (초과 시 앞에서 3개만 사용)
-        List<Long> targetRegions = regionIds.size() > 3 ? regionIds.subList(0, 3) : regionIds;
+        List<Integer> targetRegions = regionIds.size() > 3 ? regionIds.subList(0, 3) : regionIds;
 
         // 실행할 타입 결정 (기본은 RAIN_ONSET만)  // todo 함수로 리펙토링
         final Set<AlertTypeEnum> selected = (enabledTypes == null || enabledTypes.isEmpty())
@@ -94,7 +94,7 @@ public class NotificationGeneratorService {
     /** <type>|<regionId>|<occurredAt> 형태로 생성 */
     private String keyOf(AlertEvent e) {
         return (e.type() == null ? "?" : e.type().name())
-                + "|" + (e.regionId() == null ? "?" : e.regionId())
+                + "|" + e.regionId()
                 + "|" + (e.occurredAt() == null ? "?" : e.occurredAt().toString());
     }
 

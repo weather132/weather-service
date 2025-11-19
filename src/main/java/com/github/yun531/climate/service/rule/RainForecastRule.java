@@ -2,11 +2,12 @@ package com.github.yun531.climate.service.rule;
 
 import com.github.yun531.climate.domain.PopDailySeries7;
 import com.github.yun531.climate.domain.PopSeries24;
+import com.github.yun531.climate.domain.SnapKindEnum;
 import com.github.yun531.climate.service.ClimateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +20,7 @@ public class RainForecastRule implements AlertRule {
     private final ClimateService climateService;
 
     private static final int TH = 60;
-    private long SNAP_CURRENT_DEFAULT = 1L;  // todo: snapId 임시 하드코딩
+    private static final int SNAP_CURRENT = SnapKindEnum.SNAP_CURRENT.getCode();
 
     @Override
     public AlertTypeEnum supports() {
@@ -27,14 +28,14 @@ public class RainForecastRule implements AlertRule {
     }
 
     @Override
-    public List<AlertEvent> evaluate(List<Long> regionIds, Instant since) {
+    public List<AlertEvent> evaluate(List<Integer> regionIds, LocalDateTime since) {
         if (regionIds == null || regionIds.isEmpty()) return List.of();
 
         List<AlertEvent> out = new ArrayList<>(regionIds.size());
 
-        for (Long regionId : regionIds) {
+        for (int regionId : regionIds) {
             ClimateService.ForecastSeries fs =
-                    climateService.loadForecastSeries(regionId, SNAP_CURRENT_DEFAULT);
+                    climateService.loadForecastSeries(regionId, SNAP_CURRENT);
 
             // 순수 인덱스/플래그 정보만 제공
             List<List<Integer>> hourlyParts = buildHourlyParts(fs); // [startIdx, endIdx]
@@ -48,7 +49,7 @@ public class RainForecastRule implements AlertRule {
             out.add(new AlertEvent(
                     AlertTypeEnum.RAIN_FORECAST,
                     regionId,
-                    Instant.now(),
+                    LocalDateTime.now(),
                     payload
             ));
         }

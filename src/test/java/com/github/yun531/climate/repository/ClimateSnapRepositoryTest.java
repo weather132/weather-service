@@ -1,6 +1,7 @@
 package com.github.yun531.climate.repository;
 
 
+import com.github.yun531.climate.domain.SnapKindEnum;
 import com.github.yun531.climate.dto.POPSnapDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,8 +41,9 @@ class ClimateSnapRepositoryTest {
     @Test
     void findPopInfoBySnapIdsAndRegionId_DTO_프로젝션_검증_DB값기반() {
         // given
-        long regionId = 1L;
-        List<Long> snapIds = List.of(1L, 10L);
+        int regionId = 1;
+        List<Integer> snapIds = List.of(SnapKindEnum.SNAP_CURRENT.getCode(),
+                                        SnapKindEnum.SNAP_PREVIOUS.getCode());
 
         // when
         List<POPSnapDto> result = repo.findPopInfoBySnapIdsAndRegionId(snapIds, regionId);
@@ -72,12 +74,12 @@ class ClimateSnapRepositoryTest {
     @Test
     void 기본_파인더_검증_DB값기반() {
         // given
-        long regionId = 1L;
+        int regionId = 1;
 
         // when & then
         // DB에는 동일 region_id=1 레코드가 2건(snap_id=1,10)
         assertThat(repo.findByRegionId(regionId)).hasSize(2);
-        assertThat(repo.findBySnapIdIn(List.of(1L, 10L))).hasSize(2);
-        assertThat(repo.findBySnapIdAndRegionId(1L, regionId)).isNotNull();
+        assertThat(repo.findBySnapIdIn(List.of(1, 10))).hasSize(2);
+        assertThat(repo.findBySnapIdAndRegionId(1, regionId)).isNotNull();
     }
 }

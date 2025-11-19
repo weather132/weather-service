@@ -8,8 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,7 +20,7 @@ import static org.mockito.Mockito.*;
 class RainOnsetChangeRuleTest {
 
     /** RainOnsetChangeRule.RECOMPUTE_THRESHOLD_MINUTES 와 동일하게 유지 */
-    private static final long TTL_MINUTES = 165L;
+    private static final int TTL_MINUTES = 165;
 
     @Mock
     ClimateService climateService;
@@ -32,11 +31,11 @@ class RainOnsetChangeRuleTest {
 
         int th = RainThresholdEnum.RAIN.getThreshold(); // 60
 
-        when(climateService.loadDefaultPopSeries(101L))
+        when(climateService.loadDefaultPopSeries(101))
                 .thenReturn(seriesWithCrossAtHour(5, th));
 
         // when
-        var events = rule.evaluate(List.of(101L), null);
+        var events = rule.evaluate(List.of(101), null);
 
         // then
         assertThat(events).hasSize(1);
@@ -46,7 +45,7 @@ class RainOnsetChangeRuleTest {
         assertThat(e.regionId()).isEqualTo(101L);
         assertThat((Integer) e.payload().get("hour")).isEqualTo(5);
         assertThat((Integer) e.payload().get("pop")).isEqualTo(th);
-        assertThat(e.occurredAt()).isBeforeOrEqualTo(Instant.now());
+        assertThat(e.occurredAt()).isBeforeOrEqualTo(LocalDateTime.now());
     }
 
     @Test
@@ -64,10 +63,10 @@ class RainOnsetChangeRuleTest {
         PopSeries24 current = new PopSeries24(curVals);
         PopSeries24 previous = new PopSeries24(prvVals);
 
-        when(climateService.loadDefaultPopSeries(7L))
-                .thenReturn(new ClimateService.PopSeries(current, previous, 3));
+        when(climateService.loadDefaultPopSeries(7))
+                .thenReturn(new ClimateService.PopSeries(current, previous, 3, LocalDateTime.parse("2025-11-18T11:00:00")));
 
-        var events = rule.evaluate(List.of(7L), null);
+        var events = rule.evaluate(List.of(7), null);
         assertThat(events).isEmpty();
     }
 
@@ -75,181 +74,183 @@ class RainOnsetChangeRuleTest {
     void 시계열없음_null이면_스킵() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(climateService);
 
-        when(climateService.loadDefaultPopSeries(9L))
-                .thenReturn(new ClimateService.PopSeries(null, null, 0));
+        when(climateService.loadDefaultPopSeries(9))
+                .thenReturn(new ClimateService.PopSeries(null, null, 0, LocalDateTime.parse("2025-11-18T11:00:00")));
 
-        var events = rule.evaluate(List.of(9L), null);
+        var events = rule.evaluate(List.of(9), null);
         assertThat(events).isEmpty();
     }
 
     @Test
     void 캐시_재사용_since가_있으면_두번째_호출시_재계산_안함() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(climateService);
-        long region = 42L;
+        int regionId = 42;
         int th = RainThresholdEnum.RAIN.getThreshold();
 
-        when(climateService.loadDefaultPopSeries(region))
+        when(climateService.loadDefaultPopSeries(regionId))
                 .thenReturn(seriesWithCrossAtHour(5, th)); // 최초 1회만 호출되길 기대
 
         // 1) 최초 호출 → 캐시 생성 (since == null 이므로 무조건 계산)
-        var events1 = rule.evaluate(List.of(region), null);
+        var events1 = rule.evaluate(List.of(regionId), null);
 
         assertThat(events1).hasSize(1);
 
-        Instant computedAt = events1.get(0).occurredAt();
+        LocalDateTime computedAt = events1.get(0).occurredAt();
 
         // 2) 두 번째 호출(since != null, TTL 이내) → 캐시 재사용
-        var events2 = rule.evaluate(List.of(region), computedAt.plus(10, ChronoUnit.MINUTES));
+        var events2 = rule.evaluate(List.of(regionId), computedAt.plusMinutes(10));
 
         assertThat(events2).hasSize(1);
 
         // 총 1번 호출되었는지 확인
-        verify(climateService, times(1)).loadDefaultPopSeries(region);
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId);
     }
 
     @Test
     void invalidate_호출시_다음_호출에서_재계산() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(climateService);
-        long region = 77L;
+        int regionId = 77;
         int th = RainThresholdEnum.RAIN.getThreshold();
 
-        when(climateService.loadDefaultPopSeries(region))
+        when(climateService.loadDefaultPopSeries(regionId))
                 .thenReturn(seriesWithCrossAtHour(3, th));
 
         // 1) 최초 호출 → 계산 1회
-        rule.evaluate(List.of(region), null);
-        verify(climateService, times(1)).loadDefaultPopSeries(region);
+        rule.evaluate(List.of(regionId), null);
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // 2) 캐시 무효화
-        rule.invalidate(region);
+        rule.invalidate(regionId);
 
         // 3) 다음 호출 → 다시 계산
-        rule.evaluate(List.of(region), null);
-        verify(climateService, times(2)).loadDefaultPopSeries(region);
+        rule.evaluate(List.of(regionId), null);
+        verify(climateService, times(2)).loadDefaultPopSeries(regionId);
     }
 
     @Test
     void since가_충분히_인접하면_재계산_안함() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(climateService);
-        long region = 200L;
+        int regionId = 200;
         int th = RainThresholdEnum.RAIN.getThreshold();
 
-        when(climateService.loadDefaultPopSeries(region))
+        when(climateService.loadDefaultPopSeries(regionId))
                 .thenReturn(seriesWithCrossAtHour(10, th));
 
         // 최초 계산
-        var events1 = rule.evaluate(List.of(region), null);
+        var events1 = rule.evaluate(List.of(regionId), null);
         assertThat(events1).hasSize(1);
-        Instant computedAt = events1.get(0).occurredAt();
-        verify(climateService, times(1)).loadDefaultPopSeries(region);
+        LocalDateTime computedAt = events1.get(0).occurredAt();
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // TTL - 10분 이내면 재계산 안 함
-        Instant sinceNear = computedAt.plus(TTL_MINUTES - 10, ChronoUnit.MINUTES);
-        rule.evaluate(List.of(region), sinceNear);
-        verify(climateService, times(1)).loadDefaultPopSeries(region);
+        LocalDateTime sinceNear = computedAt.plusMinutes(TTL_MINUTES - 10);
+        rule.evaluate(List.of(regionId), sinceNear);
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // TTL + 10분 이후면 재계산
-        Instant sinceFar = computedAt.plus(TTL_MINUTES + 10, ChronoUnit.MINUTES);
-        rule.evaluate(List.of(region), sinceFar);
+        LocalDateTime sinceFar = computedAt.plusMinutes(TTL_MINUTES + 10);
+        rule.evaluate(List.of(regionId), sinceFar);
 
         // 총 2회 호출 확인
-        verify(climateService, times(2)).loadDefaultPopSeries(region);
+        verify(climateService, times(2)).loadDefaultPopSeries(regionId);
     }
 
     @Test
     void 경계값_TTL마이너스1분은_재계산안함_TTL플러스1분은_재계산() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(climateService);
-        long region = 120L;
+        int regionId = 120;
         int th = RainThresholdEnum.RAIN.getThreshold();
 
-        when(climateService.loadDefaultPopSeries(region))
+        when(climateService.loadDefaultPopSeries(regionId))
                 .thenReturn(seriesWithCrossAtHour(5, th));
 
         // 최초 계산
-        var events1 = rule.evaluate(List.of(region), null);
+        var events1 = rule.evaluate(List.of(regionId), null);
         assertThat(events1).hasSize(1);
-        Instant computedAt = events1.get(0).occurredAt();
-        verify(climateService, times(1)).loadDefaultPopSeries(region);
+        LocalDateTime computedAt = events1.get(0).occurredAt();
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // since = computedAt + (TTL - 1)분 → threshold = since - TTL = computedAt - 1분
         // computedAt 이 threshold 이전이 아니므로 재계산 안 함
-        Instant sinceMinus1 = computedAt.plus(TTL_MINUTES - 1, ChronoUnit.MINUTES);
-        rule.evaluate(List.of(region), sinceMinus1);
-        verify(climateService, times(1)).loadDefaultPopSeries(region);
+        LocalDateTime sinceMinus1 = computedAt.plusMinutes(TTL_MINUTES - 1);
+        rule.evaluate(List.of(regionId), sinceMinus1);
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // since = computedAt + (TTL + 1)분 → threshold = computedAt + 1분
         // computedAt 이 threshold 이전이므로 재계산
-        Instant sincePlus1 = computedAt.plus(TTL_MINUTES + 1, ChronoUnit.MINUTES);
-        rule.evaluate(List.of(region), sincePlus1);
-        verify(climateService, times(2)).loadDefaultPopSeries(region);
+        LocalDateTime sincePlus1 = computedAt.plusMinutes(TTL_MINUTES + 1);
+        rule.evaluate(List.of(regionId), sincePlus1);
+        verify(climateService, times(2)).loadDefaultPopSeries(regionId);
     }
 
     @Test
     void since를_미래로_크게_당기면_오래된_캐시로_판단되어_재계산() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(climateService);
-        long region = 130L;
+        int regionId = 130;
         int th = RainThresholdEnum.RAIN.getThreshold();
 
-        when(climateService.loadDefaultPopSeries(region))
+        when(climateService.loadDefaultPopSeries(regionId))
                 .thenReturn(seriesWithCrossAtHour(3, th));
 
         // 최초 계산
-        var events1 = rule.evaluate(List.of(region), null);
+        var events1 = rule.evaluate(List.of(regionId), null);
         assertThat(events1).hasSize(1);
-        Instant computedAt = events1.get(0).occurredAt();
-        verify(climateService, times(1)).loadDefaultPopSeries(region);
+        LocalDateTime computedAt = events1.get(0).occurredAt();
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // TTL 보다 훨씬 미래 since → 재계산
-        Instant sinceFuture = computedAt.plus(TTL_MINUTES + 60, ChronoUnit.MINUTES);
-        rule.evaluate(List.of(region), sinceFuture);
-        verify(climateService, times(2)).loadDefaultPopSeries(region);
+        LocalDateTime sinceFuture = computedAt.plusMinutes(TTL_MINUTES + 60);
+        rule.evaluate(List.of(regionId), sinceFuture);
+        verify(climateService, times(2)).loadDefaultPopSeries(regionId);
     }
 
     @Test
     void 지역별_캐시_키_분리_검증() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(climateService);
-        long r1 = 1L, r2 = 2L;
+        int regionId01 = 1, regionId02 = 2;
         int th = RainThresholdEnum.RAIN.getThreshold();
 
-        when(climateService.loadDefaultPopSeries(r1))
-                .thenReturn(seriesWithCrossAtHour(2, th));
-        when(climateService.loadDefaultPopSeries(r2))
-                .thenReturn(seriesWithCrossAtHour(6, th));
+        ClimateService.PopSeries series01 = seriesWithCrossAtHour(2, th);
+        ClimateService.PopSeries series02 = seriesWithCrossAtHour(6, th);
+
+        when(climateService.loadDefaultPopSeries(regionId01)).thenReturn(series01);
+        when(climateService.loadDefaultPopSeries(regionId02)).thenReturn(series02);
 
         // 1) 두 지역 동시에 호출 → 각 1회씩 계산
-        rule.evaluate(List.of(r1, r2), null);
-        verify(climateService, times(1)).loadDefaultPopSeries(r1);
-        verify(climateService, times(1)).loadDefaultPopSeries(r2);
+        rule.evaluate(List.of(regionId01, regionId02), null);
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId01);
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId02);
 
         // 2) r1만 다시 호출(since != null) → r1 캐시 재사용, r2는 건드리지 않음
-        rule.evaluate(List.of(r1), Instant.now());
-        verify(climateService, times(1)).loadDefaultPopSeries(r1);
-        verify(climateService, times(1)).loadDefaultPopSeries(r2);
+        LocalDateTime since = series01.curReportTime().plusMinutes(10);
+        rule.evaluate(List.of(regionId01), since);
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId01);
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId02);
     }
 
     @Test
     void invalidateAll_호출시_모든_지역_재계산() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(climateService);
-        long r1 = 10L, r2 = 20L;
+        int regionId01 = 10, regionId02 = 20;
         int th = RainThresholdEnum.RAIN.getThreshold();
 
-        when(climateService.loadDefaultPopSeries(r1))
+        when(climateService.loadDefaultPopSeries(regionId01))
                 .thenReturn(seriesWithCrossAtHour(1, th));
-        when(climateService.loadDefaultPopSeries(r2))
+        when(climateService.loadDefaultPopSeries(regionId02))
                 .thenReturn(seriesWithCrossAtHour(4, th));
 
         // 최초 계산
-        rule.evaluate(List.of(r1, r2), null);
-        verify(climateService, times(1)).loadDefaultPopSeries(r1);
-        verify(climateService, times(1)).loadDefaultPopSeries(r2);
+        rule.evaluate(List.of(regionId01, regionId02), null);
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId01);
+        verify(climateService, times(1)).loadDefaultPopSeries(regionId02);
 
         // 전체 무효화
         rule.invalidateAll();
 
         // 다시 호출 → 두 지역 모두 재계산
-        rule.evaluate(List.of(r1, r2), null);
-        verify(climateService, times(2)).loadDefaultPopSeries(r1);
-        verify(climateService, times(2)).loadDefaultPopSeries(r2);
+        rule.evaluate(List.of(regionId01, regionId02), null);
+        verify(climateService, times(2)).loadDefaultPopSeries(regionId01);
+        verify(climateService, times(2)).loadDefaultPopSeries(regionId02);
     }
 
     // ---- helper ----
@@ -266,6 +267,6 @@ class RainOnsetChangeRuleTest {
 
         // 이전 스냅과 현재 스냅의 시간 간격(시간 단위) – 테스트에서는 0으로 단순화
         int gapHours = 0;
-        return new ClimateService.PopSeries(current, previous, gapHours);
+        return new ClimateService.PopSeries(current, previous, gapHours, LocalDateTime.parse("2025-11-18T11:00:00"));
     }
 }

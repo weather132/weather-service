@@ -2,6 +2,7 @@ package com.github.yun531.climate.service;
 
 import com.github.yun531.climate.domain.PopDailySeries7;
 import com.github.yun531.climate.domain.PopSeries24;
+import com.github.yun531.climate.domain.SnapKindEnum;
 import com.github.yun531.climate.dto.POPSnapDto;
 import com.github.yun531.climate.repository.ClimateSnapRepository;
 import io.micrometer.common.lang.Nullable;
@@ -16,22 +17,21 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClimateService {
 
-    /** todo: 디폴트 스냅샷 id 변화에 대응 (예: 1=현재, 10=이전) */
-    private static final long SNAP_CURRENT_DEFAULT = 1L;
-    private static final long SNAP_PREV_DEFAULT    = 10L;
+    private static final int SNAP_CURRENT = SnapKindEnum.SNAP_CURRENT.getCode();
+    private static final int SNAP_PREV    = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
     private final ClimateSnapRepository climateSnapRepository;
 
-    public PopSeries loadDefaultPopSeries(Long regionId) {
-        return loadPopSeries(regionId, SNAP_CURRENT_DEFAULT, SNAP_PREV_DEFAULT);
+    public PopSeries loadDefaultPopSeries(int regionId) {
+        return loadPopSeries(regionId, SNAP_CURRENT, SNAP_PREV);
     }
-    public ForecastSeries loadDefaultForecastSeries(Long regionId) {
-        return loadForecastSeries(regionId, SNAP_CURRENT_DEFAULT);
+    public ForecastSeries loadDefaultForecastSeries(int regionId) {
+        return loadForecastSeries(regionId, SNAP_CURRENT);
     }
 
     /** 비(POP) 판정에 필요한 시계열을 로드 (현재*이전 스냅샷) */
-    public PopSeries loadPopSeries(Long regionId, Long currentSnapId, Long previousSnapId) {
-        List<Long> ids = List.of(currentSnapId, previousSnapId);
+    public PopSeries loadPopSeries(int regionId, int currentSnapId, int previousSnapId) {
+        List<Integer> ids = List.of(currentSnapId, previousSnapId);
         List<POPSnapDto> snaps =
                 climateSnapRepository.findPopInfoBySnapIdsAndRegionId(ids, regionId);
 
@@ -46,7 +46,7 @@ public class ClimateService {
         }
 
         if (cur == null || prv == null) {
-            return new PopSeries(null, null, 0);
+            return new PopSeries(null, null, 0, null);
         }
 
         LocalDateTime curReportTime = cur.getReportTime();
@@ -55,11 +55,11 @@ public class ClimateService {
         long minutes = Duration.between(prvReportTime, curReportTime).toMinutes();
         int reportTimeGap = (int) Math.round(minutes / 60.0);
 
-        return new PopSeries(cur.getHourly(), prv.getHourly(), reportTimeGap);
+        return new PopSeries(cur.getHourly(), prv.getHourly(), reportTimeGap, curReportTime);
     }
 
     /** 예보 요약용: 스냅에서 시간대 [24] + 오전/오후[14] */
-    public ForecastSeries loadForecastSeries(Long regionId, Long snapId) {
+    public ForecastSeries loadForecastSeries(int regionId, int snapId) {
         List<POPSnapDto> rows =
                 climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(snapId), regionId);
 
@@ -72,10 +72,10 @@ public class ClimateService {
     }
 
 
-    /** 판정용 입력 구조체 (현재 PopSeries24, 이전 PopSeries24) */
+    /** 판정용 입력 구조체  */
     public record PopSeries(@Nullable PopSeries24 current,
                             @Nullable PopSeries24 previous,
-                            int reportTimeGap) {}
+                            int reportTimeGap, LocalDateTime curReportTime) {}
 
     /** 예보 요약용 구조체 (시간대 PopSeries24, 일자별 PopDailySeries7) */
     public record ForecastSeries(@Nullable PopSeries24 hourly,

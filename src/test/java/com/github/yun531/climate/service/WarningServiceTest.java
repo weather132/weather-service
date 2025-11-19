@@ -14,7 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -36,64 +36,68 @@ class WarningServiceTest {
 
     @Test
     void findLatestByRegionAndKind_지역별_kind별_최신1건씩_반환() {
-        long R1 = 3L, R2 = 4L;
+        int regionId01 = 3, regionId02 = 4;
 
         // R1: RAIN 2건(시간 다르게), HEAT 1건
-        WarningState r1rainOld = repo.save(WarningState.builder().regionId(R1).kind(WarningKind.RAIN).level(WarningLevel.ADVISORY).build());
-        WarningState r1rainNew = repo.save(WarningState.builder().regionId(R1).kind(WarningKind.RAIN).level(WarningLevel.WARNING).build());
-        WarningState r1heat    = repo.save(WarningState.builder().regionId(R1).kind(WarningKind.HEAT).level(WarningLevel.ADVISORY).build());
+        WarningState r1rainOld = repo.save(WarningState.builder().regionId(regionId01).kind(WarningKind.RAIN).level(WarningLevel.ADVISORY).build());
+        WarningState r1rainNew = repo.save(WarningState.builder().regionId(regionId01).kind(WarningKind.RAIN).level(WarningLevel.WARNING).build());
+        WarningState r1heat    = repo.save(WarningState.builder().regionId(regionId01).kind(WarningKind.HEAT).level(WarningLevel.ADVISORY).build());
 
         jdbc.update("UPDATE warning_state SET updated_at='2025-11-04 06:00:00' WHERE warning_id=?", r1rainOld.getWarningId());
         jdbc.update("UPDATE warning_state SET updated_at='2025-11-04 07:00:00' WHERE warning_id=?", r1rainNew.getWarningId());
         jdbc.update("UPDATE warning_state SET updated_at='2025-11-04 06:00:00' WHERE warning_id=?", r1heat.getWarningId());
 
         // R2: WIND 1건
-        WarningState r2wind = repo.save(WarningState.builder().regionId(R2).kind(WarningKind.WIND).level(WarningLevel.ADVISORY).build());
+        WarningState r2wind = repo.save(WarningState.builder().regionId(regionId02).kind(WarningKind.WIND).level(WarningLevel.ADVISORY).build());
         jdbc.update("UPDATE warning_state SET updated_at='2025-11-04 08:00:00' WHERE warning_id=?", r2wind.getWarningId());
 
         // when
-        Map<Long, Map<WarningKind, WarningStateDto>> map =
-                service.findLatestByRegionAndKind(List.of(R1, R2));
+        Map<Integer, Map<WarningKind, WarningStateDto>> map =
+                service.findLatestByRegionAndKind(List.of(regionId01, regionId02));
 
         // then
-        assertThat(map.keySet()).containsExactly(R1, R2);
+        assertThat(map.keySet()).containsExactly(regionId01, regionId02);
 
-        Map<WarningKind, WarningStateDto> r1 = map.get(R1);
+        Map<WarningKind, WarningStateDto> r1 = map.get(regionId01);
         assertThat(r1.keySet()).containsExactlyInAnyOrder(WarningKind.RAIN, WarningKind.HEAT);
         assertThat(r1.get(WarningKind.RAIN).getLevel()).isEqualTo(WarningLevel.WARNING);   // 최신 선택
         assertThat(r1.get(WarningKind.HEAT).getLevel()).isEqualTo(WarningLevel.ADVISORY);
 
-        Map<WarningKind, WarningStateDto> r2 = map.get(R2);
+        Map<WarningKind, WarningStateDto> r2 = map.get(regionId02);
         assertThat(r2.keySet()).containsExactly(WarningKind.WIND);
         assertThat(r2.get(WarningKind.WIND).getLevel()).isEqualTo(WarningLevel.ADVISORY);
     }
 
     @Test
     void isNewlyIssuedSince_업데이트시각이_since보다_나중이면_true() {
+        int regionId = 1;
+
         WarningStateDto dto = new WarningStateDto(
-                1L, WarningKind.RAIN, WarningLevel.ADVISORY,
-                Instant.parse("2025-11-04T07:00:00Z")
+                regionId, WarningKind.RAIN, WarningLevel.ADVISORY,
+                LocalDateTime.parse("2025-11-04T07:00:00")
         );
-        Instant since = Instant.parse("2025-11-04T06:59:59Z");
+        LocalDateTime since = LocalDateTime.parse("2025-11-04T06:59:59");
 
         assertThat(service.isNewlyIssuedSince(dto, since)).isTrue();
     }
 
     @Test
     void isNewlyIssuedSince_null이나_동일이거나_이전이면_false() {
-        WarningStateDto nullTime = new WarningStateDto(1L, WarningKind.RAIN, WarningLevel.ADVISORY, null);
-        assertThat(service.isNewlyIssuedSince(nullTime, Instant.now())).isFalse();
+        int regionId = 1;
+
+        WarningStateDto nullTime = new WarningStateDto(1, WarningKind.RAIN, WarningLevel.ADVISORY, null);
+        assertThat(service.isNewlyIssuedSince(nullTime, LocalDateTime.now())).isFalse();
 
         WarningStateDto same = new WarningStateDto(
-                1L, WarningKind.RAIN, WarningLevel.ADVISORY,
-                Instant.parse("2025-11-04T07:00:00Z")
+                regionId, WarningKind.RAIN, WarningLevel.ADVISORY,
+                LocalDateTime.parse("2025-11-04T07:00:00")
         );
-        assertThat(service.isNewlyIssuedSince(same, Instant.parse("2025-11-04T07:00:00Z"))).isFalse();
+        assertThat(service.isNewlyIssuedSince(same, LocalDateTime.parse("2025-11-04T07:00:00"))).isFalse();
 
         WarningStateDto older = new WarningStateDto(
-                1L, WarningKind.RAIN, WarningLevel.ADVISORY,
-                Instant.parse("2025-11-04T06:00:00Z")
+                regionId, WarningKind.RAIN, WarningLevel.ADVISORY,
+                LocalDateTime.parse("2025-11-04T06:00:00")
         );
-        assertThat(service.isNewlyIssuedSince(older, Instant.parse("2025-11-04T07:00:00Z"))).isFalse();
+        assertThat(service.isNewlyIssuedSince(older, LocalDateTime.parse("2025-11-04T07:00:00"))).isFalse();
     }
 }

@@ -8,16 +8,16 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface ClimateSnapRepository extends JpaRepository<ClimateSnap, Long> {
+public interface ClimateSnapRepository extends JpaRepository<ClimateSnap, Integer> {
 
     // snap_id로 특정 데이터 조회
-    List<ClimateSnap> findBySnapIdIn(List<Long> snapIds);
+    List<ClimateSnap> findBySnapIdIn(List<Integer> snapIds);
 
     // region_id로 조회
-    List<ClimateSnap> findByRegionId(Long regionId);
+    List<ClimateSnap> findByRegionId(Integer regionId);
 
     // snap_id와 region_id를 함께 조건으로 조회
-    ClimateSnap findBySnapIdAndRegionId(Long snapId, Long regionId);
+    ClimateSnap findBySnapIdAndRegionId(Integer snapId, Integer regionId);
 
     @Query("""
         SELECT new com.github.yun531.climate.dto.POPSnapDto(
@@ -38,5 +38,5 @@ public interface ClimateSnapRepository extends JpaRepository<ClimateSnap, Long> 
         FROM ClimateSnap c
         WHERE c.snapId IN :snapIds and c.regionId = :regionId
     """)
-    List<POPSnapDto> findPopInfoBySnapIdsAndRegionId(@Param("snapIds") List<Long> snapIds, @Param("regionId") Long regionId);
+    List<POPSnapDto> findPopInfoBySnapIdsAndRegionId(@Param("snapIds") List<Integer> snapIds, @Param("regionId") Integer regionId);
 }

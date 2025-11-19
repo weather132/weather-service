@@ -2,6 +2,7 @@ package com.github.yun531.climate.service;
 
 import com.github.yun531.climate.domain.PopDailySeries7;
 import com.github.yun531.climate.domain.PopSeries24;
+import com.github.yun531.climate.domain.SnapKindEnum;
 import com.github.yun531.climate.dto.POPSnapDto;
 import com.github.yun531.climate.repository.ClimateSnapRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,9 +34,9 @@ class ClimateServiceTest {
     @Test
     void loadPopSeries_정상_현재이전_길이_gap_값검증() {
         // given
-        Long regionId = 100L;
-        Long curId = 1L;
-        Long prvId = 10L;
+        int regionId = 100;
+        int curId = SnapKindEnum.SNAP_CURRENT.getCode();
+        int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
         // 이전 리포트 시각: 2025-01-01T08:00
         LocalDateTime prvTime = LocalDateTime.of(2025, 1, 1, 8, 0,0);
@@ -88,9 +89,9 @@ class ClimateServiceTest {
 
     @Test
     void loadPopSeries_스냅하나라도없으면_null과_gap0반환() {
-        Long regionId = 200L;
-        Long curId = 1L;
-        Long prvId = 10L;
+        int regionId = 200;
+        int curId = SnapKindEnum.SNAP_CURRENT.getCode();
+        int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
         POPSnapDto onlyCur = new POPSnapDto();
         onlyCur.setSnapId(curId);
@@ -112,9 +113,9 @@ class ClimateServiceTest {
     @Test
     void loadDefaultPopSeries_레포호출파라미터_검증() {
         // given
-        Long regionId = 7L;
-        Long curId = 1L;   // SNAP_CURRENT_DEFAULT
-        Long prvId = 10L;  // SNAP_PREV_DEFAULT
+        int regionId = 7;
+        int curId = SnapKindEnum.SNAP_CURRENT.getCode();
+        int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
         POPSnapDto cur = new POPSnapDto();
         cur.setSnapId(curId);
@@ -136,13 +137,13 @@ class ClimateServiceTest {
 
         // then
         verify(climateSnapRepository, times(1))
-                .findPopInfoBySnapIdsAndRegionId(List.of(1L, 10L), regionId);
+                .findPopInfoBySnapIdsAndRegionId(List.of(1, 10), regionId);
     }
 
     @Test
     void loadForecastSeries_hourly와_daily_매핑검증() {
-        Long regionId = 55L;
-        Long snapId = 1L;
+        int regionId = 55;
+        int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
 
         POPSnapDto popSnapDto = new POPSnapDto();
         popSnapDto.setSnapId(snapId);
@@ -191,8 +192,8 @@ class ClimateServiceTest {
 
     @Test
     void loadForecastSeries_행없으면_null들_반환() {
-        Long regionId = 99L;
-        Long snapId = 1L;
+        int regionId = 99;
+        int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
 
         when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(snapId), regionId))
                 .thenReturn(List.of());   // 빈 리스트

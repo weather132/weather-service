@@ -7,8 +7,11 @@ import com.github.yun531.climate.repository.WarningStateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -16,12 +19,12 @@ public class WarningService {
 
     private final WarningStateRepository warningStateRepository;
 
-    public Map<Long, Map<WarningKind, WarningStateDto>> findLatestByRegionAndKind(List<Long> regionIds) {
+    public Map<Integer, Map<WarningKind, WarningStateDto>> findLatestByRegionAndKind(List<Integer> regionIds) {
         if (regionIds == null || regionIds.isEmpty()) return Map.of();
 
         // 입력 regionId 순서를 보존하기 위해 미리 빈 맵을 만들어 둠
-        Map<Long, Map<WarningKind, WarningStateDto>> result = new LinkedHashMap<>();
-        for (Long regionId : regionIds) {
+        Map<Integer, Map<WarningKind, WarningStateDto>> result = new LinkedHashMap<>();
+        for (int regionId : regionIds) {
             result.put(regionId, new LinkedHashMap<>());
         }
 
@@ -30,9 +33,9 @@ public class WarningService {
 
         // regionId + kind 별로 최신(updated_at) 1건을 선택
         // (동일 시각 tie-breaker로 warningId가 큰 쪽 채택)
-        Map<Long, Map<WarningKind, WarningState>> pick = new HashMap<>();
+        Map<Integer, Map<WarningKind, WarningState>> pick = new HashMap<>();
         for (WarningState ws : rows) {
-            Long regionId = ws.getRegionId();
+            int regionId = ws.getRegionId();
             if (!result.containsKey(regionId)) continue; // 방어
 
             Map<WarningKind, WarningState> byKind =                                // 레퍼런스 참조
@@ -46,7 +49,7 @@ public class WarningService {
 
         // Entity -> DTO 변환
         for (var e : pick.entrySet()) {
-            Long regionId = e.getKey();
+            int regionId = e.getKey();
             Map<WarningKind, WarningStateDto> mapByKind = new LinkedHashMap<>();
 
             for (var kEntry : e.getValue().entrySet()) {
@@ -60,8 +63,8 @@ public class WarningService {
     }
 
     private boolean isAfter(WarningState a, WarningState b) {
-        Instant ia = a.getUpdatedAt();
-        Instant ib = b.getUpdatedAt();
+        LocalDateTime ia = a.getUpdatedAt();
+        LocalDateTime ib = b.getUpdatedAt();
 
         if (ia == null && ib == null) {
             return a.getWarningId() > b.getWarningId();
@@ -76,7 +79,7 @@ public class WarningService {
     }
 
     /** since 이후 새로 발효/변경 판단 */
-    public boolean isNewlyIssuedSince(WarningStateDto state, Instant since) {
+    public boolean isNewlyIssuedSince(WarningStateDto state, LocalDateTime since) {
         return state != null
                 && state.getUpdatedAt() != null
                 && state.getUpdatedAt().isAfter(since);

@@ -6,9 +6,10 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.yun531.climate.dto.WarningStateDto;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class WarningEnumJsonTest {
 
@@ -45,7 +46,7 @@ class WarningEnumJsonTest {
     @Test
     void warningStateDto_JSON_직렬화_라벨_출력() throws Exception {
         WarningStateDto dto = new WarningStateDto(
-                1L, WarningKind.RAIN, WarningLevel.WARNING, Instant.parse("2025-11-04T05:00:00Z")
+                1, WarningKind.RAIN, WarningLevel.WARNING, LocalDateTime.parse("2025-11-04T05:00:00")
         );
         String json = om.writeValueAsString(dto);
 
