@@ -97,7 +97,7 @@ public class RainOnsetChangeRule implements AlertRule {
     }
 
     private CacheEntry createEmptyCacheEntry() {
-        return new CacheEntry(List.of(), LocalDateTime.now());
+        return new CacheEntry(List.of(), LocalDateTime.now().withNano(0));
     }
 
     // 시계열 비교 및 이벤트 생성
@@ -143,6 +143,7 @@ public class RainOnsetChangeRule implements AlertRule {
         boolean wasNotRain = prevPop < RAIN_TH;
         boolean nowRain    = curPop  >= RAIN_TH;
 
+        System.out.println("h > wasNotRain: " + wasNotRain + ", nowRain: " + nowRain);
         return wasNotRain && nowRain;
     }
 
@@ -155,6 +156,7 @@ public class RainOnsetChangeRule implements AlertRule {
                 "hour", hour,
                 "pop",  pop
         );
+        System.out.println("hour: " + hour + ", pop: " + pop);
         return new AlertEvent(
                 AlertTypeEnum.RAIN_ONSET,
                 regionId,

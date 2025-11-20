@@ -109,12 +109,33 @@ public class NotificationService {
         return new ArrayList<>(map.values());
     }
 
-    /** <type>|<regionId>|<occurredAt> 형태로 생성 */
+    /** <type>|<regionId>|<occurredAt>|<payLoad> 형태로 생성 */
     private String keyOf(AlertEvent event) {
         String type = (event.type() == null) ? "?" : event.type().name();
         String region = String.valueOf(event.regionId());
         String ts = (event.occurredAt() == null) ? "?" : event.occurredAt().toString();
-        return type + "|" + region + "|" + ts;
+
+        String payloadKey = normalizePayload(event.payload());
+
+        return type + "|" + region + "|" + ts + "|" + payloadKey;
+    }
+
+    private String normalizePayload(Map<String, Object> payload) {
+        if (payload == null || payload.isEmpty()) {
+            return "-";
+        }
+
+        // 키 이름 정렬 → 불규칙한 Map 순서 문제 해결
+        return payload.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> e.getKey() + "=" + stringify(e.getValue()))
+                .reduce((a, b) -> a + "," + b)
+                .orElse("-");
+    }
+
+    private String stringify(Object v) {
+        if (v == null) return "null";
+        return String.valueOf(v);
     }
 
     private void sortEvents(List<AlertEvent> events) {
