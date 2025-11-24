@@ -1,8 +1,8 @@
 package com.github.yun531.climate.dto;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
+import lombok.Getter;
 
+@Getter
 public enum WarningKind {
     HEAT("폭염"),
     COLDWAVE("한파"),
@@ -16,9 +16,9 @@ public enum WarningKind {
     EARTHQUAKE_TSUNAMI("지진해일");
 
     private final String label;
-    WarningKind(String label){ this.label = label; }
 
-    @JsonValue   // JSON 응답에 한글 라벨을 내보내고 싶을 때 (직렬화)
-    public String getLabel(){ return label; }
+    WarningKind(String label) {
+        this.label = label;
+    }
 
 }
