@@ -1,10 +1,10 @@
 package com.github.yun531.climate.controller;
 
 import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.service.NotificationRequest;
-import com.github.yun531.climate.service.NotificationService;
-import com.github.yun531.climate.service.rule.AlertEvent;
-import com.github.yun531.climate.service.rule.AlertTypeEnum;
+import com.github.yun531.climate.service.notification.NotificationRequest;
+import com.github.yun531.climate.service.notification.NotificationService;
+import com.github.yun531.climate.service.notification.rule.AlertEvent;
+import com.github.yun531.climate.service.notification.rule.AlertTypeEnum;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

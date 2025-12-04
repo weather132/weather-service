@@ -1,9 +1,9 @@
-package com.github.yun531.climate.service.rule;
-
+package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.dto.PopSeries;
 import com.github.yun531.climate.dto.PopSeries24;
 import com.github.yun531.climate.service.ClimateService;
+import com.github.yun531.climate.service.notification.NotificationRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -37,7 +37,8 @@ class RainOnsetChangeRuleTest {
                 .thenReturn(seriesWithCrossAtHour(5, th));
 
         // when
-        var events = rule.evaluate(List.of(101), null);
+        NotificationRequest req = rainReq(101, null);
+        var events = rule.evaluate(req);
 
         // then
         assertThat(events).hasSize(1);
@@ -66,9 +67,16 @@ class RainOnsetChangeRuleTest {
         PopSeries24 previous = new PopSeries24(prvVals);
 
         when(climateService.loadDefaultPopSeries(7))
-                .thenReturn(new PopSeries(current, previous, 3, LocalDateTime.parse("2025-11-18T11:00:00")));
+                .thenReturn(new PopSeries(
+                        current,
+                        previous,
+                        3,
+                        LocalDateTime.parse("2025-11-18T11:00:00"))
+                );
 
-        var events = rule.evaluate(List.of(7), null);
+        NotificationRequest req = rainReq(7, null);
+        var events = rule.evaluate(req);
+
         assertThat(events).isEmpty();
     }
 
@@ -77,9 +85,14 @@ class RainOnsetChangeRuleTest {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(climateService);
 
         when(climateService.loadDefaultPopSeries(9))
-                .thenReturn(new PopSeries(null, null, 0, LocalDateTime.parse("2025-11-18T11:00:00")));
+                .thenReturn(new PopSeries(
+                        null, null, 0,
+                        LocalDateTime.parse("2025-11-18T11:00:00"))
+                );
 
-        var events = rule.evaluate(List.of(9), null);
+        NotificationRequest req = rainReq(9, null);
+        var events = rule.evaluate(req);
+
         assertThat(events).isEmpty();
     }
 
@@ -93,18 +106,17 @@ class RainOnsetChangeRuleTest {
                 .thenReturn(seriesWithCrossAtHour(5, th)); // 최초 1회만 호출되길 기대
 
         // 1) 최초 호출 → 캐시 생성 (since == null 이므로 무조건 계산)
-        var events1 = rule.evaluate(List.of(regionId), null);
+        NotificationRequest firstReq = rainReq(regionId, null);
+        var events1 = rule.evaluate(firstReq);
 
         assertThat(events1).hasSize(1);
-
         LocalDateTime computedAt = events1.get(0).occurredAt();
 
         // 2) 두 번째 호출(since != null, TTL 이내) → 캐시 재사용
-        var events2 = rule.evaluate(List.of(regionId), computedAt.plusMinutes(10));
+        NotificationRequest secondReq = rainReq(regionId, computedAt.plusMinutes(10));
+        var events2 = rule.evaluate(secondReq);
 
         assertThat(events2).hasSize(1);
-
-        // 총 1번 호출되었는지 확인
         verify(climateService, times(1)).loadDefaultPopSeries(regionId);
     }
 
@@ -118,14 +130,16 @@ class RainOnsetChangeRuleTest {
                 .thenReturn(seriesWithCrossAtHour(3, th));
 
         // 1) 최초 호출 → 계산 1회
-        rule.evaluate(List.of(regionId), null);
+        NotificationRequest req1 = rainReq(regionId, null);
+        rule.evaluate(req1);
         verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // 2) 캐시 무효화
         rule.invalidate(regionId);
 
         // 3) 다음 호출 → 다시 계산
-        rule.evaluate(List.of(regionId), null);
+        NotificationRequest req2 = rainReq(regionId, null);
+        rule.evaluate(req2);
         verify(climateService, times(2)).loadDefaultPopSeries(regionId);
     }
 
@@ -139,19 +153,22 @@ class RainOnsetChangeRuleTest {
                 .thenReturn(seriesWithCrossAtHour(10, th));
 
         // 최초 계산
-        var events1 = rule.evaluate(List.of(regionId), null);
+        NotificationRequest firstReq = rainReq(regionId, null);
+        var events1 = rule.evaluate(firstReq);
         assertThat(events1).hasSize(1);
         LocalDateTime computedAt = events1.get(0).occurredAt();
         verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // TTL - 10분 이내면 재계산 안 함
         LocalDateTime sinceNear = computedAt.plusMinutes(TTL_MINUTES - 10);
-        rule.evaluate(List.of(regionId), sinceNear);
+        NotificationRequest nearReq = rainReq(regionId, sinceNear);
+        rule.evaluate(nearReq);
         verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // TTL + 10분 이후면 재계산
         LocalDateTime sinceFar = computedAt.plusMinutes(TTL_MINUTES + 10);
-        rule.evaluate(List.of(regionId), sinceFar);
+        NotificationRequest farReq = rainReq(regionId, sinceFar);
+        rule.evaluate(farReq);
 
         // 총 2회 호출 확인
         verify(climateService, times(2)).loadDefaultPopSeries(regionId);
@@ -167,7 +184,8 @@ class RainOnsetChangeRuleTest {
                 .thenReturn(seriesWithCrossAtHour(5, th));
 
         // 최초 계산
-        var events1 = rule.evaluate(List.of(regionId), null);
+        NotificationRequest firstReq = rainReq(regionId, null);
+        var events1 = rule.evaluate(firstReq);
         assertThat(events1).hasSize(1);
         LocalDateTime computedAt = events1.get(0).occurredAt();
         verify(climateService, times(1)).loadDefaultPopSeries(regionId);
@@ -175,13 +193,15 @@ class RainOnsetChangeRuleTest {
         // since = computedAt + (TTL - 1)분 → threshold = since - TTL = computedAt - 1분
         // computedAt 이 threshold 이전이 아니므로 재계산 안 함
         LocalDateTime sinceMinus1 = computedAt.plusMinutes(TTL_MINUTES - 1);
-        rule.evaluate(List.of(regionId), sinceMinus1);
+        NotificationRequest minusReq = rainReq(regionId, sinceMinus1);
+        rule.evaluate(minusReq);
         verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // since = computedAt + (TTL + 1)분 → threshold = computedAt + 1분
         // computedAt 이 threshold 이전이므로 재계산
         LocalDateTime sincePlus1 = computedAt.plusMinutes(TTL_MINUTES + 1);
-        rule.evaluate(List.of(regionId), sincePlus1);
+        NotificationRequest plusReq = rainReq(regionId, sincePlus1);
+        rule.evaluate(plusReq);
         verify(climateService, times(2)).loadDefaultPopSeries(regionId);
     }
 
@@ -195,14 +215,16 @@ class RainOnsetChangeRuleTest {
                 .thenReturn(seriesWithCrossAtHour(3, th));
 
         // 최초 계산
-        var events1 = rule.evaluate(List.of(regionId), null);
+        NotificationRequest firstReq = rainReq(regionId, null);
+        var events1 = rule.evaluate(firstReq);
         assertThat(events1).hasSize(1);
         LocalDateTime computedAt = events1.get(0).occurredAt();
         verify(climateService, times(1)).loadDefaultPopSeries(regionId);
 
         // TTL 보다 훨씬 미래 since → 재계산
         LocalDateTime sinceFuture = computedAt.plusMinutes(TTL_MINUTES + 60);
-        rule.evaluate(List.of(regionId), sinceFuture);
+        NotificationRequest futureReq = rainReq(regionId, sinceFuture);
+        rule.evaluate(futureReq);
         verify(climateService, times(2)).loadDefaultPopSeries(regionId);
     }
 
@@ -219,13 +241,15 @@ class RainOnsetChangeRuleTest {
         when(climateService.loadDefaultPopSeries(regionId02)).thenReturn(series02);
 
         // 1) 두 지역 동시에 호출 → 각 1회씩 계산
-        rule.evaluate(List.of(regionId01, regionId02), null);
+        NotificationRequest reqBoth = rainReq(List.of(regionId01, regionId02), null);
+        rule.evaluate(reqBoth);
         verify(climateService, times(1)).loadDefaultPopSeries(regionId01);
         verify(climateService, times(1)).loadDefaultPopSeries(regionId02);
 
         // 2) r1만 다시 호출(since != null) → r1 캐시 재사용, r2는 건드리지 않음
         LocalDateTime since = series01.curReportTime().plusMinutes(10);
-        rule.evaluate(List.of(regionId01), since);
+        NotificationRequest reqR1 = rainReq(regionId01, since);
+        rule.evaluate(reqR1);
         verify(climateService, times(1)).loadDefaultPopSeries(regionId01);
         verify(climateService, times(1)).loadDefaultPopSeries(regionId02);
     }
@@ -242,7 +266,8 @@ class RainOnsetChangeRuleTest {
                 .thenReturn(seriesWithCrossAtHour(4, th));
 
         // 최초 계산
-        rule.evaluate(List.of(regionId01, regionId02), null);
+        NotificationRequest firstReq = rainReq(List.of(regionId01, regionId02), null);
+        rule.evaluate(firstReq);
         verify(climateService, times(1)).loadDefaultPopSeries(regionId01);
         verify(climateService, times(1)).loadDefaultPopSeries(regionId02);
 
@@ -250,12 +275,32 @@ class RainOnsetChangeRuleTest {
         rule.invalidateAll();
 
         // 다시 호출 → 두 지역 모두 재계산
-        rule.evaluate(List.of(regionId01, regionId02), null);
+        NotificationRequest secondReq = rainReq(List.of(regionId01, regionId02), null);
+        rule.evaluate(secondReq);
         verify(climateService, times(2)).loadDefaultPopSeries(regionId01);
         verify(climateService, times(2)).loadDefaultPopSeries(regionId02);
     }
 
-    // ---- helper ----
+
+    /** NotificationRequest helper */
+
+    private NotificationRequest rainReq(int regionId, LocalDateTime since) {
+        return rainReq(List.of(regionId), since);
+    }
+
+    private NotificationRequest rainReq(List<Integer> regionIds, LocalDateTime since) {
+        // 이 룰은 enabledTypes / filterKinds / rainHourLimit 를 사용하지 않으므로 전부 null
+        return new NotificationRequest(
+                regionIds,
+                since,
+                null,
+                null,
+                null
+        );
+    }
+
+    /** PopSeries helper */
+
     private static PopSeries seriesWithCrossAtHour(int hour, int th) {
         List<Integer> curVals = new ArrayList<>(Collections.nCopies(24, 0));
         List<Integer> prvVals = new ArrayList<>(Collections.nCopies(24, 0));
@@ -267,8 +312,12 @@ class RainOnsetChangeRuleTest {
         PopSeries24 current = new PopSeries24(curVals);
         PopSeries24 previous = new PopSeries24(prvVals);
 
-        // 이전 스냅과 현재 스냅의 시간 간격(시간 단위) – 테스트에서는 0으로 단순화
         int gapHours = 0;
-        return new PopSeries(current, previous, gapHours, LocalDateTime.parse("2025-11-18T11:00:00"));
+        return new PopSeries(
+                current,
+                previous,
+                gapHours,
+                LocalDateTime.parse("2025-11-18T11:00:00")
+        );
     }
 }

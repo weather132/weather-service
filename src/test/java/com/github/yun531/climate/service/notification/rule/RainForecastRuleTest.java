@@ -1,11 +1,11 @@
-package com.github.yun531.climate.service.rule;
-
+package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.dto.ForecastSeries;
 import com.github.yun531.climate.dto.PopDailySeries7;
 import com.github.yun531.climate.dto.PopSeries24;
 import com.github.yun531.climate.dto.SnapKindEnum;
 import com.github.yun531.climate.service.ClimateService;
+import com.github.yun531.climate.service.notification.NotificationRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -49,7 +49,14 @@ class RainForecastRuleTest {
         RainForecastRule rule = new RainForecastRule(climateService);
 
         // when
-        var events = rule.evaluate(List.of(1), LocalDateTime.parse("2025-11-18T08:00:00"));
+        NotificationRequest request = new NotificationRequest(
+                List.of(1),
+                LocalDateTime.parse("2025-11-18T08:00:00"), // since
+                null,   // enabledTypes (룰에서 사용 안 함)
+                null,   // filterWarningKinds
+                null    // rainHourLimit
+        );
+        var events = rule.evaluate(request);
 
         // then
         assertThat(events).hasSize(1);
@@ -99,7 +106,14 @@ class RainForecastRuleTest {
         RainForecastRule rule = new RainForecastRule(climateService);
 
         // when
-        var events = rule.evaluate(List.of(1), nowMinutes());
+        NotificationRequest request = new NotificationRequest(
+                List.of(1),
+                nowMinutes(),   // since: 첫 호출이라 어떤 값을 넣어도 계산됨
+                null,
+                null,
+                null
+        );
+        var events = rule.evaluate(request);
 
         // then
         assertThat(events).hasSize(1);

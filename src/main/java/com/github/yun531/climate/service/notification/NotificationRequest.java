@@ -1,7 +1,7 @@
-package com.github.yun531.climate.service;
+package com.github.yun531.climate.service.notification;
 
 import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.service.rule.AlertTypeEnum;
+import com.github.yun531.climate.service.notification.rule.AlertTypeEnum;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
@@ -22,5 +22,4 @@ public record NotificationRequest(
         @Nullable Set<AlertTypeEnum> enabledTypes,
         @Nullable Set<WarningKind> filterWarningKinds,
         @Nullable Integer rainHourLimit
-) {
-}
+) {}

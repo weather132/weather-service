@@ -1,20 +1,18 @@
-package com.github.yun531.climate.service.rule;
+package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.dto.ForecastSeries;
 import com.github.yun531.climate.dto.PopDailySeries7;
 import com.github.yun531.climate.dto.PopSeries24;
 import com.github.yun531.climate.dto.SnapKindEnum;
 import com.github.yun531.climate.service.ClimateService;
+import com.github.yun531.climate.service.notification.NotificationRequest;
 import com.github.yun531.climate.util.CacheEntry;
 import com.github.yun531.climate.util.RegionCache;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.github.yun531.climate.util.TimeUtil.nowMinutes;
 
@@ -38,8 +36,13 @@ public class RainForecastRule implements AlertRule {
     }
 
     @Override
-    public List<AlertEvent> evaluate(List<Integer> regionIds, LocalDateTime since) {
-        if (regionIds == null || regionIds.isEmpty()) return List.of();
+    public List<AlertEvent> evaluate(NotificationRequest request) {
+        List<Integer> regionIds   = request.regionIds();
+        LocalDateTime since       = request.since();   // null 가능 (RegionCache 쪽에서 처리)
+
+        if (regionIds == null || regionIds.isEmpty()) {
+            return List.of();
+        }
 
         List<AlertEvent> out = new ArrayList<>();
 
@@ -85,8 +88,7 @@ public class RainForecastRule implements AlertRule {
     }
 
     private ForecastSeries loadForecastSeries(int regionId) {
-        ForecastSeries fs =
-                climateService.loadForecastSeries(regionId, SNAP_CURRENT);
+        ForecastSeries fs = climateService.loadForecastSeries(regionId, SNAP_CURRENT);
 
         if (fs == null || (fs.hourly() == null && fs.daily() == null)) {
             return null;
@@ -94,10 +96,7 @@ public class RainForecastRule implements AlertRule {
         return fs;
     }
 
-    /**
-     * 시간대별 POP 24시간에서
-     * 연속으로 비가 오는 구간들을 [startIdx, endIdx] 형태로 리턴.
-     */
+    /** 시간대별 POP 24시간에서 연속으로 비가 오는 구간들을 [startIdx, endIdx] 형태로 리턴. */
     private List<List<Integer>> buildHourlyParts(ForecastSeries fs) {
         PopSeries24 series = fs.hourly();
         if (series == null) return List.of();
@@ -144,19 +143,18 @@ public class RainForecastRule implements AlertRule {
     }
 
     /**
-     * D+0 ~ (N-1)일에 대해
-     * 각 일자를 [amFlag, pmFlag] 로 표현한 2차원 리스트를 리턴.
+     * D+0 ~ (N-1)일에 대해 각 일자를 [amFlag, pmFlag] 로 표현한 2차원 리스트를 리턴.
      * amFlag: 오전 POP >= TH 이면 1, 아니면 0
      * pmFlag: 오후 POP >= TH 이면 1, 아니면 0
      */
     private List<List<Integer>> buildDayParts(ForecastSeries fs) {
         PopDailySeries7 daily = fs.daily();
-        if (daily == null || daily.getDays() == null || daily.getDays().isEmpty()) {
+        if (daily == null || daily.days() == null || daily.days().isEmpty()) {
             return List.of();
         }
 
-        List<List<Integer>> parts = new ArrayList<>(daily.getDays().size());
-        for (PopDailySeries7.DailyPop p : daily.getDays()) {
+        List<List<Integer>> parts = new ArrayList<>(daily.days().size());
+        for (PopDailySeries7.DailyPop p : daily.days()) {
             parts.add(createDayFlagRow(p));
         }
 
@@ -165,8 +163,8 @@ public class RainForecastRule implements AlertRule {
 
     /** 한 일자의 [amFlag, pmFlag] 생성 */
     private List<Integer> createDayFlagRow(PopDailySeries7.DailyPop p) {
-        int amFlag = (p.getAm() >= TH) ? 1 : 0;
-        int pmFlag = (p.getPm() >= TH) ? 1 : 0;
+        int amFlag = (p.am() >= TH) ? 1 : 0;
+        int pmFlag = (p.pm() >= TH) ? 1 : 0;
         return List.of(amFlag, pmFlag);
     }
 
@@ -178,4 +176,8 @@ public class RainForecastRule implements AlertRule {
         payload.put("dayParts", dayParts);
         return payload;
     }
+
+    /** 캐시 무효화 */
+    public void invalidate(int regionId) { cache.invalidate(regionId); }
+    public void invalidateAll() { cache.invalidateAll(); }
 }

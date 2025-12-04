@@ -1,11 +1,13 @@
-package com.github.yun531.climate.service;
+package com.github.yun531.climate.service.notification;
 
 import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.service.rule.AlertEvent;
-import com.github.yun531.climate.service.rule.AlertTypeEnum;
-import com.github.yun531.climate.service.rule.RainForecastRule;
-import com.github.yun531.climate.service.rule.RainOnsetChangeRule;
-import com.github.yun531.climate.service.rule.WarningIssuedRule;
+import com.github.yun531.climate.service.ClimateService;
+import com.github.yun531.climate.service.WarningService;
+import com.github.yun531.climate.service.notification.rule.AlertEvent;
+import com.github.yun531.climate.service.notification.rule.AlertTypeEnum;
+import com.github.yun531.climate.service.notification.rule.RainForecastRule;
+import com.github.yun531.climate.service.notification.rule.RainOnsetChangeRule;
+import com.github.yun531.climate.service.notification.rule.WarningIssuedRule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -100,9 +102,9 @@ class NotificationServiceIT {
         }
     }
 
-    // ----------------------------------------------------
-    // 기본 동작 / 공통 규칙
-    // ----------------------------------------------------
+    /**
+     *   기본 동작 / 공통 규칙
+     */
 
     @Test
     @DisplayName("receiveWarnings=false: 비 시작(AlertType=RAIN_ONSET) 알림만 생성되고 특보(WARNING_ISSUED)는 제외된다")
@@ -127,10 +129,10 @@ class NotificationServiceIT {
                 .contains(AlertTypeEnum.RAIN_ONSET)
                 .doesNotContain(AlertTypeEnum.WARNING_ISSUED);
 
-        verify(rainRule, times(1)).evaluate(any(), any());
-        verify(warningRule, never()).evaluate(any(), any());
+        verify(rainRule, times(1)).evaluate(any(NotificationRequest.class));
+        verify(warningRule, never()).evaluate(any(NotificationRequest.class));
         // FORECAST는 enabledTypes에 없으므로 호출 안 됨
-        verify(forecastRule, never()).evaluate(any(), any());
+        verify(forecastRule, never()).evaluate(any(NotificationRequest.class));
     }
 
     @Test
@@ -153,10 +155,9 @@ class NotificationServiceIT {
         service.generate(request);
 
         // then: RainOnsetChangeRule 쪽 전달 인자 캡처
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<Integer>> captor = ArgumentCaptor.forClass(List.class);
-        verify(rainRule, times(1)).evaluate(captor.capture(), any());
-        var passed = captor.getValue();
+        ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
+        verify(rainRule, times(1)).evaluate(captor.capture());
+        var passed = captor.getValue().regionIds();
 
         assertThat(passed).containsExactly(10, 11, 12);
     }
@@ -214,13 +215,13 @@ class NotificationServiceIT {
         assertThat(regionNums).isSorted(); // region asc
     }
 
-    // ----------------------------------------------------
-    // 필터 분기: WarningIssuedRule / RainOnsetChangeRule 특수 오버로드
-    // ----------------------------------------------------
+    /**
+     *  필터 분기: WarningIssuedRule / RainOnsetChangeRule 에 전달되는 NotificationRequest
+     */
 
     @Test
-    @DisplayName("filterWarningKinds가 있으면 WARNING_ISSUED 룰은 WarningIssuedRule.evaluate(regionIds, kinds, since)를 사용한다")
-    void filterWarningKinds_uses_warningIssuedRule_specialized_overload() {
+    @DisplayName("filterWarningKinds가 있으면 해당 값이 포함된 NotificationRequest가 WARNING_ISSUED 룰로 전달된다")
+    void filterWarningKinds_is_forwarded_in_request() {
         var regionIds = List.of(1, 2);
         LocalDateTime since = LocalDateTime.parse("2025-11-04T04:00:00");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.WARNING_ISSUED);
@@ -237,34 +238,30 @@ class NotificationServiceIT {
         // when
         List<AlertEvent> events = service.generate(request);
 
-        // WARNING_ISSUED만 포함되는지만 대략 확인
+        // WARNING_ISSUED만 포함되는지, 그리고 kind=RAIN만 있는지 확인
         assertThat(events)
                 .isNotEmpty()
                 .allMatch(e -> e.type() == AlertTypeEnum.WARNING_ISSUED);
+        assertThat(events)
+                .extracting(e -> e.payload().get("kind"))
+                .containsOnly(WarningKind.RAIN);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<Integer>> regionCaptor = ArgumentCaptor.forClass(List.class);
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Set<WarningKind>> kindCaptor = ArgumentCaptor.forClass(Set.class);
-        ArgumentCaptor<LocalDateTime> sinceCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
-
-        // WarningIssuedRule의 특수 시그니처가 호출되었는지 검증
+        ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
         verify(warningRule, times(1))
-                .evaluate(regionCaptor.capture(), kindCaptor.capture(), sinceCaptor.capture());
+                .evaluate(captor.capture());
 
-        assertThat(regionCaptor.getValue()).containsExactly(1, 2);
-        assertThat(kindCaptor.getValue()).containsExactly(WarningKind.RAIN);
-        assertThat(sinceCaptor.getValue()).isEqualTo(since);
+        NotificationRequest passed = captor.getValue();
+        assertThat(passed.regionIds()).containsExactly(1, 2);
+        assertThat(passed.filterWarningKinds()).containsExactly(WarningKind.RAIN);
+        assertThat(passed.since()).isEqualTo(since);
 
-        // 기본 evaluate(List<Integer>, LocalDateTime)는 호출되지 않아야 자연스럽다
-        verify(warningRule, never()).evaluate(any(), (LocalDateTime) any());
-        verify(rainRule, never()).evaluate(any(), any());
-        verify(forecastRule, never()).evaluate(any(), any());
+        verify(rainRule, never()).evaluate(any(NotificationRequest.class));
+        verify(forecastRule, never()).evaluate(any(NotificationRequest.class));
     }
 
     @Test
-    @DisplayName("rainHourLimit가 있으면 RAIN_ONSET 룰은 RainOnsetChangeRule.evaluate(regionIds, since, hourLimit)를 사용한다")
-    void rainHourLimit_uses_rainOnsetChangeRule_specialized_overload() {
+    @DisplayName("rainHourLimit가 있으면 해당 값과 함께 NotificationRequest가 RAIN_ONSET 룰로 전달된다")
+    void rainHourLimit_is_forwarded_in_request() {
         var regionIds = List.of(10, 11, 12, 13); // 4개 → limitRegions 로 앞 3개만 사용
         LocalDateTime since = LocalDateTime.parse("2025-11-04T04:00:00");
         int limitHour = 12;
@@ -281,29 +278,24 @@ class NotificationServiceIT {
         // when
         List<AlertEvent> events = service.generate(request);
 
-        // then: 특수 오버로드 호출 여부만 검증
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<Integer>> regionCaptor = ArgumentCaptor.forClass(List.class);
-        ArgumentCaptor<LocalDateTime> sinceCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
-        ArgumentCaptor<Integer> limitCaptor = ArgumentCaptor.forClass(Integer.class);
-
+        // then: RainOnsetChangeRule에 전달된 NotificationRequest 내용 검증
+        ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
         verify(rainRule, times(1))
-                .evaluate(regionCaptor.capture(), sinceCaptor.capture(), limitCaptor.capture());
+                .evaluate(captor.capture());
 
+        NotificationRequest passed = captor.getValue();
         // limitRegions 적용 확인 (앞 3개만 전달)
-        assertThat(regionCaptor.getValue()).containsExactly(10, 11, 12);
-        assertThat(sinceCaptor.getValue()).isEqualTo(since);
-        assertThat(limitCaptor.getValue()).isEqualTo(limitHour);
+        assertThat(passed.regionIds()).containsExactly(10, 11, 12);
+        assertThat(passed.since()).isEqualTo(since);
+        assertThat(passed.rainHourLimit()).isEqualTo(limitHour);
 
-        // 기본 evaluate(List<Integer>, LocalDateTime)는 호출되지 않아야 자연스럽다
-        verify(rainRule, never()).evaluate(any(), (LocalDateTime) any());
-        verify(warningRule, never()).evaluate(any(), any());
-        verify(forecastRule, never()).evaluate(any(), any());
+        verify(warningRule, never()).evaluate(any(NotificationRequest.class));
+        verify(forecastRule, never()).evaluate(any(NotificationRequest.class));
     }
 
-    // ----------------------------------------------------
-    // RAIN_FORECAST: RainForecastRule 통합 동작 검증
-    // ----------------------------------------------------
+    /**
+     *  RAIN_FORECAST: RainForecastRule 통합 동작 검증
+     */
 
     @Test
     @DisplayName("RAIN_FORECAST: enabledTypes에 RAIN_FORECAST만 있으면 예보 요약 이벤트만 생성되고 다른 룰은 호출되지 않는다")
@@ -330,13 +322,12 @@ class NotificationServiceIT {
                 .extracting(AlertEvent::type)
                 .containsOnly(AlertTypeEnum.RAIN_FORECAST);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<Integer>> regionCaptor = ArgumentCaptor.forClass(List.class);
-        verify(forecastRule, times(1)).evaluate(regionCaptor.capture(), any());
-        assertThat(regionCaptor.getValue()).containsExactlyElementsOf(regionIds);
+        ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
+        verify(forecastRule, times(1)).evaluate(captor.capture());
+        assertThat(captor.getValue().regionIds()).containsExactlyElementsOf(regionIds);
 
-        verify(rainRule, never()).evaluate(any(), any());
-        verify(warningRule, never()).evaluate(any(), any());
+        verify(rainRule, never()).evaluate(any(NotificationRequest.class));
+        verify(warningRule, never()).evaluate(any(NotificationRequest.class));
     }
 
     @Test

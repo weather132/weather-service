@@ -1,23 +1,20 @@
 package com.github.yun531.climate.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.util.List;
 
-@Getter
-@AllArgsConstructor
-public class PopDailySeries7 {
-    private final List<DailyPop> days; // size 7
+public record PopDailySeries7(List<DailyPop> days) {
 
-    @Getter
-    @AllArgsConstructor
-    public static class DailyPop {
-        private final int am;
-        private final int pm;
+    public PopDailySeries7(List<DailyPop> days) {
+        if (days.size() != 7) {                 /** @param days size 7 */
+            throw new IllegalArgumentException("days size must be 7");
+        }
+        this.days = List.copyOf(days); // 방어적 복사 + 불변 리스트
     }
 
     public DailyPop get(int dayOffset) {
         return days.get(dayOffset);
+    }
+
+    public record DailyPop(int am, int pm) {
     }
 }

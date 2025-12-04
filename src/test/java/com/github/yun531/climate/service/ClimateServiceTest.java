@@ -180,12 +180,12 @@ class ClimateServiceTest {
         }
 
         // daily 7일 AM/PM
-        assertThat(fs.daily().getDays()).hasSize(7);
-        assertThat(fs.daily().getDays().get(0).getAm()).isEqualTo(60);
-        assertThat(fs.daily().getDays().get(0).getPm()).isEqualTo(10);
-        assertThat(fs.daily().getDays().get(1).getPm()).isEqualTo(70);
-        assertThat(fs.daily().getDays().get(4).getAm()).isEqualTo(80);
-        assertThat(fs.daily().getDays().get(5).getPm()).isEqualTo(80);
+        assertThat(fs.daily().days()).hasSize(7);
+        assertThat(fs.daily().days().get(0).am()).isEqualTo(60);
+        assertThat(fs.daily().days().get(0).pm()).isEqualTo(10);
+        assertThat(fs.daily().days().get(1).pm()).isEqualTo(70);
+        assertThat(fs.daily().days().get(4).am()).isEqualTo(80);
+        assertThat(fs.daily().days().get(5).pm()).isEqualTo(80);
     }
 
     @Test

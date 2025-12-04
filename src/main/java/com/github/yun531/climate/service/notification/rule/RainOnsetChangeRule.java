@@ -1,8 +1,9 @@
-package com.github.yun531.climate.service.rule;
+package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.dto.PopSeries;
 import com.github.yun531.climate.dto.PopSeries24;
 import com.github.yun531.climate.service.ClimateService;
+import com.github.yun531.climate.service.notification.NotificationRequest;
 import com.github.yun531.climate.util.CacheEntry;
 import com.github.yun531.climate.util.RegionCache;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class RainOnsetChangeRule implements AlertRule {
+
     private static final int RAIN_TH = RainThresholdEnum.RAIN.getThreshold();
     /** since 기준으로 해당 분(시간) 보다 오래된 계산 결과면 재계산 */
     private static final int RECOMPUTE_THRESHOLD_MINUTES = 165;
@@ -30,19 +32,22 @@ public class RainOnsetChangeRule implements AlertRule {
         return AlertTypeEnum.RAIN_ONSET;
     }
 
-    /** default: 시간 제한 없이 전체 이벤트 */
     @Override
-    public List<AlertEvent> evaluate(List<Integer> regionIds, LocalDateTime since) {
-        return evaluate(regionIds, since, null);
+    public List<AlertEvent> evaluate(NotificationRequest request) {
+        List<Integer> regionIds = request.regionIds();
+        LocalDateTime since     = request.since();
+        Integer maxHour         = request.rainHourLimit(); // null이면 전체 시간대
+
+        return evaluateInternal(regionIds, since, maxHour);
     }
 
     /**
      * maxHour 까지의 비 시작 알림만 반환.
      * - maxHour == null 이면 전체 시간대 반환
      */
-    public List<AlertEvent> evaluate(List<Integer> regionIds,
-                                     LocalDateTime since,
-                                     Integer maxHour) {
+    private List<AlertEvent> evaluateInternal(List<Integer> regionIds,
+                                              LocalDateTime since,
+                                              Integer maxHour) {
         if (regionIds == null || regionIds.isEmpty()) {
             return List.of();
         }

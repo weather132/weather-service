@@ -1,4 +1,4 @@
-package com.github.yun531.climate.service.rule;
+package com.github.yun531.climate.service.notification.rule;
 
 import lombok.Getter;
 

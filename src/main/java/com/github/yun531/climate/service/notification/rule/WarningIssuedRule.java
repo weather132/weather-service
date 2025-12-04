@@ -1,18 +1,16 @@
-package com.github.yun531.climate.service.rule;
-
+package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.dto.WarningKind;
 import com.github.yun531.climate.dto.WarningStateDto;
 import com.github.yun531.climate.service.WarningService;
+import com.github.yun531.climate.service.notification.NotificationRequest;
 import com.github.yun531.climate.util.CacheEntry;
 import com.github.yun531.climate.util.RegionCache;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Set;
 
 import static com.github.yun531.climate.util.TimeUtil.nowMinutes;
@@ -33,22 +31,25 @@ public class WarningIssuedRule implements AlertRule {
         return AlertTypeEnum.WARNING_ISSUED;
     }
 
-    // AlertRule 기본 evaluate: 모든 kind 대상
     @Override
-    public List<AlertEvent> evaluate(List<Integer> regionIds, LocalDateTime since) {
-        return evaluate(regionIds, null, since);
+    public List<AlertEvent> evaluate(NotificationRequest request) {
+        List<Integer> regionIds        = request.regionIds();
+        LocalDateTime since            = request.since();
+        Set<WarningKind> filterKinds   = request.filterWarningKinds();
+
+        return evaluateInternal(regionIds, filterKinds, since);
     }
 
-    // 특정 기상특보 종류만 요청하는 오버로드
-    public List<AlertEvent> evaluate(List<Integer> regionIds,
-                                     Set<WarningKind> filterKinds,
-                                     LocalDateTime since) {
+    // 내부 공용 구현
+    private List<AlertEvent> evaluateInternal(List<Integer> regionIds,
+                                              Set<WarningKind> filterKinds,
+                                              LocalDateTime since) {
         if (regionIds == null || regionIds.isEmpty()) {
             return List.of();
         }
 
         // 캐시 TTL 기준 시각: "지금"
-        LocalDateTime cacheSince = nowMinutes();
+        LocalDateTime cacheSince    = nowMinutes();
         // 특보 발효 시각 판정용 since (90분 보정)
         LocalDateTime adjustedSince = adjustSince(since);
 
@@ -74,7 +75,7 @@ public class WarningIssuedRule implements AlertRule {
     /**
      * 특보 발효 시각과의 시차 보정을 위해 since 를 90분 당겨서 사용
      * 요청 시점에서부터 90분 이전까지의 특보 정보를 새로 발효된 것으로 간주
-     * */
+     */
     private LocalDateTime adjustSince(LocalDateTime since) {
         if (since == null) {
             return null;
@@ -150,4 +151,8 @@ public class WarningIssuedRule implements AlertRule {
                 payload
         );
     }
+
+    /** 캐시 무효화 */
+    public void invalidate(int regionId) { cache.invalidate(regionId); }
+    public void invalidateAll() { cache.invalidateAll(); }
 }
