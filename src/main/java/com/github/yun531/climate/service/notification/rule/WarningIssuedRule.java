@@ -6,6 +6,7 @@ import com.github.yun531.climate.service.WarningService;
 import com.github.yun531.climate.service.notification.NotificationRequest;
 import com.github.yun531.climate.util.CacheEntry;
 import com.github.yun531.climate.util.RegionCache;
+import io.micrometer.common.lang.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,12 @@ public class WarningIssuedRule implements AlertRule {
 
     /** 캐시 TTL (분 단위) */
     private static final int CACHE_TTL_MINUTES = 45;
+    /** payload 키 상수 */
+    private static final String PAYLOAD_SRC_RULE_KEY  = "_srcRule";
+    private static final String PAYLOAD_SRC_RULE_NAME = "WarningIssuedRule";
+    private static final String PAYLOAD_KIND_KEY      = "kind";
+    private static final String PAYLOAD_LEVEL_KEY     = "level";
+
     /** 지역별 캐시: kind → WarningStateDto 맵 + 계산시각 */
     private final RegionCache<Map<WarningKind, WarningStateDto>> cache = new RegionCache<>();
 
@@ -40,7 +47,6 @@ public class WarningIssuedRule implements AlertRule {
         return evaluateInternal(regionIds, filterKinds, since);
     }
 
-    // 내부 공용 구현
     private List<AlertEvent> evaluateInternal(List<Integer> regionIds,
                                               Set<WarningKind> filterKinds,
                                               LocalDateTime since) {
@@ -64,12 +70,24 @@ public class WarningIssuedRule implements AlertRule {
                             () -> loadLatestForRegion(regionId)
                     );
 
-            Map<WarningKind, WarningStateDto> byKind =
-                    (entry != null) ? entry.value() : null;
+            Map<WarningKind, WarningStateDto> eventByKind = extractEvents(entry);
 
-            collectEventsForRegion(regionId, byKind, filterKinds, adjustedSince, out);
+            collectEventsForRegion(regionId, eventByKind, filterKinds, adjustedSince, out);
         }
         return out;
+    }
+
+    /**
+     * CacheEntry에서 이벤트 리스트를 꺼낸다.
+     * entry가 null이거나, value(Map<WarningKind, WarningStateDto>)가 null 또는 비어 있으면 빈 리스트를 반환한다.
+     */
+    private Map<WarningKind, WarningStateDto> extractEvents(
+            @Nullable CacheEntry<Map<WarningKind, WarningStateDto>> entry ) {
+
+        if (entry == null || entry.value() == null || entry.value().isEmpty()) {
+            return Map.of();
+        }
+        return entry.value();
     }
 
     /**
@@ -106,8 +124,7 @@ public class WarningIssuedRule implements AlertRule {
 
         for (Map.Entry<WarningKind, WarningStateDto> entry : byKind.entrySet()) {
             WarningKind kind = entry.getKey();
-            if (filterKinds != null && !filterKinds.isEmpty()
-                    && !filterKinds.contains(kind)) {
+            if (!matchesFilter(kind, filterKinds)) {
                 continue;
             }
 
@@ -116,13 +133,23 @@ public class WarningIssuedRule implements AlertRule {
                 continue;
             }
 
-            AlertEvent event = toAlertEvent(regionId, state);
-            out.add(event);
+            out.add(toAlertEvent(regionId, state));
         }
     }
 
-    // 새로 발효된 특보인지 판단
-    private boolean isNewWarning(WarningStateDto state, LocalDateTime adjustedSince) {
+    /** 필터 kind 집합이 비어 있지 않다면, 해당 kind 가 포함되는지 검사 */
+    private boolean matchesFilter(WarningKind kind,
+                                  @Nullable Set<WarningKind> filterKinds) {
+
+        if (filterKinds == null || filterKinds.isEmpty()) {
+            return true;
+        }
+        return filterKinds.contains(kind);
+    }
+
+    /** 새로 발효된 특보인지 판단 */
+    private boolean isNewWarning(WarningStateDto state,
+                                 LocalDateTime adjustedSince) {
         if (state == null) {
             return false;
         }
@@ -133,15 +160,15 @@ public class WarningIssuedRule implements AlertRule {
         return warningService.isNewlyIssuedSince(state, adjustedSince);
     }
 
-    // DTO → AlertEvent 변환
+    /** DTO → AlertEvent 변환 */
     private AlertEvent toAlertEvent(int regionId, WarningStateDto state) {
         LocalDateTime occurredAt =
                 (state.getUpdatedAt() != null) ? state.getUpdatedAt() : nowMinutes();
 
         Map<String, Object> payload = Map.of(
-                "_srcRule", "WarningIssuedRule",
-                "kind",  state.getKind(),   // WarningKind enum
-                "level", state.getLevel()   // WarningLevel enum
+                PAYLOAD_SRC_RULE_KEY,  PAYLOAD_SRC_RULE_NAME,
+                PAYLOAD_KIND_KEY,      state.getKind(),   // WarningKind enum
+                PAYLOAD_LEVEL_KEY,     state.getLevel()   // WarningLevel enum
         );
 
         return new AlertEvent(

@@ -34,10 +34,8 @@ public class NotificationService {
 
         // 1) Request 정규화 (since, enabledTypes, regionIds 등)
         NotificationRequest normalized = normalize(request);
-
         // 2) 룰 실행 및 이벤트 수집
         List<AlertEvent> events = collectEvents(normalized);
-
         // 3) 중복 제거 및 정렬
         List<AlertEvent> deduped = deduplicate(events);
         sortEvents(deduped);
@@ -125,9 +123,10 @@ public class NotificationService {
         events.sort(Comparator
                 .comparing(AlertEvent::type,
                         Comparator.nullsLast(Comparator.comparingInt(Enum::ordinal)))
-                .thenComparing(AlertEvent::regionId, Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(event -> event.type().name())
-                .thenComparing(AlertEvent::occurredAt, Comparator.nullsLast(Comparator.naturalOrder())));
+                .thenComparing(AlertEvent::regionId,
+                        Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(AlertEvent::occurredAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())));
     }
 
     /** since 가 null이면 현재 시각을 사용 */
