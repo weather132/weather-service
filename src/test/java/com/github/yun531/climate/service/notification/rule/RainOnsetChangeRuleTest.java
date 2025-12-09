@@ -1,6 +1,6 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.dto.PopSeries;
+import com.github.yun531.climate.dto.PopSeriesPair;
 import com.github.yun531.climate.dto.PopSeries24;
 import com.github.yun531.climate.service.ClimateService;
 import com.github.yun531.climate.service.notification.NotificationRequest;
@@ -67,7 +67,7 @@ class RainOnsetChangeRuleTest {
         PopSeries24 previous = new PopSeries24(prvVals);
 
         when(climateService.loadDefaultPopSeries(7))
-                .thenReturn(new PopSeries(
+                .thenReturn(new PopSeriesPair(
                         current,
                         previous,
                         3,
@@ -85,7 +85,7 @@ class RainOnsetChangeRuleTest {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(climateService);
 
         when(climateService.loadDefaultPopSeries(9))
-                .thenReturn(new PopSeries(
+                .thenReturn(new PopSeriesPair(
                         null, null, 0,
                         LocalDateTime.parse("2025-11-18T11:00:00"))
                 );
@@ -234,8 +234,8 @@ class RainOnsetChangeRuleTest {
         int regionId01 = 1, regionId02 = 2;
         int th = RainThresholdEnum.RAIN.getThreshold();
 
-        PopSeries series01 = seriesWithCrossAtHour(2, th);
-        PopSeries series02 = seriesWithCrossAtHour(6, th);
+        PopSeriesPair series01 = seriesWithCrossAtHour(2, th);
+        PopSeriesPair series02 = seriesWithCrossAtHour(6, th);
 
         when(climateService.loadDefaultPopSeries(regionId01)).thenReturn(series01);
         when(climateService.loadDefaultPopSeries(regionId02)).thenReturn(series02);
@@ -301,7 +301,7 @@ class RainOnsetChangeRuleTest {
 
     /** PopSeries helper */
 
-    private static PopSeries seriesWithCrossAtHour(int hour, int th) {
+    private static PopSeriesPair seriesWithCrossAtHour(int hour, int th) {
         List<Integer> curVals = new ArrayList<>(Collections.nCopies(24, 0));
         List<Integer> prvVals = new ArrayList<>(Collections.nCopies(24, 0));
 
@@ -313,7 +313,7 @@ class RainOnsetChangeRuleTest {
         PopSeries24 previous = new PopSeries24(prvVals);
 
         int gapHours = 0;
-        return new PopSeries(
+        return new PopSeriesPair(
                 current,
                 previous,
                 gapHours,

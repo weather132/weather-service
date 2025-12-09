@@ -1,6 +1,6 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.dto.PopSeries;
+import com.github.yun531.climate.dto.PopSeriesPair;
 import com.github.yun531.climate.dto.PopSeries24;
 import com.github.yun531.climate.service.ClimateService;
 import com.github.yun531.climate.service.notification.NotificationRequest;
@@ -131,7 +131,7 @@ public class RainOnsetChangeRule implements AlertRule {
 
     // 한 지역에 대한 비 시작 시점 계산
     private CacheEntry<List<AlertEvent>> computeForRegion(int regionId) {
-        PopSeries series = climateService.loadDefaultPopSeries(regionId);
+        PopSeriesPair series = climateService.loadDefaultPopSeries(regionId);
 
         if (!isValidSeries(series)) {
             return createEmptyCacheEntry();
@@ -143,7 +143,7 @@ public class RainOnsetChangeRule implements AlertRule {
         return new CacheEntry<>(List.copyOf(events), computedAt);
     }
 
-    private boolean isValidSeries(PopSeries series) {
+    private boolean isValidSeries(PopSeriesPair series) {
         return series != null
                 && series.current() != null
                 && series.previous() != null;
@@ -155,7 +155,7 @@ public class RainOnsetChangeRule implements AlertRule {
 
     /** 시계열 비교 및 이벤트 생성 */
     private List<AlertEvent> detectRainOnsetEvents(int regionId,
-                                                   PopSeries series,
+                                                   PopSeriesPair series,
                                                    LocalDateTime computedAt) {
 
         PopSeries24 cur = series.current();

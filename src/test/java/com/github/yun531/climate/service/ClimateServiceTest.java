@@ -1,7 +1,6 @@
 package com.github.yun531.climate.service;
 
 import com.github.yun531.climate.dto.*;
-import com.github.yun531.climate.repository.ClimateSnapRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,17 +15,20 @@ import static com.github.yun531.climate.util.TimeUtil.nowMinutes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+/**
+ * ForecastSnapshotProvider 기반으로 리팩토링된 ClimateService 테스트
+ */
 @ExtendWith(MockitoExtension.class)
 class ClimateServiceTest {
 
     @Mock
-    ClimateSnapRepository climateSnapRepository;
+    ForecastSnapshotProvider snapshotProvider;
 
     ClimateService climateService;
 
     @BeforeEach
     void setUp() {
-        climateService = new ClimateService(climateSnapRepository);
+        climateService = new ClimateService(snapshotProvider);
     }
 
     @Test
@@ -37,33 +39,33 @@ class ClimateServiceTest {
         int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
         // 이전 리포트 시각: 2025-01-01T08:00
-        LocalDateTime prvTime = LocalDateTime.of(2025, 1, 1, 8, 0,0);
+        LocalDateTime prvTime = LocalDateTime.of(2025, 1, 1, 8, 0, 0);
         // 현재 리포트 시각: 3시간 뒤
         LocalDateTime curTime = prvTime.plusHours(3);
 
-        // current: 0..23
-        List<Integer> curHourly = rangeList(0, 24);      // [0,1,...,23]
-        // previous: 10..33
-        List<Integer> prvHourly = rangeList(10, 24);     // [10,11,...,33]
+        // POP 값: current 0..23, previous 10..33
+        List<Integer> curHourlyPop = rangeList(0, 24);
+        List<Integer> prvHourlyPop = rangeList(10, 24);
 
-        POPSnapDto cur = new POPSnapDto();
-        cur.setSnapId(curId);
-        cur.setRegionId(regionId);
-        cur.setReportTime(curTime);
-        cur.setHourly(new PopSeries24(curHourly));
+        ForecastSnapshot cur = new ForecastSnapshot(
+                regionId,
+                curTime,
+                buildHourlyPoints(curHourlyPop),      // temp는 null, pop만 유의미
+                dummyDailyPoints()                    // 이 테스트에서는 daily는 사용 안 함
+        );
 
-        POPSnapDto prv = new POPSnapDto();
-        prv.setSnapId(prvId);
-        prv.setRegionId(regionId);
-        prv.setReportTime(prvTime);
-        prv.setHourly(new PopSeries24(prvHourly));
+        ForecastSnapshot prv = new ForecastSnapshot(
+                regionId,
+                prvTime,
+                buildHourlyPoints(prvHourlyPop),
+                dummyDailyPoints()
+        );
 
-        // 일부러 순서를 뒤집어서 반환해도 snapId 로 제대로 매핑되는지 확인
-        when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(curId, prvId), regionId))
-                .thenReturn(List.of(prv, cur));
+        when(snapshotProvider.loadSnapshot(regionId, curId)).thenReturn(cur);
+        when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(prv);
 
         // when
-        PopSeries series = climateService.loadPopSeries(regionId, curId, prvId);
+        PopSeriesPair series = climateService.loadPopSeries(regionId, curId, prvId);
 
         // then
         assertThat(series.current()).isNotNull();
@@ -87,87 +89,99 @@ class ClimateServiceTest {
 
     @Test
     void loadPopSeries_스냅하나라도없으면_null과_gap0반환() {
+        // given
         int regionId = 200;
         int curId = SnapKindEnum.SNAP_CURRENT.getCode();
         int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
-        POPSnapDto onlyCur = new POPSnapDto();
-        onlyCur.setSnapId(curId);
-        onlyCur.setRegionId(regionId);
-        onlyCur.setReportTime(nowMinutes());
-        onlyCur.setHourly(new PopSeries24(rangeList(0, 24)));
+        ForecastSnapshot cur = new ForecastSnapshot(
+                regionId,
+                nowMinutes(),
+                buildHourlyPoints(rangeList(0, 24)),
+                dummyDailyPoints()
+        );
 
         // 이전 스냅이 없는 경우 (cur 만 반환)
-        when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(curId, prvId), regionId))
-                .thenReturn(List.of(onlyCur));
+        when(snapshotProvider.loadSnapshot(regionId, curId)).thenReturn(cur);
+        when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(null);
 
-        PopSeries series = climateService.loadPopSeries(regionId, curId, prvId);
+        // when
+        PopSeriesPair series = climateService.loadPopSeries(regionId, curId, prvId);
 
+        // then
         assertThat(series.current()).isNull();
         assertThat(series.previous()).isNull();
         assertThat(series.reportTimeGap()).isEqualTo(0);
     }
 
     @Test
-    void loadDefaultPopSeries_레포호출파라미터_검증() {
+    void loadDefaultPopSeries_provider호출파라미터_검증() {
         // given
         int regionId = 7;
         int curId = SnapKindEnum.SNAP_CURRENT.getCode();
         int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
-        POPSnapDto cur = new POPSnapDto();
-        cur.setSnapId(curId);
-        cur.setRegionId(regionId);
-        cur.setReportTime(nowMinutes());
-        cur.setHourly(new PopSeries24(rangeList(0, 24)));
+        ForecastSnapshot cur = new ForecastSnapshot(
+                regionId,
+                nowMinutes(),
+                buildHourlyPoints(rangeList(0, 24)),
+                dummyDailyPoints()
+        );
+        ForecastSnapshot prv = new ForecastSnapshot(
+                regionId,
+                nowMinutes().minusHours(3),
+                buildHourlyPoints(rangeList(10, 24)),
+                dummyDailyPoints()
+        );
 
-        POPSnapDto prv = new POPSnapDto();
-        prv.setSnapId(prvId);
-        prv.setRegionId(regionId);
-        prv.setReportTime(nowMinutes().minusHours(3));
-        prv.setHourly(new PopSeries24(rangeList(10, 24)));
-
-        when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(curId, prvId), regionId))
-                .thenReturn(List.of(cur, prv));
+        when(snapshotProvider.loadSnapshot(regionId, curId)).thenReturn(cur);
+        when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(prv);
 
         // when
         climateService.loadDefaultPopSeries(regionId);
 
         // then
-        verify(climateSnapRepository, times(1))
-                .findPopInfoBySnapIdsAndRegionId(List.of(1, 10), regionId);
+        verify(snapshotProvider, times(1)).loadSnapshot(regionId, curId);
+        verify(snapshotProvider, times(1)).loadSnapshot(regionId, prvId);
+        verifyNoMoreInteractions(snapshotProvider);
     }
 
     @Test
     void loadForecastSeries_hourly와_daily_매핑검증() {
+        // given
         int regionId = 55;
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
 
-        POPSnapDto popSnapDto = new POPSnapDto();
-        popSnapDto.setSnapId(snapId);
-        popSnapDto.setRegionId(regionId);
-        popSnapDto.setReportTime(nowMinutes());
+        // hourly POP: 0..23, temp는 null로 두고 POP만 검증
+        List<Integer> hourlyPop = rangeList(0, 24);
+        List<ForecastSnapshot.HourlyPoint> hourly = new ArrayList<>();
+        for (int hour = 0; hour < 24; hour++) {
+            hourly.add(new ForecastSnapshot.HourlyPoint(hour, null, hourlyPop.get(hour)));
+        }
 
-        // hourly: 0..23
-        popSnapDto.setHourly(new PopSeries24(rangeList(0, 24)));
+        // daily: 7일치 AM/PM POP
+        // PopDailySeries7 테스트와 동일한 패턴
+        List<ForecastSnapshot.DailyPoint> daily = List.of(
+                new ForecastSnapshot.DailyPoint(0, null, null, 60, 10),
+                new ForecastSnapshot.DailyPoint(1, null, null, 10, 70),
+                new ForecastSnapshot.DailyPoint(2, null, null, 65, 65),
+                new ForecastSnapshot.DailyPoint(3, null, null, 0, 0),
+                new ForecastSnapshot.DailyPoint(4, null, null, 80, 0),
+                new ForecastSnapshot.DailyPoint(5, null, null, 0, 80),
+                new ForecastSnapshot.DailyPoint(6, null, null, 50, 50)
+        );
 
-        // daily: 7일치 AM/PM
-        PopDailySeries7 daily = new PopDailySeries7(List.of(
-                new PopDailySeries7.DailyPop(60, 10),
-                new PopDailySeries7.DailyPop(10, 70),
-                new PopDailySeries7.DailyPop(65, 65),
-                new PopDailySeries7.DailyPop(0, 0),
-                new PopDailySeries7.DailyPop(80, 0),
-                new PopDailySeries7.DailyPop(0, 80),
-                new PopDailySeries7.DailyPop(50, 50)
-        ));
-        popSnapDto.setDaily(daily);
+        ForecastSnapshot snapshot = new ForecastSnapshot(
+                regionId,
+                nowMinutes(),
+                hourly,
+                daily
+        );
 
-        when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(snapId), regionId))
-                .thenReturn(List.of(popSnapDto));
+        when(snapshotProvider.loadSnapshot(regionId, snapId)).thenReturn(snapshot);
 
         // when
-        ForecastSeries fs = climateService.loadForecastSeries(regionId, snapId);
+        PopForecastSeries fs = climateService.loadForecastSeries(regionId, snapId);
 
         // then
         assertThat(fs.hourly()).isNotNull();
@@ -189,15 +203,17 @@ class ClimateServiceTest {
     }
 
     @Test
-    void loadForecastSeries_행없으면_null들_반환() {
+    void loadForecastSeries_snapshot없으면_null들_반환() {
+        // given
         int regionId = 99;
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
 
-        when(climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(snapId), regionId))
-                .thenReturn(List.of());   // 빈 리스트
+        when(snapshotProvider.loadSnapshot(regionId, snapId)).thenReturn(null);
 
-        ForecastSeries fs = climateService.loadForecastSeries(regionId, snapId);
+        // when
+        PopForecastSeries fs = climateService.loadForecastSeries(regionId, snapId);
 
+        // then
         assertThat(fs.hourly()).isNull();
         assertThat(fs.daily()).isNull();
     }
@@ -211,5 +227,23 @@ class ClimateServiceTest {
             out.add(base + i);
         }
         return out;
+    }
+
+    /** POP만 필요한 경우 temp=null, pop만 채운 HourlyPoint 리스트 생성 */
+    private static List<ForecastSnapshot.HourlyPoint> buildHourlyPoints(List<Integer> pops) {
+        List<ForecastSnapshot.HourlyPoint> list = new ArrayList<>(pops.size());
+        for (int i = 0; i < pops.size(); i++) {
+            list.add(new ForecastSnapshot.HourlyPoint(i, null, pops.get(i)));
+        }
+        return list;
+    }
+
+    /** 테스트에서 daily를 쓰지 않을 때 사용할 더미 7일치 DailyPoint */
+    private static List<ForecastSnapshot.DailyPoint> dummyDailyPoints() {
+        List<ForecastSnapshot.DailyPoint> list = new ArrayList<>(7);
+        for (int day = 0; day < 7; day++) {
+            list.add(new ForecastSnapshot.DailyPoint(day, null, null, null, null));
+        }
+        return list;
     }
 }

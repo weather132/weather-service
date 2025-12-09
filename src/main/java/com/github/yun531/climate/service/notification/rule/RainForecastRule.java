@@ -1,6 +1,6 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.dto.ForecastSeries;
+import com.github.yun531.climate.dto.PopForecastSeries;
 import com.github.yun531.climate.dto.PopDailySeries7;
 import com.github.yun531.climate.dto.PopSeries24;
 import com.github.yun531.climate.dto.SnapKindEnum;
@@ -86,7 +86,7 @@ public class RainForecastRule implements AlertRule {
 
     // 한 지역에 대한 비 예보 계산 → CacheEntry로 반환
     private CacheEntry<List<AlertEvent>> computeForRegion(int regionId) {
-        ForecastSeries series = loadForecastSeries(regionId);
+        PopForecastSeries series = loadForecastSeries(regionId);
         if (series == null) {
             return new CacheEntry<>(List.of(), null);
         }
@@ -107,8 +107,8 @@ public class RainForecastRule implements AlertRule {
         return new CacheEntry<>(List.of(event), computedAt);
     }
 
-    private ForecastSeries loadForecastSeries(int regionId) {
-        ForecastSeries series = climateService.loadForecastSeries(regionId, SNAP_CURRENT_CODE);
+    private PopForecastSeries loadForecastSeries(int regionId) {
+        PopForecastSeries series = climateService.loadForecastSeries(regionId, SNAP_CURRENT_CODE);
         if (series == null) {
             return null;
         }
@@ -119,7 +119,7 @@ public class RainForecastRule implements AlertRule {
     }
 
     /** 시간대별 POP 24시간에서 연속으로 비가 오는 구간들을 [startIdx, endIdx] 형태로 리턴. */
-    private List<List<Integer>> buildHourlyParts(ForecastSeries series) {
+    private List<List<Integer>> buildHourlyParts(PopForecastSeries series) {
         PopSeries24 hourly = series.hourly();
         if (hourly == null) {
             return List.of();
@@ -173,7 +173,7 @@ public class RainForecastRule implements AlertRule {
      * amFlag: 오전 POP >= TH 이면 1, 아니면 0
      * pmFlag: 오후 POP >= TH 이면 1, 아니면 0
      */
-    private List<List<Integer>> buildDayParts(ForecastSeries fs) {
+    private List<List<Integer>> buildDayParts(PopForecastSeries fs) {
         PopDailySeries7 daily = fs.daily();
         if (daily == null || daily.days() == null || daily.days().isEmpty()) {
             return List.of();

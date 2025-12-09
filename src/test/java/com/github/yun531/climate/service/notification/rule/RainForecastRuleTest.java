@@ -1,6 +1,6 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.dto.ForecastSeries;
+import com.github.yun531.climate.dto.PopForecastSeries;
 import com.github.yun531.climate.dto.PopDailySeries7;
 import com.github.yun531.climate.dto.PopSeries24;
 import com.github.yun531.climate.dto.SnapKindEnum;
@@ -44,7 +44,7 @@ class RainForecastRuleTest {
         PopSeries24 hourly = new PopSeries24(Collections.nCopies(24, 0));
 
         when(climateService.loadForecastSeries(1, snapId))
-                .thenReturn(new ForecastSeries(hourly, daily));
+                .thenReturn(new PopForecastSeries(hourly, daily));
 
         RainForecastRule rule = new RainForecastRule(climateService);
 
@@ -101,7 +101,7 @@ class RainForecastRuleTest {
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
 
         when(climateService.loadForecastSeries(1, snapId))
-                .thenReturn(new ForecastSeries(hourly, daily));
+                .thenReturn(new PopForecastSeries(hourly, daily));
 
         RainForecastRule rule = new RainForecastRule(climateService);
 

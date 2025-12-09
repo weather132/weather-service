@@ -1,14 +1,19 @@
 package com.github.yun531.climate.service;
 
 import com.github.yun531.climate.dto.*;
-import com.github.yun531.climate.repository.ClimateSnapRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
+/**
+ * 예보/알림 도메인 서비스
+ * - POP 기반 알림용 시계열 생성 (PopSeriesPair, PopForecastSeries)
+ * - 일반 일기예보용 DTO 생성 (HourlyForecastDto, DailyForecastDto)
+ */
 @Service
 @RequiredArgsConstructor
 public class ClimateService {
@@ -16,70 +21,138 @@ public class ClimateService {
     private static final int SNAP_CURRENT = SnapKindEnum.SNAP_CURRENT.getCode();
     private static final int SNAP_PREV    = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
-    private final ClimateSnapRepository climateSnapRepository;
+    private final ForecastSnapshotProvider snapshotProvider;
 
-    public PopSeries loadDefaultPopSeries(int regionId) {
+    /* ======================= 알림용 POP 시계열 ======================= */
+
+    /** 기본 POP 시계열: (현재, 이전) SNAP */
+    public PopSeriesPair loadDefaultPopSeries(int regionId) {
         return loadPopSeries(regionId, SNAP_CURRENT, SNAP_PREV);
     }
 
-    public ForecastSeries loadDefaultForecastSeries(int regionId) {
+    /** 기본 POP 예보 요약: 현재 SNAP 기준 */
+    public PopForecastSeries loadDefaultForecastSeries(int regionId) {
         return loadForecastSeries(regionId, SNAP_CURRENT);
     }
 
     /** 비(POP) 판정에 필요한 시계열을 로드 (현재*이전 스냅샷) */
-    public PopSeries loadPopSeries(int regionId, int currentSnapId, int previousSnapId) {
-        List<Integer> snapIds = List.of(currentSnapId, previousSnapId);
-        List<POPSnapDto> snaps = fetchSnaps(regionId, snapIds);
-
-        POPSnapDto cur = findSnapById(snaps, currentSnapId);
-        POPSnapDto prv = findSnapById(snaps, previousSnapId);
+    public PopSeriesPair loadPopSeries(int regionId, int currentSnapId, int previousSnapId) {
+        ForecastSnapshot cur = snapshotProvider.loadSnapshot(regionId, currentSnapId);
+        ForecastSnapshot prv = snapshotProvider.loadSnapshot(regionId, previousSnapId);
 
         if (cur == null || prv == null) {
             return emptyPopSeries();
         }
 
-        int reportTimeGap = computeReportTimeGap(prv.getReportTime(), cur.getReportTime());
-        LocalDateTime curReportTime = cur.getReportTime();
+        int reportTimeGap = computeReportTimeGap(prv.reportTime(), cur.reportTime());
+        LocalDateTime curReportTime = cur.reportTime();
 
-        return new PopSeries(
-                cur.getHourly(),
-                prv.getHourly(),
+        PopSeries24 curHourly = toPopSeries24(cur);
+        PopSeries24 prvHourly = toPopSeries24(prv);
+
+        return new PopSeriesPair(
+                curHourly,
+                prvHourly,
                 reportTimeGap,
                 curReportTime
         );
     }
 
-    /** 예보 요약용: 스냅에서 시간대 [24] + 오전/오후[14] */
-    public ForecastSeries loadForecastSeries(int regionId, int snapId) {
-        POPSnapDto dto = fetchSingleSnap(regionId, snapId);
-        if (dto == null) {
+    /** 예보 요약용: 시간대 POP + 일자별 POP */
+    public PopForecastSeries loadForecastSeries(int regionId, int snapId) {
+        ForecastSnapshot snap = snapshotProvider.loadSnapshot(regionId, snapId);
+        if (snap == null) {
             return emptyForecastSeries();
         }
-        return new ForecastSeries(dto.getHourly(), dto.getDaily());
+        PopSeries24 hourly = toPopSeries24(snap);
+        PopDailySeries7 daily = toPopDailySeries7(snap);
+        return new PopForecastSeries(hourly, daily);
     }
 
-    /** 레포지토리 접근 */
-    private List<POPSnapDto> fetchSnaps(int regionId, List<Integer> snapIds) {
-        return climateSnapRepository.findPopInfoBySnapIdsAndRegionId(snapIds, regionId);
-    }
+    /* ======================= 일반 일기예보 API용 ======================= */
 
-    private POPSnapDto fetchSingleSnap(int regionId, int snapId) {
-        List<POPSnapDto> rows =
-                climateSnapRepository.findPopInfoBySnapIdsAndRegionId(List.of(snapId), regionId);
-        return rows.isEmpty() ? null : rows.get(0);
-    }
-
-    /** 스냅 선택 */
-    private POPSnapDto findSnapById(List<POPSnapDto> snaps, int snapId) {
-        for (POPSnapDto snap : snaps) {
-            if (snap.getSnapId() == snapId) {
-                return snap;
-            }
+    /** 시간대별 온도+POP 예보 (현재 SNAP 기준) */
+    public HourlyForecastDto getHourlyForecast(int regionId) {
+        ForecastSnapshot snap = snapshotProvider.loadSnapshot(regionId, SNAP_CURRENT);
+        if (snap == null) {
+            return null; // 필요하면 Optional/예외로 바꿔도 됨
         }
-        return null;
+
+        List<HourlyForecastDto.HourlyForecastEntry> hours =
+                snap.hourly().stream()
+                        .sorted(Comparator.comparingInt(ForecastSnapshot.HourlyPoint::hourOffset))
+                        .map(p -> new HourlyForecastDto.HourlyForecastEntry(
+                                p.hourOffset(),   // 몇 시간 후
+                                p.temp(),
+                                p.pop()
+                        ))
+                        .toList();
+
+        return new HourlyForecastDto(
+                snap.regionId(),
+                snap.reportTime(),
+                hours
+        );
     }
 
-    /** 발표시간 갭 계산 */
+    /** 일자별 am/pm 온도+POP 예보 (현재 SNAP 기준) */
+    public DailyForecastDto getDailyForecast(int regionId) {
+        ForecastSnapshot snap = snapshotProvider.loadSnapshot(regionId, SNAP_CURRENT);
+        if (snap == null) {
+            return null;
+        }
+
+        List<DailyForecastDto.DailyForecastEntry> days =
+                snap.daily().stream()
+                        .sorted(Comparator.comparingInt(ForecastSnapshot.DailyPoint::dayOffset))
+                        .map(d -> new DailyForecastDto.DailyForecastEntry(
+                                d.dayOffset(),
+                                d.amTemp(),
+                                d.pmTemp(),
+                                d.amPop(),
+                                d.pmPop()
+                        ))
+                        .toList();
+
+        return new DailyForecastDto(
+                snap.regionId(),
+                snap.reportTime(),
+                days
+        );
+    }
+
+    /* ======================= POP 추출 헬퍼 ======================= */
+
+    private PopSeries24 toPopSeries24(ForecastSnapshot snap) {
+        // hourOffset 기준 정렬 후 POP만 뽑아서 size 24 리스트 생성
+        List<Integer> pops = snap.hourly().stream()
+                .sorted(Comparator.comparingInt(ForecastSnapshot.HourlyPoint::hourOffset))
+                .map(p -> n(p.pop()))
+                .toList();
+        return new PopSeries24(pops);
+    }
+
+    private PopDailySeries7 toPopDailySeries7(ForecastSnapshot snap) {
+        // dayOffset 기준 정렬 후 DailyPop(AM/PM) 7개 생성
+        List<PopDailySeries7.DailyPop> days = snap.daily().stream()
+                .sorted(Comparator.comparingInt(ForecastSnapshot.DailyPoint::dayOffset))
+                .map(d -> new PopDailySeries7.DailyPop(
+                        n(d.amPop()),
+                        n(d.pmPop())
+                ))
+                .toList();
+
+        // PopDailySeries7 생성자에서 size==7 체크
+        return new PopDailySeries7(days);
+    }
+
+    /** Integer → int 변환 + null → 0 */
+    private static int n(Integer v) {
+        return v == null ? 0 : v;
+    }
+
+    /* ======================= 유틸 / 빈 값 ======================= */
+
     private int computeReportTimeGap(LocalDateTime previous, LocalDateTime current) {
         if (previous == null || current == null) {
             return 0;
@@ -88,11 +161,11 @@ public class ClimateService {
         return (int) Math.round(minutes / 60.0);
     }
 
-    /** 빈 결과 생성 */
-    private PopSeries emptyPopSeries() {
-        return new PopSeries(null, null, 0, null);
+    private PopSeriesPair emptyPopSeries() {
+        return new PopSeriesPair(null, null, 0, null);
     }
-    private ForecastSeries emptyForecastSeries() {
-        return new ForecastSeries(null, null);
+
+    private PopForecastSeries emptyForecastSeries() {
+        return new PopForecastSeries(null, null);
     }
 }
