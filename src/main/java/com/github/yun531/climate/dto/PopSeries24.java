@@ -8,9 +8,17 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class PopSeries24 {
-    private final List<Integer> values; // size 24
+    private final List<Integer> values; // size 26
 
-    public int get(int hour) { return values.get(hour); }
+    /** 1~24시간 후 POP 조회 */
+    public int get(int offsetHour) {
+        return values.get(offsetHour - 1);
+    }
+
+    /** 내부 index 기반 접근 */
+    public int getByIndex(int index0to23) {
+        return values.get(index0to23);
+    }
 
     public int size() { return values.size(); }
 

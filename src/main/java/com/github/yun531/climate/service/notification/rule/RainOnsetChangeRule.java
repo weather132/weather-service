@@ -25,7 +25,7 @@ public class RainOnsetChangeRule implements AlertRule {
     /** payload key 상수 */
     private static final String PAYLOAD_SRC_RULE_KEY  = "_srcRule";
     private static final String PAYLOAD_SRC_RULE_NAME = "RainOnsetChangeRule";
-    private static final String PAYLOAD_HOUR_KEY      = "hour";
+    private static final String PAYLOAD_HOUR_KEY      = "hourOffset";
     private static final String PAYLOAD_POP_KEY       = "pop";
 
     private final ClimateService climateService;
@@ -168,9 +168,9 @@ public class RainOnsetChangeRule implements AlertRule {
         }
 
         List<AlertEvent> events = new ArrayList<>();
-        int lastHour = cur.size() - 1;
+        int lastHour = 24;
 
-        for (int hour = 0; hour <= lastHour; hour++) {
+        for (int hour = 1; hour <= lastHour; hour++) {
             if (hour <= lastComparableHour) {
                 // 이전 스냅과 비교 가능한 구간: “새로 시작한 비”만 감지
                 if (isRainOnset(cur, prv, gapHours, hour)) {

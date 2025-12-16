@@ -75,12 +75,12 @@ class ClimateServiceTest {
         assertThat(series.previous().size()).isEqualTo(24);
 
         // current: 0..23
-        for (int i = 0; i < 24; i++) {
-            assertThat(series.current().get(i)).isEqualTo(i);
+        for (int off = 1; off <= 24; off++) {
+            assertThat(series.current().get(off)).isEqualTo(off - 1);
         }
         // previous: 10..33
-        for (int i = 0; i < 24; i++) {
-            assertThat(series.previous().get(i)).isEqualTo(10 + i);
+        for (int off = 1; off <= 24; off++) {
+            assertThat(series.previous().get(off)).isEqualTo(10 + (off - 1));
         }
 
         // 리포트 시각 차이(3시간)가 reportTimeGap 으로 반영되었는지 확인
@@ -154,21 +154,21 @@ class ClimateServiceTest {
 
         // hourly POP: 0..23, temp는 null로 두고 POP만 검증
         List<Integer> hourlyPop = rangeList(0, 24);
-        List<ForecastSnapshot.HourlyPoint> hourly = new ArrayList<>();
+        List<HourlyPoint> hourly = new ArrayList<>();
         for (int hour = 0; hour < 24; hour++) {
-            hourly.add(new ForecastSnapshot.HourlyPoint(hour, null, hourlyPop.get(hour)));
+            hourly.add(new HourlyPoint(hour, null, hourlyPop.get(hour)));
         }
 
         // daily: 7일치 AM/PM POP
         // PopDailySeries7 테스트와 동일한 패턴
-        List<ForecastSnapshot.DailyPoint> daily = List.of(
-                new ForecastSnapshot.DailyPoint(0, null, null, 60, 10),
-                new ForecastSnapshot.DailyPoint(1, null, null, 10, 70),
-                new ForecastSnapshot.DailyPoint(2, null, null, 65, 65),
-                new ForecastSnapshot.DailyPoint(3, null, null, 0, 0),
-                new ForecastSnapshot.DailyPoint(4, null, null, 80, 0),
-                new ForecastSnapshot.DailyPoint(5, null, null, 0, 80),
-                new ForecastSnapshot.DailyPoint(6, null, null, 50, 50)
+        List<DailyPoint> daily = List.of(
+                new DailyPoint(0, null, null, 60, 10),
+                new DailyPoint(1, null, null, 10, 70),
+                new DailyPoint(2, null, null, 65, 65),
+                new DailyPoint(3, null, null, 0, 0),
+                new DailyPoint(4, null, null, 80, 0),
+                new DailyPoint(5, null, null, 0, 80),
+                new DailyPoint(6, null, null, 50, 50)
         );
 
         ForecastSnapshot snapshot = new ForecastSnapshot(
@@ -189,8 +189,8 @@ class ClimateServiceTest {
 
         // hourly 0..23
         assertThat(fs.hourly().size()).isEqualTo(24);
-        for (int i = 0; i < 24; i++) {
-            assertThat(fs.hourly().get(i)).isEqualTo(i);
+        for (int i = 1; i <= 24; i++) {
+            assertThat(fs.hourly().get(i)).isEqualTo(i-1);
         }
 
         // daily 7일 AM/PM
@@ -230,19 +230,19 @@ class ClimateServiceTest {
     }
 
     /** POP만 필요한 경우 temp=null, pop만 채운 HourlyPoint 리스트 생성 */
-    private static List<ForecastSnapshot.HourlyPoint> buildHourlyPoints(List<Integer> pops) {
-        List<ForecastSnapshot.HourlyPoint> list = new ArrayList<>(pops.size());
+    private static List<HourlyPoint> buildHourlyPoints(List<Integer> pops) {
+        List<HourlyPoint> list = new ArrayList<>(pops.size());
         for (int i = 0; i < pops.size(); i++) {
-            list.add(new ForecastSnapshot.HourlyPoint(i, null, pops.get(i)));
+            list.add(new HourlyPoint(i, null, pops.get(i)));
         }
         return list;
     }
 
     /** 테스트에서 daily를 쓰지 않을 때 사용할 더미 7일치 DailyPoint */
-    private static List<ForecastSnapshot.DailyPoint> dummyDailyPoints() {
-        List<ForecastSnapshot.DailyPoint> list = new ArrayList<>(7);
+    private static List<DailyPoint> dummyDailyPoints() {
+        List<DailyPoint> list = new ArrayList<>(7);
         for (int day = 0; day < 7; day++) {
-            list.add(new ForecastSnapshot.DailyPoint(day, null, null, null, null));
+            list.add(new DailyPoint(day, null, null, null, null));
         }
         return list;
     }

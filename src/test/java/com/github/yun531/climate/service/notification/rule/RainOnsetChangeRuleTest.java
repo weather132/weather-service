@@ -46,7 +46,7 @@ class RainOnsetChangeRuleTest {
         var e = events.get(0);
         assertThat(e.type()).isEqualTo(AlertTypeEnum.RAIN_ONSET);
         assertThat(e.regionId()).isEqualTo(101L);
-        assertThat((Integer) e.payload().get("hour")).isEqualTo(5);
+        assertThat((Integer) e.payload().get("hourOffset")).isEqualTo(5);
         assertThat((Integer) e.payload().get("pop")).isEqualTo(th);
         assertThat(e.occurredAt()).isBeforeOrEqualTo(nowMinutes());
     }
@@ -60,8 +60,8 @@ class RainOnsetChangeRuleTest {
         List<Integer> curVals = new ArrayList<>(Collections.nCopies(24, 0));
         List<Integer> prvVals = new ArrayList<>(Collections.nCopies(24, 0));
         // h=5 에서 둘 다 비(임계치 이상)
-        curVals.set(5, th + 10);
-        prvVals.set(8, th + 1);
+        curVals.set(5 -1, th + 10);
+        prvVals.set(8 -1, th + 1);
 
         PopSeries24 current = new PopSeries24(curVals);
         PopSeries24 previous = new PopSeries24(prvVals);
@@ -300,14 +300,14 @@ class RainOnsetChangeRuleTest {
     }
 
     /** PopSeries helper */
-
-    private static PopSeriesPair seriesWithCrossAtHour(int hour, int th) {
+    private static PopSeriesPair seriesWithCrossAtHour(int hourOffset, int th) {
         List<Integer> curVals = new ArrayList<>(Collections.nCopies(24, 0));
         List<Integer> prvVals = new ArrayList<>(Collections.nCopies(24, 0));
 
-        // 해당 시각에서만 "비가 되었다" 상황
-        curVals.set(hour, th);        // now ≥ th
-        prvVals.set(hour, th - 1);    // was < th
+        /** 해당 시각에서만 "비가 되었다" 상황
+         *  offset(1..24) -> index(0..23) */
+        curVals.set(hourOffset - 1, th);
+        prvVals.set(hourOffset - 1, th - 1);
 
         PopSeries24 current = new PopSeries24(curVals);
         PopSeries24 previous = new PopSeries24(prvVals);

@@ -22,11 +22,11 @@ public interface ClimateSnapRepository extends JpaRepository<ClimateSnap, Intege
     @Query("""
         SELECT new com.github.yun531.climate.dto.POPSnapDto(
             c.snapId, c.regionId, c.reportTime,
-            c.popA00, c.popA01, c.popA02, c.popA03, c.popA04,
+            c.popA01, c.popA02, c.popA03, c.popA04,
             c.popA05, c.popA06, c.popA07, c.popA08, c.popA09,
             c.popA10, c.popA11, c.popA12, c.popA13, c.popA14,
             c.popA15, c.popA16, c.popA17, c.popA18, c.popA19,
-            c.popA20, c.popA21, c.popA22, c.popA23,
+            c.popA20, c.popA21, c.popA22, c.popA23, c.popA24, c.popA25, c.popA26,
             c.popA0dAm, c.popA0dPm,
             c.popA1dAm, c.popA1dPm,
             c.popA2dAm, c.popA2dPm,

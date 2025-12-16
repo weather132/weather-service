@@ -78,10 +78,10 @@ public class ClimateService {
             return null; // 필요하면 Optional/예외로 바꿔도 됨
         }
 
-        List<HourlyForecastDto.HourlyForecastEntry> hours =
+        List<HourlyPoint> hours =
                 snap.hourly().stream()
-                        .sorted(Comparator.comparingInt(ForecastSnapshot.HourlyPoint::hourOffset))
-                        .map(p -> new HourlyForecastDto.HourlyForecastEntry(
+                        .sorted(Comparator.comparingInt(HourlyPoint::hourOffset))
+                        .map(p -> new HourlyPoint(
                                 p.hourOffset(),   // 몇 시간 후
                                 p.temp(),
                                 p.pop()
@@ -102,13 +102,13 @@ public class ClimateService {
             return null;
         }
 
-        List<DailyForecastDto.DailyForecastEntry> days =
+        List<DailyPoint> days =
                 snap.daily().stream()
-                        .sorted(Comparator.comparingInt(ForecastSnapshot.DailyPoint::dayOffset))
-                        .map(d -> new DailyForecastDto.DailyForecastEntry(
+                        .sorted(Comparator.comparingInt(DailyPoint::dayOffset))
+                        .map(d -> new DailyPoint(
                                 d.dayOffset(),
-                                d.amTemp(),
-                                d.pmTemp(),
+                                d.maxTemp(),
+                                d.minTemp(),
                                 d.amPop(),
                                 d.pmPop()
                         ))
@@ -126,7 +126,7 @@ public class ClimateService {
     private PopSeries24 toPopSeries24(ForecastSnapshot snap) {
         // hourOffset 기준 정렬 후 POP만 뽑아서 size 24 리스트 생성
         List<Integer> pops = snap.hourly().stream()
-                .sorted(Comparator.comparingInt(ForecastSnapshot.HourlyPoint::hourOffset))
+                .sorted(Comparator.comparingInt(HourlyPoint::hourOffset))
                 .map(p -> n(p.pop()))
                 .toList();
         return new PopSeries24(pops);
@@ -135,7 +135,7 @@ public class ClimateService {
     private PopDailySeries7 toPopDailySeries7(ForecastSnapshot snap) {
         // dayOffset 기준 정렬 후 DailyPop(AM/PM) 7개 생성
         List<PopDailySeries7.DailyPop> days = snap.daily().stream()
-                .sorted(Comparator.comparingInt(ForecastSnapshot.DailyPoint::dayOffset))
+                .sorted(Comparator.comparingInt(DailyPoint::dayOffset))
                 .map(d -> new PopDailySeries7.DailyPop(
                         n(d.amPop()),
                         n(d.pmPop())

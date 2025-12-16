@@ -25,11 +25,11 @@ public class POPSnapDto {
             Integer snapId,
             Integer regionId,
             LocalDateTime reportTime,
-            Integer popA00, Integer popA01, Integer popA02, Integer popA03, Integer popA04,
+            Integer popA01, Integer popA02, Integer popA03, Integer popA04,
             Integer popA05, Integer popA06, Integer popA07, Integer popA08, Integer popA09,
             Integer popA10, Integer popA11, Integer popA12, Integer popA13, Integer popA14,
             Integer popA15, Integer popA16, Integer popA17, Integer popA18, Integer popA19,
-            Integer popA20, Integer popA21, Integer popA22, Integer popA23,
+            Integer popA20, Integer popA21, Integer popA22, Integer popA23, Integer popA24, Integer popA25, Integer popA26,
             Integer popA0dAm, Integer popA0dPm,
             Integer popA1dAm, Integer popA1dPm,
             Integer popA2dAm, Integer popA2dPm,
@@ -44,11 +44,11 @@ public class POPSnapDto {
 
         // ---- 시간대별 POP 24개 → PopSeries24 ----
         this.hourly = new PopSeries24(List.of(
-                n(popA00), n(popA01), n(popA02), n(popA03), n(popA04),
+                n(popA01), n(popA02), n(popA03), n(popA04),
                 n(popA05), n(popA06), n(popA07), n(popA08), n(popA09),
                 n(popA10), n(popA11), n(popA12), n(popA13), n(popA14),
                 n(popA15), n(popA16), n(popA17), n(popA18), n(popA19),
-                n(popA20), n(popA21), n(popA22), n(popA23)
+                n(popA20), n(popA21), n(popA22), n(popA23), n(popA24), n(popA25), n(popA26)
         ));
 
         // ---- 일자별 AM/PM POP → PopDailySeries7 ----

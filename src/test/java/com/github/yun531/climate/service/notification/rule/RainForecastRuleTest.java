@@ -122,9 +122,9 @@ class RainForecastRuleTest {
         List<List<Integer>> hourlyParts =
                 (List<List<Integer>>) events.get(0).payload().get("hourlyParts");
 
-        // 2~4시 하나의 구간만 나와야 하므로 [2,4] 하나만 존재
+        // 3~5시간 후 하나의 구간만 나와야 하므로 [3,5] 하나만 존재
         assertThat(hourlyParts).containsExactly(
-                List.of(2, 4)
+                List.of(3, 5)
         );
     }
 }

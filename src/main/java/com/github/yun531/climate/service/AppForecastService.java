@@ -2,12 +2,15 @@ package com.github.yun531.climate.service;
 
 import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
+import com.github.yun531.climate.dto.HourlyPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * 일반 일기예보 앱에서 사용할 예보 조회 서비스.
@@ -52,27 +55,36 @@ public class AppForecastService {
         int rawDiffHours = (int) (diffMinutes / 60);
 
         if (rawDiffHours <= 0) {
-            // 아직 발표 직후이거나 과거 기준이면 그대로 사용
             return base;
         }
 
         // 스냅샷은 3시간마다 갱신되므로, 최대 2시간까지만 보정
         int diffHours = Math.min(rawDiffHours, 2);
 
-        List<HourlyForecastDto.HourlyForecastEntry> shifted =
+        List<HourlyPoint> trimmed =
                 base.hours().stream()
-                        .map(e -> new HourlyForecastDto.HourlyForecastEntry(
-                                e.hourOffset() - diffHours,
-                                e.temp(),
-                                e.pop()
-                        ))
-                        .filter(e -> e.hourOffset() >= 0)
+                        .sorted(Comparator.comparingInt(HourlyPoint::hourOffset))
+                        .skip(diffHours)   // diffHours 만큼 앞 요소 제거
+                        .limit(24)         // 최대 24개
+                        .toList();
+
+        // offset을 1~24로 재부여
+        List<HourlyPoint> reindexed =
+                IntStream.range(0, trimmed.size())
+                        .mapToObj(i -> {
+                            HourlyPoint p = trimmed.get(i);
+                            return new HourlyPoint(
+                                    i + 1,      // 1부터 시작
+                                    p.temp(),
+                                    p.pop()
+                            );
+                        })
                         .toList();
 
         return new HourlyForecastDto(
                 base.regionId(),
                 base.reportTime(),
-                shifted
+                reindexed
         );
     }
 }

@@ -27,7 +27,7 @@ public class ClimateSnap {
 
 
     // ---- 시간대별 온도 (00~23시) ----
-    @Column(name = "temp_A00") private Integer tempA00; @Column(name = "temp_A01") private Integer tempA01; @Column(name = "temp_A02") private Integer tempA02;
+    @Column(name = "temp_A01") private Integer tempA01; @Column(name = "temp_A02") private Integer tempA02;
     @Column(name = "temp_A03") private Integer tempA03; @Column(name = "temp_A04") private Integer tempA04; @Column(name = "temp_A05") private Integer tempA05;
     @Column(name = "temp_A06") private Integer tempA06; @Column(name = "temp_A07") private Integer tempA07; @Column(name = "temp_A08") private Integer tempA08;
     @Column(name = "temp_A09") private Integer tempA09; @Column(name = "temp_A10") private Integer tempA10; @Column(name = "temp_A11") private Integer tempA11;
@@ -35,19 +35,20 @@ public class ClimateSnap {
     @Column(name = "temp_A15") private Integer tempA15; @Column(name = "temp_A16") private Integer tempA16; @Column(name = "temp_A17") private Integer tempA17;
     @Column(name = "temp_A18") private Integer tempA18; @Column(name = "temp_A19") private Integer tempA19; @Column(name = "temp_A20") private Integer tempA20;
     @Column(name = "temp_A21") private Integer tempA21; @Column(name = "temp_A22") private Integer tempA22; @Column(name = "temp_A23") private Integer tempA23;
+    @Column(name = "temp_A24") private Integer tempA24; @Column(name = "temp_A25") private Integer tempA25; @Column(name = "temp_A26") private Integer tempA26;
 
     // ---- 일자별 오전/오후 온도 ----
-    @Column(name = "temp_A0d_am") private Integer tempA0dAm; @Column(name = "temp_A0d_pm") private Integer tempA0dPm;
-    @Column(name = "temp_A1d_am") private Integer tempA1dAm; @Column(name = "temp_A1d_pm") private Integer tempA1dPm;
-    @Column(name = "temp_A2d_am") private Integer tempA2dAm; @Column(name = "temp_A2d_pm") private Integer tempA2dPm;
-    @Column(name = "temp_A3d_am") private Integer tempA3dAm; @Column(name = "temp_A3d_pm") private Integer tempA3dPm;
-    @Column(name = "temp_A4d_am") private Integer tempA4dAm; @Column(name = "temp_A4d_pm") private Integer tempA4dPm;
-    @Column(name = "temp_A5d_am") private Integer tempA5dAm; @Column(name = "temp_A5d_pm") private Integer tempA5dPm;
-    @Column(name = "temp_A6d_am") private Integer tempA6dAm; @Column(name = "temp_A6d_pm") private Integer tempA6dPm;
+    @Column(name = "temp_A0d_min") private Integer tempA0dMin; @Column(name = "temp_A0d_max") private Integer tempA0dMax;
+    @Column(name = "temp_A1d_min") private Integer tempA1dMin; @Column(name = "temp_A1d_max") private Integer tempA1dMax;
+    @Column(name = "temp_A2d_min") private Integer tempA2dMin; @Column(name = "temp_A2d_max") private Integer tempA2dMax;
+    @Column(name = "temp_A3d_min") private Integer tempA3dMin; @Column(name = "temp_A3d_max") private Integer tempA3dMax;
+    @Column(name = "temp_A4d_min") private Integer tempA4dMin; @Column(name = "temp_A4d_max") private Integer tempA4dMax;
+    @Column(name = "temp_A5d_min") private Integer tempA5dMin; @Column(name = "temp_A5d_max") private Integer tempA5dMax;
+    @Column(name = "temp_A6d_min") private Integer tempA6dMin; @Column(name = "temp_A6d_max") private Integer tempA6dMax;
 
 
     // ---- 시간대별 강수확률 (00~23시) ----
-    @Column(name = "POP_A00") private Integer popA00; @Column(name = "POP_A01") private Integer popA01; @Column(name = "POP_A02") private Integer popA02;
+    @Column(name = "POP_A01") private Integer popA01; @Column(name = "POP_A02") private Integer popA02;
     @Column(name = "POP_A03") private Integer popA03; @Column(name = "POP_A04") private Integer popA04; @Column(name = "POP_A05") private Integer popA05;
     @Column(name = "POP_A06") private Integer popA06; @Column(name = "POP_A07") private Integer popA07; @Column(name = "POP_A08") private Integer popA08;
     @Column(name = "POP_A09") private Integer popA09; @Column(name = "POP_A10") private Integer popA10; @Column(name = "POP_A11") private Integer popA11;
@@ -55,6 +56,7 @@ public class ClimateSnap {
     @Column(name = "POP_A15") private Integer popA15; @Column(name = "POP_A16") private Integer popA16; @Column(name = "POP_A17") private Integer popA17;
     @Column(name = "POP_A18") private Integer popA18; @Column(name = "POP_A19") private Integer popA19; @Column(name = "POP_A20") private Integer popA20;
     @Column(name = "POP_A21") private Integer popA21; @Column(name = "POP_A22") private Integer popA22; @Column(name = "POP_A23") private Integer popA23;
+    @Column(name = "POP_A24") private Integer popA24; @Column(name = "POP_A25") private Integer popA25; @Column(name = "POP_A26") private Integer popA26;
 
     // ---- 일자별 오전/오후 강수확률 ----
     @Column(name = "POP_A0d_am") private Integer popA0dAm; @Column(name = "POP_A0d_pm") private Integer popA0dPm;

@@ -11,11 +11,5 @@ import java.util.List;
 public record HourlyForecastDto(
         int regionId,
         LocalDateTime reportTime,
-        List<HourlyForecastEntry> hours
-) {
-    public record HourlyForecastEntry(
-            int hourOffset,   // 0~23 (현재 시각 기준 몇 시간 후)
-            Integer temp,     // 기온
-            Integer pop       // 강수확률
-    ) {}
-}
+        List<HourlyPoint> hours
+) {}

@@ -11,13 +11,5 @@ import java.util.List;
 public record DailyForecastDto(
         int regionId,
         LocalDateTime reportTime,
-        List<DailyForecastEntry> days
-) {
-    public record DailyForecastEntry(
-            int dayOffset,   // 0=오늘, 1=내일...
-            Integer amTemp,
-            Integer pmTemp,
-            Integer amPop,
-            Integer pmPop
-    ) {}
-}
+        List<DailyPoint> days
+) { }

@@ -9,23 +9,9 @@ import java.util.List;
 public record ForecastSnapshot(
         int regionId,
         LocalDateTime reportTime,
+
         // 시간대별 예보 (0~23시간 후)
         List<HourlyPoint> hourly,
         // 일자별 am/pm 예보 (0~6일차)
         List<DailyPoint> daily
-) {
-
-    public record HourlyPoint(
-            int hourOffset,      // 0~23
-            Integer temp,        // 기온
-            Integer pop          // 강수확률
-    ) {}
-
-    public record DailyPoint(
-            int dayOffset, // 0=오늘, 1=내일, ...
-            Integer amTemp,
-            Integer pmTemp,
-            Integer amPop,
-            Integer pmPop
-    ) {}
-}
+) { }

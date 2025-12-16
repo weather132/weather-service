@@ -118,54 +118,58 @@ public class RainForecastRule implements AlertRule {
         return series;
     }
 
-    /** 시간대별 POP 24시간에서 연속으로 비가 오는 구간들을 [startIdx, endIdx] 형태로 리턴. */
+    /**
+     * 시간대별 POP 24시간에서 연속으로 비가 오는 구간들을 [startOffset, endOffset] 형태로 반환.
+     * - startOffset, endOffset 은 "스냅샷 기준 몇 시간 후인지"를 나타내는 offset (1~24)
+     *   예: [3, 5] → 스냅 기준 3~5시간 후 구간에서 비가 연속으로 온다는 의미
+     */
     private List<List<Integer>> buildHourlyParts(PopForecastSeries series) {
         PopSeries24 hourly = series.hourly();
         if (hourly == null) {
             return List.of();
         }
 
-        int size = Math.min(hourly.size(), MAX_HOURLY_HOURS);
-        if (size <= 0) {
+        // PopSeries24.size()는 24, offset은 1..24
+        int maxOffset = Math.min(hourly.size(), MAX_HOURLY_HOURS); // 보통 24
+
+        if (maxOffset <= 0) {
             return List.of();
         }
 
         List<List<Integer>> parts = new ArrayList<>();
 
-        int hourIdx = 0;
-        while (hourIdx < size) {
-            int startIdx = findNextRainStart(hourly, hourIdx, size);
-            if (startIdx == -1) {
+        int offset = 1; // offset은 1부터 시작
+        while (offset <= maxOffset) {
+            int startOffset = findNextRainStart(hourly, offset, maxOffset);
+            if (startOffset == -1) {
                 break;
             }
 
-            int endIdx = findRainEnd(hourly, startIdx, size);
-            parts.add(List.of(startIdx, endIdx));
+            int endOffset = findRainEnd(hourly, startOffset, maxOffset);
+            parts.add(List.of(startOffset, endOffset));
 
-            hourIdx = endIdx + 1;
+            offset = endOffset + 1;
         }
 
-        return parts.isEmpty() ?
-                    List.of() : List.copyOf(parts);
+        return parts.isEmpty() ? List.of() : List.copyOf(parts);
     }
 
-    /** 다음 강수 시작 인덱스를 찾고, 없으면 -1 */
-    private int findNextRainStart(PopSeries24 series, int start, int size) {
-        int idx = start;
-        while (idx < size && series.get(idx) < RAIN_THRESHOLD) {
-            idx++;
+    /** 다음 강수 시작 offset(1..maxOffset)을 찾고, 없으면 -1 */
+    private int findNextRainStart(PopSeries24 series, int startOffset, int maxOffset) {
+        int offset = startOffset;
+        while (offset <= maxOffset && series.get(offset) < RAIN_THRESHOLD) {
+            offset++;
         }
-        return (idx >= size) ?
-                    -1 : idx;
+        return (offset > maxOffset) ? -1 : offset;
     }
 
-    /** start 인덱스에서 시작하는 연속 강수 구간의 끝 인덱스 */
-    private int findRainEnd(PopSeries24 series, int start, int size) {
-        int idx = start;
-        while (idx + 1 < size && series.get(idx + 1) >= RAIN_THRESHOLD) {
-            idx++;
+    /** startOffset에서 시작하는 연속 강수 구간의 끝 offset */
+    private int findRainEnd(PopSeries24 series, int startOffset, int maxOffset) {
+        int offset = startOffset;
+        while (offset + 1 <= maxOffset && series.get(offset + 1) >= RAIN_THRESHOLD) {
+            offset++;
         }
-        return idx;
+        return offset;
     }
 
     /**
