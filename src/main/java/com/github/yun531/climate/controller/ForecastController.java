@@ -2,7 +2,7 @@ package com.github.yun531.climate.controller;
 
 import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
-import com.github.yun531.climate.service.AppForecastService;
+import com.github.yun531.climate.service.forecast.AppForecastService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

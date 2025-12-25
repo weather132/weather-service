@@ -1,5 +1,7 @@
-package com.github.yun531.climate.dto;
+package com.github.yun531.climate.repository.dto;
 
+import com.github.yun531.climate.service.notification.model.PopDailySeries7;
+import com.github.yun531.climate.service.notification.model.PopSeries24;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -1,10 +1,11 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.dto.WarningLevel;
-import com.github.yun531.climate.dto.WarningStateDto;
-import com.github.yun531.climate.service.WarningService;
-import com.github.yun531.climate.service.notification.NotificationRequest;
+import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.notification.model.WarningLevel;
+import com.github.yun531.climate.service.query.dto.WarningStateDto;
+import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
+import com.github.yun531.climate.service.query.WarningStateQueryService;
+import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -23,12 +24,12 @@ import static org.mockito.Mockito.*;
 class WarningIssuedRuleTest {
 
     @Mock
-    WarningService warningService;
+    WarningStateQueryService warningStateQueryService;
 
     @Test
     void since_null이면_모두_이벤트_발생() {
         // given
-        WarningIssuedRule rule = new WarningIssuedRule(warningService);
+        WarningIssuedRule rule = new WarningIssuedRule(warningStateQueryService);
         int regionId = 100;
 
         var dtoRain = new WarningStateDto(
@@ -44,7 +45,7 @@ class WarningIssuedRuleTest {
                 LocalDateTime.parse("2025-11-04T06:00:00")
         );
 
-        when(warningService.findLatestByRegionAndKind(List.of(regionId)))
+        when(warningStateQueryService.findLatestByRegionAndKind(List.of(regionId)))
                 .thenReturn(Map.of(
                         regionId,
                         Map.of(
@@ -73,13 +74,13 @@ class WarningIssuedRuleTest {
                 .containsExactlyInAnyOrder(WarningKind.RAIN, WarningKind.HEAT);
 
         // since == null이면 adjustedSince == null 이므로 isNewlyIssuedSince 호출 안 되는 것이 자연스럽다
-        verify(warningService, never()).isNewlyIssuedSince(any(), any());
+        verify(warningStateQueryService, never()).isNewlyIssuedSince(any(), any());
     }
 
     @Test
     void since_지정시_isNewlyIssuedSince_true인_것만_포함() {
         // given
-        WarningIssuedRule rule = new WarningIssuedRule(warningService);
+        WarningIssuedRule rule = new WarningIssuedRule(warningStateQueryService);
         int regionId = 200;
         LocalDateTime since = LocalDateTime.parse("2025-11-04T06:30:00");
         LocalDateTime adjustedSince = since.minusMinutes(90); // WarningIssuedRule.adjustSince 로 보정되는 값
@@ -97,7 +98,7 @@ class WarningIssuedRuleTest {
                 LocalDateTime.parse("2025-11-04T06:00:00")  // 제외
         );
 
-        when(warningService.findLatestByRegionAndKind(List.of(regionId)))
+        when(warningStateQueryService.findLatestByRegionAndKind(List.of(regionId)))
                 .thenReturn(Map.of(
                         regionId,
                         Map.of(
@@ -106,8 +107,8 @@ class WarningIssuedRuleTest {
                         )
                 ));
 
-        when(warningService.isNewlyIssuedSince(dtoRain, adjustedSince)).thenReturn(true);
-        when(warningService.isNewlyIssuedSince(dtoHeat, adjustedSince)).thenReturn(false);
+        when(warningStateQueryService.isNewlyIssuedSince(dtoRain, adjustedSince)).thenReturn(true);
+        when(warningStateQueryService.isNewlyIssuedSince(dtoHeat, adjustedSince)).thenReturn(false);
 
         NotificationRequest req = new NotificationRequest(
                 List.of(regionId),
@@ -126,14 +127,14 @@ class WarningIssuedRuleTest {
         assertThat(events.get(0).payload().get("level")).isEqualTo(WarningLevel.WARNING);
 
         // isNewlyIssuedSince 가 보정된 기준 시각으로 호출되는지 검증
-        verify(warningService, times(1)).isNewlyIssuedSince(dtoRain, adjustedSince);
-        verify(warningService, times(1)).isNewlyIssuedSince(dtoHeat, adjustedSince);
+        verify(warningStateQueryService, times(1)).isNewlyIssuedSince(dtoRain, adjustedSince);
+        verify(warningStateQueryService, times(1)).isNewlyIssuedSince(dtoHeat, adjustedSince);
     }
 
     @Test
     void filterWarningKinds가_있으면_해당_kind만_이벤트_생성() {
         // 옵션: 필터링까지 검증하고 싶다면 이렇게 하나 더 둘 수 있음
-        WarningIssuedRule rule = new WarningIssuedRule(warningService);
+        WarningIssuedRule rule = new WarningIssuedRule(warningStateQueryService);
         int regionId = 300;
 
         var dtoRain = new WarningStateDto(
@@ -149,7 +150,7 @@ class WarningIssuedRuleTest {
                 LocalDateTime.parse("2025-11-04T07:30:00")
         );
 
-        when(warningService.findLatestByRegionAndKind(List.of(regionId)))
+        when(warningStateQueryService.findLatestByRegionAndKind(List.of(regionId)))
                 .thenReturn(Map.of(
                         regionId,
                         Map.of(

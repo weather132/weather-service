@@ -1,7 +1,7 @@
 package com.github.yun531.climate.repository;
 
-import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.dto.WarningLevel;
+import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.notification.model.WarningLevel;
 import com.github.yun531.climate.entity.WarningState;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

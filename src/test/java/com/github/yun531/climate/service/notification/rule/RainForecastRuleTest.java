@@ -1,11 +1,11 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.dto.PopForecastSeries;
-import com.github.yun531.climate.dto.PopDailySeries7;
-import com.github.yun531.climate.dto.PopSeries24;
-import com.github.yun531.climate.dto.SnapKindEnum;
-import com.github.yun531.climate.service.ClimateService;
-import com.github.yun531.climate.service.notification.NotificationRequest;
+import com.github.yun531.climate.service.notification.model.PopForecastSeries;
+import com.github.yun531.climate.service.notification.model.PopDailySeries7;
+import com.github.yun531.climate.service.notification.model.PopSeries24;
+import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
+import com.github.yun531.climate.service.query.SnapshotQueryService;
+import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 class RainForecastRuleTest {
 
     @Mock
-    ClimateService climateService;
+    SnapshotQueryService snapshotQueryService;
 
     @Test
     void dayParts_ampm7x2_플래그_생성검증() {
@@ -43,10 +43,10 @@ class RainForecastRuleTest {
         // 시간대별 POP 은 해당 테스트에서 의미가 없으므로 0으로 채움
         PopSeries24 hourly = new PopSeries24(Collections.nCopies(24, 0));
 
-        when(climateService.loadForecastSeries(1, snapId))
+        when(snapshotQueryService.loadForecastSeries(1, snapId))
                 .thenReturn(new PopForecastSeries(hourly, daily));
 
-        RainForecastRule rule = new RainForecastRule(climateService);
+        RainForecastRule rule = new RainForecastRule(snapshotQueryService);
 
         // when
         NotificationRequest request = new NotificationRequest(
@@ -100,10 +100,10 @@ class RainForecastRuleTest {
 
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
 
-        when(climateService.loadForecastSeries(1, snapId))
+        when(snapshotQueryService.loadForecastSeries(1, snapId))
                 .thenReturn(new PopForecastSeries(hourly, daily));
 
-        RainForecastRule rule = new RainForecastRule(climateService);
+        RainForecastRule rule = new RainForecastRule(snapshotQueryService);
 
         // when
         NotificationRequest request = new NotificationRequest(

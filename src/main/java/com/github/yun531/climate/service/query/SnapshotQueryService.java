@@ -1,6 +1,16 @@
-package com.github.yun531.climate.service;
+package com.github.yun531.climate.service.query;
 
-import com.github.yun531.climate.dto.*;
+import com.github.yun531.climate.dto.DailyForecastDto;
+import com.github.yun531.climate.dto.HourlyForecastDto;
+import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
+import com.github.yun531.climate.service.forecast.model.DailyPoint;
+import com.github.yun531.climate.service.forecast.model.ForecastSnap;
+import com.github.yun531.climate.service.forecast.model.HourlyPoint;
+import com.github.yun531.climate.service.notification.model.PopDailySeries7;
+import com.github.yun531.climate.service.notification.model.PopForecastSeries;
+import com.github.yun531.climate.service.notification.model.PopSeries24;
+import com.github.yun531.climate.service.notification.model.PopSeriesPair;
+import com.github.yun531.climate.service.snapshot.SnapshotProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +26,7 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-public class ClimateService {
+public class SnapshotQueryService {
 
     private static final int SNAP_CURRENT = SnapKindEnum.SNAP_CURRENT.getCode();
     private static final int SNAP_PREV    = SnapKindEnum.SNAP_PREVIOUS.getCode();
@@ -37,8 +47,8 @@ public class ClimateService {
 
     /** 비(POP) 판정에 필요한 시계열을 로드 (현재*이전 스냅샷) */
     public PopSeriesPair loadPopSeries(int regionId, int currentSnapId, int previousSnapId) {
-        ForecastSnapshot cur = snapshotProvider.loadSnapshot(regionId, currentSnapId);
-        ForecastSnapshot prv = snapshotProvider.loadSnapshot(regionId, previousSnapId);
+        ForecastSnap cur = snapshotProvider.loadSnapshot(regionId, currentSnapId);
+        ForecastSnap prv = snapshotProvider.loadSnapshot(regionId, previousSnapId);
 
         if (cur == null || prv == null) {
             return emptyPopSeries();
@@ -60,7 +70,7 @@ public class ClimateService {
 
     /** 예보 요약용: 시간대 POP + 일자별 POP */
     public PopForecastSeries loadForecastSeries(int regionId, int snapId) {
-        ForecastSnapshot snap = snapshotProvider.loadSnapshot(regionId, snapId);
+        ForecastSnap snap = snapshotProvider.loadSnapshot(regionId, snapId);
         if (snap == null) {
             return emptyForecastSeries();
         }
@@ -73,7 +83,7 @@ public class ClimateService {
 
     /** 시간대별 온도+POP 예보 (현재 SNAP 기준) */
     public HourlyForecastDto getHourlyForecast(int regionId) {
-        ForecastSnapshot snap = snapshotProvider.loadSnapshot(regionId, SNAP_CURRENT);
+        ForecastSnap snap = snapshotProvider.loadSnapshot(regionId, SNAP_CURRENT);
         if (snap == null) {
             return null; // 필요하면 Optional/예외로 바꿔도 됨
         }
@@ -97,7 +107,7 @@ public class ClimateService {
 
     /** 일자별 am/pm 온도+POP 예보 (현재 SNAP 기준) */
     public DailyForecastDto getDailyForecast(int regionId) {
-        ForecastSnapshot snap = snapshotProvider.loadSnapshot(regionId, SNAP_CURRENT);
+        ForecastSnap snap = snapshotProvider.loadSnapshot(regionId, SNAP_CURRENT);
         if (snap == null) {
             return null;
         }
@@ -123,7 +133,7 @@ public class ClimateService {
 
     /* ======================= POP 추출 헬퍼 ======================= */
 
-    private PopSeries24 toPopSeries24(ForecastSnapshot snap) {
+    private PopSeries24 toPopSeries24(ForecastSnap snap) {
         // hourOffset 기준 정렬 후 POP만 뽑아서 size 24 리스트 생성
         List<Integer> pops = snap.hourly().stream()
                 .sorted(Comparator.comparingInt(HourlyPoint::hourOffset))
@@ -132,7 +142,7 @@ public class ClimateService {
         return new PopSeries24(pops);
     }
 
-    private PopDailySeries7 toPopDailySeries7(ForecastSnapshot snap) {
+    private PopDailySeries7 toPopDailySeries7(ForecastSnap snap) {
         // dayOffset 기준 정렬 후 DailyPop(AM/PM) 7개 생성
         List<PopDailySeries7.DailyPop> days = snap.daily().stream()
                 .sorted(Comparator.comparingInt(DailyPoint::dayOffset))

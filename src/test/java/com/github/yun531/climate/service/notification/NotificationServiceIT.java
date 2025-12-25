@@ -1,10 +1,11 @@
 package com.github.yun531.climate.service.notification;
 
-import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.service.ClimateService;
-import com.github.yun531.climate.service.WarningService;
-import com.github.yun531.climate.service.notification.rule.AlertEvent;
-import com.github.yun531.climate.service.notification.rule.AlertTypeEnum;
+import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.query.WarningStateQueryService;
+import com.github.yun531.climate.service.notification.dto.NotificationRequest;
+import com.github.yun531.climate.service.query.SnapshotQueryService;
+import com.github.yun531.climate.service.notification.model.AlertEvent;
+import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.rule.RainForecastRule;
 import com.github.yun531.climate.service.notification.rule.RainOnsetChangeRule;
 import com.github.yun531.climate.service.notification.rule.WarningIssuedRule;
@@ -87,18 +88,18 @@ class NotificationServiceIT {
     static class SpyConfig {
 
         @Bean(name = "rainOnsetChangeRule")
-        RainOnsetChangeRule rainOnsetChangeRuleSpy(ClimateService climateService) {
-            return Mockito.spy(new RainOnsetChangeRule(climateService));
+        RainOnsetChangeRule rainOnsetChangeRuleSpy(SnapshotQueryService snapshotQueryService) {
+            return Mockito.spy(new RainOnsetChangeRule(snapshotQueryService));
         }
 
         @Bean(name = "warningIssuedRule")
-        WarningIssuedRule warningIssuedRuleSpy(WarningService warningService) {
-            return Mockito.spy(new WarningIssuedRule(warningService));
+        WarningIssuedRule warningIssuedRuleSpy(WarningStateQueryService warningStateQueryService) {
+            return Mockito.spy(new WarningIssuedRule(warningStateQueryService));
         }
 
         @Bean(name = "rainForecastRule")
-        RainForecastRule rainForecastRuleSpy(ClimateService climateService) {
-            return Mockito.spy(new RainForecastRule(climateService));
+        RainForecastRule rainForecastRuleSpy(SnapshotQueryService snapshotQueryService) {
+            return Mockito.spy(new RainForecastRule(snapshotQueryService));
         }
     }
 

@@ -1,5 +1,7 @@
 package com.github.yun531.climate.dto;
 
+import com.github.yun531.climate.service.forecast.model.DailyPoint;
+
 import java.time.LocalDateTime;
 import java.util.List;
 

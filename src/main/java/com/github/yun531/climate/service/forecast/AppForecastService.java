@@ -1,8 +1,9 @@
-package com.github.yun531.climate.service;
+package com.github.yun531.climate.service.forecast;
 
 import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
-import com.github.yun531.climate.dto.HourlyPoint;
+import com.github.yun531.climate.service.forecast.model.HourlyPoint;
+import com.github.yun531.climate.service.query.SnapshotQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +23,7 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class AppForecastService {
 
-    private final ClimateService climateService;
+    private final SnapshotQueryService snapshotQueryService;
 
     /**
      * 시간대별 예보 조회.
@@ -30,7 +31,7 @@ public class AppForecastService {
      * - 현재 시각(now)과 reportTime 차이만큼 hourOffset을 앞으로 당겨서 반환.
      */
     public HourlyForecastDto getHourlyForecast(int regionId) {
-        HourlyForecastDto base = climateService.getHourlyForecast(regionId);
+        HourlyForecastDto base = snapshotQueryService.getHourlyForecast(regionId);
         if (base == null) {
             return null;
         }
@@ -39,7 +40,7 @@ public class AppForecastService {
 
     /** 일자별 예보 조회. */
     public DailyForecastDto getDailyForecast(int regionId) {
-        return climateService.getDailyForecast(regionId);
+        return snapshotQueryService.getDailyForecast(regionId);
     }
 
     /**

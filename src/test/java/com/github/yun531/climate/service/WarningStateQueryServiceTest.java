@@ -1,11 +1,12 @@
 package com.github.yun531.climate.service;
 
 
-import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.dto.WarningLevel;
-import com.github.yun531.climate.dto.WarningStateDto;
+import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.notification.model.WarningLevel;
+import com.github.yun531.climate.service.query.dto.WarningStateDto;
 import com.github.yun531.climate.entity.WarningState;
 import com.github.yun531.climate.repository.WarningStateRepository;
+import com.github.yun531.climate.service.query.WarningStateQueryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -29,9 +30,10 @@ import static org.assertj.core.api.Assertions.assertThat;
         "DELETE FROM warning_state",
         "SET FOREIGN_KEY_CHECKS = 1"
 })
-class WarningServiceTest {
+class WarningStateQueryServiceTest {
 
-    @Autowired WarningService service;
+    @Autowired
+    WarningStateQueryService service;
     @Autowired WarningStateRepository repo;
     @Autowired JdbcTemplate jdbc;
 

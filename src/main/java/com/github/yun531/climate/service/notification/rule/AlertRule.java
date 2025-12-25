@@ -1,6 +1,8 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.service.notification.NotificationRequest;
+import com.github.yun531.climate.service.notification.dto.NotificationRequest;
+import com.github.yun531.climate.service.notification.model.AlertEvent;
+import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 
 import java.util.List;
 

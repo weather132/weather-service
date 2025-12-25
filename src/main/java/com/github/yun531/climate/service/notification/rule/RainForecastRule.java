@@ -1,11 +1,14 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.dto.PopForecastSeries;
-import com.github.yun531.climate.dto.PopDailySeries7;
-import com.github.yun531.climate.dto.PopSeries24;
-import com.github.yun531.climate.dto.SnapKindEnum;
-import com.github.yun531.climate.service.ClimateService;
-import com.github.yun531.climate.service.notification.NotificationRequest;
+import com.github.yun531.climate.service.notification.model.PopForecastSeries;
+import com.github.yun531.climate.service.notification.model.PopDailySeries7;
+import com.github.yun531.climate.service.notification.model.PopSeries24;
+import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
+import com.github.yun531.climate.service.notification.model.AlertEvent;
+import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
+import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
+import com.github.yun531.climate.service.query.SnapshotQueryService;
+import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.util.CacheEntry;
 import com.github.yun531.climate.util.RegionCache;
 import io.micrometer.common.lang.Nullable;
@@ -21,7 +24,7 @@ import static com.github.yun531.climate.util.TimeUtil.nowMinutes;
 @RequiredArgsConstructor
 public class RainForecastRule implements AlertRule {
 
-    private final ClimateService climateService;
+    private final SnapshotQueryService snapshotQueryService;
 
     private static final int SNAP_CURRENT_CODE = SnapKindEnum.SNAP_CURRENT.getCode();
     private static final int RAIN_THRESHOLD    = RainThresholdEnum.RAIN.getThreshold();
@@ -108,7 +111,7 @@ public class RainForecastRule implements AlertRule {
     }
 
     private PopForecastSeries loadForecastSeries(int regionId) {
-        PopForecastSeries series = climateService.loadForecastSeries(regionId, SNAP_CURRENT_CODE);
+        PopForecastSeries series = snapshotQueryService.loadForecastSeries(regionId, SNAP_CURRENT_CODE);
         if (series == null) {
             return null;
         }

@@ -1,6 +1,6 @@
-package com.github.yun531.climate.service;
+package com.github.yun531.climate.service.snapshot;
 
-import com.github.yun531.climate.dto.ForecastSnapshot;
+import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import org.springframework.lang.Nullable;
 
 /**
@@ -14,5 +14,5 @@ public interface SnapshotProvider {
      * @return ForecastSnapshot 또는 존재하지 않으면 null
      */
     @Nullable
-    ForecastSnapshot loadSnapshot(int regionId, int snapId);
+    ForecastSnap loadSnapshot(int regionId, int snapId);
 }

@@ -2,7 +2,9 @@ package com.github.yun531.climate.service;
 
 import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
-import com.github.yun531.climate.dto.HourlyPoint;
+import com.github.yun531.climate.service.forecast.model.HourlyPoint;
+import com.github.yun531.climate.service.forecast.AppForecastService;
+import com.github.yun531.climate.service.query.SnapshotQueryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +22,7 @@ import static org.mockito.Mockito.*;
 class AppForecastServiceTest {
 
     @Mock
-    private ClimateService climateService;
+    private SnapshotQueryService snapshotQueryService;
 
     @InjectMocks
     private AppForecastService appForecastService;
@@ -29,12 +31,12 @@ class AppForecastServiceTest {
     @DisplayName("hourly forecast: ClimateService 가 null 을 반환하면 null 을 반환한다")
     void getHourlyForecast_returnsNull_whenClimateServiceReturnsNull() {
         int regionId = 11;
-        when(climateService.getHourlyForecast(regionId)).thenReturn(null);
+        when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(null);
 
         HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
 
         assertNull(result);
-        verify(climateService).getHourlyForecast(regionId);
+        verify(snapshotQueryService).getHourlyForecast(regionId);
     }
 
     @Test
@@ -45,12 +47,12 @@ class AppForecastServiceTest {
                 new HourlyForecastDto(regionId, null,
                         List.of(new HourlyPoint(0, 10, 20)));
 
-        when(climateService.getHourlyForecast(regionId)).thenReturn(base);
+        when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
         HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
 
         assertSame(base, result);
-        verify(climateService).getHourlyForecast(regionId);
+        verify(snapshotQueryService).getHourlyForecast(regionId);
     }
 
     @Test
@@ -66,12 +68,12 @@ class AppForecastServiceTest {
                                 new HourlyPoint(1, 11, 30)
                         ));
 
-        when(climateService.getHourlyForecast(regionId)).thenReturn(base);
+        when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
         HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
 
         assertSame(base, result);
-        verify(climateService).getHourlyForecast(regionId);
+        verify(snapshotQueryService).getHourlyForecast(regionId);
     }
 
     @Test
@@ -92,7 +94,7 @@ class AppForecastServiceTest {
                                 new HourlyPoint(3, 13, 50)
                         ));
 
-        when(climateService.getHourlyForecast(regionId)).thenReturn(base);
+        when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
         HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
 
@@ -132,7 +134,7 @@ class AppForecastServiceTest {
                                 new HourlyPoint(3, 13, 50)
                         ));
 
-        when(climateService.getHourlyForecast(regionId)).thenReturn(base);
+        when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
         HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
 
@@ -158,11 +160,11 @@ class AppForecastServiceTest {
         DailyForecastDto baseDaily =
                 new DailyForecastDto(regionId, reportTime, List.of());
 
-        when(climateService.getDailyForecast(regionId)).thenReturn(baseDaily);
+        when(snapshotQueryService.getDailyForecast(regionId)).thenReturn(baseDaily);
 
         DailyForecastDto result = appForecastService.getDailyForecast(regionId);
 
         assertSame(baseDaily, result);
-        verify(climateService).getDailyForecast(regionId);
+        verify(snapshotQueryService).getDailyForecast(regionId);
     }
 }

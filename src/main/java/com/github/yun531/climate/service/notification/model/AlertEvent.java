@@ -1,4 +1,4 @@
-package com.github.yun531.climate.service.notification.rule;
+package com.github.yun531.climate.service.notification.model;
 
 import java.time.LocalDateTime;
 import java.util.Map;

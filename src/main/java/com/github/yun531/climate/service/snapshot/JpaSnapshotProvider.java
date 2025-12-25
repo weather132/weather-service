@@ -1,9 +1,9 @@
-package com.github.yun531.climate.service;
+package com.github.yun531.climate.service.snapshot;
 
-import com.github.yun531.climate.dto.DailyPoint;
-import com.github.yun531.climate.dto.ForecastSnapshot;
-import com.github.yun531.climate.dto.HourlyPoint;
-import com.github.yun531.climate.dto.SnapKindEnum;
+import com.github.yun531.climate.service.forecast.model.DailyPoint;
+import com.github.yun531.climate.service.forecast.model.ForecastSnap;
+import com.github.yun531.climate.service.forecast.model.HourlyPoint;
+import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
 import com.github.yun531.climate.entity.ClimateSnap;
 import com.github.yun531.climate.repository.ClimateSnapRepository;
 import com.github.yun531.climate.util.CacheEntry;
@@ -32,12 +32,12 @@ public class JpaSnapshotProvider implements SnapshotProvider {
     private static final int SNAP_CACHE_TTL_MINUTES = 3 * 60 ;
 
     /** regionId 별 CURRENT/PREVIOUS 스냅샷 캐시 */
-    private final RegionCache<ForecastSnapshot> currentCache = new RegionCache<>();
-    private final RegionCache<ForecastSnapshot> previousCache = new RegionCache<>();
+    private final RegionCache<ForecastSnap> currentCache = new RegionCache<>();
+    private final RegionCache<ForecastSnap> previousCache = new RegionCache<>();
 
     @Override
     @Nullable
-    public ForecastSnapshot loadSnapshot(int regionId, int snapId) {
+    public ForecastSnap loadSnapshot(int regionId, int snapId) {
         LocalDateTime now = TimeUtil.nowMinutes();
 
         int curCode = SnapKindEnum.SNAP_CURRENT.getCode();
@@ -45,7 +45,7 @@ public class JpaSnapshotProvider implements SnapshotProvider {
 
         if (snapId == curCode) {
             // CURRENT 스냅 캐시 사용
-            CacheEntry<ForecastSnapshot> entry =
+            CacheEntry<ForecastSnap> entry =
                     currentCache.getOrComputeSinceBased(
                             regionId,
                             now,
@@ -57,7 +57,7 @@ public class JpaSnapshotProvider implements SnapshotProvider {
 
         if (snapId == prevCode) {
             // PREVIOUS 스냅 캐시 사용
-            CacheEntry<ForecastSnapshot> entry =
+            CacheEntry<ForecastSnap> entry =
                     previousCache.getOrComputeSinceBased(
                             regionId,
                             now,
@@ -79,24 +79,24 @@ public class JpaSnapshotProvider implements SnapshotProvider {
      * DB에서 스냅을 조회해 ForecastSnapshot + CacheEntry로 감싸는 함수.
      * computedAt에는 스냅의 reportTime을 그대로 사용한다.
      */
-    private CacheEntry<ForecastSnapshot> computeSnapshotEntry(int regionId, int snapId) {
+    private CacheEntry<ForecastSnap> computeSnapshotEntry(int regionId, int snapId) {
         ClimateSnap snap = climateSnapRepository.findBySnapIdAndRegionId(snapId, regionId);
         if (snap == null) {
             // 존재하지 않는 경우 캐시에 null을 넣을지, 아예 캐시하지 않을지는 정책에 따라 조정 가능
             return new CacheEntry<>(null, TimeUtil.nowMinutes());
         }
 
-        ForecastSnapshot snapshot = toSnapshot(snap);
+        ForecastSnap snapshot = toSnapshot(snap);
         // 캐시 TTL 기준 시각을 reportTime으로 사용
         return new CacheEntry<>(snapshot, snapshot.reportTime());
     }
 
     /** ClimateSnap 엔티티 → ForecastSnapshot 도메인 모델 매핑 */
-    private ForecastSnapshot toSnapshot(ClimateSnap c) {
+    private ForecastSnap toSnapshot(ClimateSnap c) {
         List<HourlyPoint> hourly = buildHourlyPoints(c);
         List<DailyPoint> daily = buildDailyPoints(c);
 
-        return new ForecastSnapshot(
+        return new ForecastSnap(
                 c.getRegionId(),
                 c.getReportTime(),
                 hourly,

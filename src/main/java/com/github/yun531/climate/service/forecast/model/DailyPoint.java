@@ -1,4 +1,4 @@
-package com.github.yun531.climate.dto;
+package com.github.yun531.climate.service.forecast.model;
 
 public record DailyPoint(
         int dayOffset,       // 0~6

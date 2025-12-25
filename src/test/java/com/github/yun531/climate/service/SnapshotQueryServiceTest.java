@@ -1,6 +1,13 @@
 package com.github.yun531.climate.service;
 
-import com.github.yun531.climate.dto.*;
+import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
+import com.github.yun531.climate.service.forecast.model.DailyPoint;
+import com.github.yun531.climate.service.forecast.model.ForecastSnap;
+import com.github.yun531.climate.service.forecast.model.HourlyPoint;
+import com.github.yun531.climate.service.notification.model.PopForecastSeries;
+import com.github.yun531.climate.service.notification.model.PopSeriesPair;
+import com.github.yun531.climate.service.query.SnapshotQueryService;
+import com.github.yun531.climate.service.snapshot.SnapshotProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,16 +26,16 @@ import static org.mockito.Mockito.*;
  * ForecastSnapshotProvider 기반으로 리팩토링된 ClimateService 테스트
  */
 @ExtendWith(MockitoExtension.class)
-class ClimateServiceTest {
+class SnapshotQueryServiceTest {
 
     @Mock
     SnapshotProvider snapshotProvider;
 
-    ClimateService climateService;
+    SnapshotQueryService snapshotQueryService;
 
     @BeforeEach
     void setUp() {
-        climateService = new ClimateService(snapshotProvider);
+        snapshotQueryService = new SnapshotQueryService(snapshotProvider);
     }
 
     @Test
@@ -47,14 +54,14 @@ class ClimateServiceTest {
         List<Integer> curHourlyPop = rangeList(0, 24);
         List<Integer> prvHourlyPop = rangeList(10, 24);
 
-        ForecastSnapshot cur = new ForecastSnapshot(
+        ForecastSnap cur = new ForecastSnap(
                 regionId,
                 curTime,
                 buildHourlyPoints(curHourlyPop),      // temp는 null, pop만 유의미
                 dummyDailyPoints()                    // 이 테스트에서는 daily는 사용 안 함
         );
 
-        ForecastSnapshot prv = new ForecastSnapshot(
+        ForecastSnap prv = new ForecastSnap(
                 regionId,
                 prvTime,
                 buildHourlyPoints(prvHourlyPop),
@@ -65,7 +72,7 @@ class ClimateServiceTest {
         when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(prv);
 
         // when
-        PopSeriesPair series = climateService.loadPopSeries(regionId, curId, prvId);
+        PopSeriesPair series = snapshotQueryService.loadPopSeries(regionId, curId, prvId);
 
         // then
         assertThat(series.current()).isNotNull();
@@ -94,7 +101,7 @@ class ClimateServiceTest {
         int curId = SnapKindEnum.SNAP_CURRENT.getCode();
         int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
-        ForecastSnapshot cur = new ForecastSnapshot(
+        ForecastSnap cur = new ForecastSnap(
                 regionId,
                 nowMinutes(),
                 buildHourlyPoints(rangeList(0, 24)),
@@ -106,7 +113,7 @@ class ClimateServiceTest {
         when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(null);
 
         // when
-        PopSeriesPair series = climateService.loadPopSeries(regionId, curId, prvId);
+        PopSeriesPair series = snapshotQueryService.loadPopSeries(regionId, curId, prvId);
 
         // then
         assertThat(series.current()).isNull();
@@ -121,13 +128,13 @@ class ClimateServiceTest {
         int curId = SnapKindEnum.SNAP_CURRENT.getCode();
         int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
-        ForecastSnapshot cur = new ForecastSnapshot(
+        ForecastSnap cur = new ForecastSnap(
                 regionId,
                 nowMinutes(),
                 buildHourlyPoints(rangeList(0, 24)),
                 dummyDailyPoints()
         );
-        ForecastSnapshot prv = new ForecastSnapshot(
+        ForecastSnap prv = new ForecastSnap(
                 regionId,
                 nowMinutes().minusHours(3),
                 buildHourlyPoints(rangeList(10, 24)),
@@ -138,7 +145,7 @@ class ClimateServiceTest {
         when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(prv);
 
         // when
-        climateService.loadDefaultPopSeries(regionId);
+        snapshotQueryService.loadDefaultPopSeries(regionId);
 
         // then
         verify(snapshotProvider, times(1)).loadSnapshot(regionId, curId);
@@ -171,7 +178,7 @@ class ClimateServiceTest {
                 new DailyPoint(6, null, null, 50, 50)
         );
 
-        ForecastSnapshot snapshot = new ForecastSnapshot(
+        ForecastSnap snapshot = new ForecastSnap(
                 regionId,
                 nowMinutes(),
                 hourly,
@@ -181,7 +188,7 @@ class ClimateServiceTest {
         when(snapshotProvider.loadSnapshot(regionId, snapId)).thenReturn(snapshot);
 
         // when
-        PopForecastSeries fs = climateService.loadForecastSeries(regionId, snapId);
+        PopForecastSeries fs = snapshotQueryService.loadForecastSeries(regionId, snapId);
 
         // then
         assertThat(fs.hourly()).isNotNull();
@@ -211,7 +218,7 @@ class ClimateServiceTest {
         when(snapshotProvider.loadSnapshot(regionId, snapId)).thenReturn(null);
 
         // when
-        PopForecastSeries fs = climateService.loadForecastSeries(regionId, snapId);
+        PopForecastSeries fs = snapshotQueryService.loadForecastSeries(regionId, snapId);
 
         // then
         assertThat(fs.hourly()).isNull();

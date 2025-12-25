@@ -1,6 +1,6 @@
 package com.github.yun531.climate.repository;
 
-import com.github.yun531.climate.dto.POPSnapDto;
+import com.github.yun531.climate.repository.dto.POPSnapDto;
 import com.github.yun531.climate.entity.ClimateSnap;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

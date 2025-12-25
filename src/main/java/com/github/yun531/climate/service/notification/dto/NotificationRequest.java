@@ -1,7 +1,7 @@
-package com.github.yun531.climate.service.notification;
+package com.github.yun531.climate.service.notification.dto;
 
-import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.service.notification.rule.AlertTypeEnum;
+import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;

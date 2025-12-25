@@ -1,7 +1,7 @@
-package com.github.yun531.climate.service;
+package com.github.yun531.climate.service.query;
 
-import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.dto.WarningStateDto;
+import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.query.dto.WarningStateDto;
 import com.github.yun531.climate.entity.WarningState;
 import com.github.yun531.climate.repository.WarningStateRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +12,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-public class WarningService {
+public class WarningStateQueryService {
 
     private final WarningStateRepository warningStateRepository;
 

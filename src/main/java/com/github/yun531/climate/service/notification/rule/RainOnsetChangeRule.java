@@ -1,9 +1,12 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.dto.PopSeriesPair;
-import com.github.yun531.climate.dto.PopSeries24;
-import com.github.yun531.climate.service.ClimateService;
-import com.github.yun531.climate.service.notification.NotificationRequest;
+import com.github.yun531.climate.service.notification.model.PopSeriesPair;
+import com.github.yun531.climate.service.notification.model.PopSeries24;
+import com.github.yun531.climate.service.notification.model.AlertEvent;
+import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
+import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
+import com.github.yun531.climate.service.query.SnapshotQueryService;
+import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.util.CacheEntry;
 import com.github.yun531.climate.util.RegionCache;
 import io.micrometer.common.lang.Nullable;
@@ -28,7 +31,7 @@ public class RainOnsetChangeRule implements AlertRule {
     private static final String PAYLOAD_HOUR_KEY      = "hourOffset";
     private static final String PAYLOAD_POP_KEY       = "pop";
 
-    private final ClimateService climateService;
+    private final SnapshotQueryService snapshotQueryService;
 
     /** 지역별 캐시: 계산결과 + 계산시각 */
     private final RegionCache<List<AlertEvent>> cache = new RegionCache<>();
@@ -131,7 +134,7 @@ public class RainOnsetChangeRule implements AlertRule {
 
     // 한 지역에 대한 비 시작 시점 계산
     private CacheEntry<List<AlertEvent>> computeForRegion(int regionId) {
-        PopSeriesPair series = climateService.loadDefaultPopSeries(regionId);
+        PopSeriesPair series = snapshotQueryService.loadDefaultPopSeries(regionId);
 
         if (!isValidSeries(series)) {
             return createEmptyCacheEntry();

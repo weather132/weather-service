@@ -1,8 +1,8 @@
 package com.github.yun531.climate.repository;
 
 
-import com.github.yun531.climate.dto.SnapKindEnum;
-import com.github.yun531.climate.dto.POPSnapDto;
+import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
+import com.github.yun531.climate.repository.dto.POPSnapDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;

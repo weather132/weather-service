@@ -1,7 +1,7 @@
 package com.github.yun531.climate.entity;
 
-import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.dto.WarningLevel;
+import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.notification.model.WarningLevel;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Generated;

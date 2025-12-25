@@ -1,4 +1,4 @@
-package com.github.yun531.climate.dto;
+package com.github.yun531.climate.service.snapshot.model;
 
 import lombok.Getter;
 

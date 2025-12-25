@@ -1,4 +1,4 @@
-package com.github.yun531.climate.service.notification.rule;
+package com.github.yun531.climate.service.notification.model;
 
 public enum AlertTypeEnum {
     RAIN_ONSET,       // 비 기상 예보

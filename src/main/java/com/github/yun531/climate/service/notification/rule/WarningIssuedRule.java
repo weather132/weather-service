@@ -1,9 +1,11 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.dto.WarningKind;
-import com.github.yun531.climate.dto.WarningStateDto;
-import com.github.yun531.climate.service.WarningService;
-import com.github.yun531.climate.service.notification.NotificationRequest;
+import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.query.dto.WarningStateDto;
+import com.github.yun531.climate.service.notification.model.AlertEvent;
+import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
+import com.github.yun531.climate.service.query.WarningStateQueryService;
+import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.util.CacheEntry;
 import com.github.yun531.climate.util.RegionCache;
 import io.micrometer.common.lang.Nullable;
@@ -20,7 +22,7 @@ import static com.github.yun531.climate.util.TimeUtil.nowMinutes;
 @RequiredArgsConstructor
 public class WarningIssuedRule implements AlertRule {
 
-    private final WarningService warningService;
+    private final WarningStateQueryService warningStateQueryService;
 
     /** 캐시 TTL (분 단위) */
     private static final int CACHE_TTL_MINUTES = 45;
@@ -104,7 +106,7 @@ public class WarningIssuedRule implements AlertRule {
     /** 한 지역에 대한 최신 특보 상태를 DB에서 로드하고 CacheEntry 로 래핑 */
     private CacheEntry<Map<WarningKind, WarningStateDto>> loadLatestForRegion(int regionId) {
         Map<Integer, Map<WarningKind, WarningStateDto>> latestByRegion =
-                warningService.findLatestByRegionAndKind(List.of(regionId));
+                warningStateQueryService.findLatestByRegionAndKind(List.of(regionId));
 
         Map<WarningKind, WarningStateDto> byKind =
                 latestByRegion.getOrDefault(regionId, Map.of());
@@ -157,7 +159,7 @@ public class WarningIssuedRule implements AlertRule {
         if (adjustedSince == null) {
             return true;
         }
-        return warningService.isNewlyIssuedSince(state, adjustedSince);
+        return warningStateQueryService.isNewlyIssuedSince(state, adjustedSince);
     }
 
     /** DTO → AlertEvent 변환 */
