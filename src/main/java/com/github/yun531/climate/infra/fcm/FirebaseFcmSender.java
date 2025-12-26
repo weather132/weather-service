@@ -1,4 +1,4 @@
-package com.github.yun531.climate.service.fcm;
+package com.github.yun531.climate.infra.fcm;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -15,7 +15,7 @@ public class FirebaseFcmSender implements FcmSender {
 
     @Override
     public String send(Message message, boolean dryRun) throws FirebaseMessagingException {
-        // send(message, dryRun) : dryRun=true면 검증만 하고 실제 발송은 안 함 :contentReference[oaicite:3]{index=3}
+        // send(message, dryRun) : dryRun=true면 검증만 하고 실제 발송은 안 함
         return FirebaseMessaging.getInstance(firebaseApp).send(message, dryRun);
     }
 }

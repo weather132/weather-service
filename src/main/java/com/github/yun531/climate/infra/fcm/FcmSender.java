@@ -1,4 +1,4 @@
-package com.github.yun531.climate.service.fcm;
+package com.github.yun531.climate.infra.fcm;
 
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;

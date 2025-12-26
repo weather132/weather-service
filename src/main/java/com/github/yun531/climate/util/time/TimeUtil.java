@@ -1,4 +1,4 @@
-package com.github.yun531.climate.util;
+package com.github.yun531.climate.util.time;
 
 import java.time.LocalDateTime;
 

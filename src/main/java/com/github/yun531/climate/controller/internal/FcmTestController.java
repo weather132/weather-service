@@ -2,7 +2,7 @@ package com.github.yun531.climate.controller.internal;
 
 import com.github.yun531.climate.controller.internal.dto.FcmTestRequest;
 import com.github.yun531.climate.controller.internal.dto.FcmTestResponse;
-import com.github.yun531.climate.service.fcm.FcmTopicPushService;
+import com.github.yun531.climate.infra.fcm.FcmTopicPushService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

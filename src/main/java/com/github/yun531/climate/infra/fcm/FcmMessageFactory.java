@@ -1,4 +1,4 @@
-package com.github.yun531.climate.service.fcm;
+package com.github.yun531.climate.infra.fcm;
 
 import com.google.firebase.messaging.AndroidConfig;
 import com.google.firebase.messaging.Message;
@@ -11,7 +11,7 @@ public class FcmMessageFactory {
 
     public Message topicDataMessage(String topic, Map<String, String> data, long ttlMillis) {
         AndroidConfig android = AndroidConfig.builder()
-                .setPriority(AndroidConfig.Priority.HIGH) // 우선순위 설정 :contentReference[oaicite:4]{index=4}
+                .setPriority(AndroidConfig.Priority.HIGH) // 우선순위 설정
                 .setTtl(ttlMillis)
                 .build();
 

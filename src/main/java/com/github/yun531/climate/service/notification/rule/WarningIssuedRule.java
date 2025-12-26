@@ -6,8 +6,8 @@ import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.query.WarningStateQueryService;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
-import com.github.yun531.climate.util.CacheEntry;
-import com.github.yun531.climate.util.RegionCache;
+import com.github.yun531.climate.util.cache.CacheEntry;
+import com.github.yun531.climate.util.cache.RegionCache;
 import io.micrometer.common.lang.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Set;
 
-import static com.github.yun531.climate.util.TimeUtil.nowMinutes;
+import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
 
 @Component
 @RequiredArgsConstructor

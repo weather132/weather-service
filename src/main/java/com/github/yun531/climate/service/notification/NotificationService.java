@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.github.yun531.climate.util.TimeUtil.nowMinutes;
+import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
 
 @Service
 @RequiredArgsConstructor

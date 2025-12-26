@@ -1,12 +1,13 @@
-package com.github.yun531.climate.scheduler;
+package com.github.yun531.climate.infra.scheduler;
 
-import com.github.yun531.climate.service.fcm.FcmTopicPushService;
+import com.github.yun531.climate.infra.fcm.FcmTopicPushService;
+import com.github.yun531.climate.util.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
 @Slf4j
@@ -16,12 +17,13 @@ public class FcmTriggerScheduler {
 
     private final FcmTopicPushService fcm;
 
-    // 개발/검증 중에는 true로 두면 실제 발송 없이 검증만 수행 :contentReference[oaicite:5]{index=5}
+    // 개발/검증 중에는 true로 두면 실제 발송 없이 검증만 수행
     private static final boolean DRY_RUN = true;
 
-    @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
+    @Scheduled(cron="0 0 * * * *")
     public void triggerEveryHour() {
-        int hour = ZonedDateTime.now(ZoneId.of("Asia/Seoul")).getHour();
+        var now = TimeUtil.nowMinutes();
+        int hour = now.getHour();
 
         try {
             String hourlyId = fcm.sendHourlyTrigger(DRY_RUN);
