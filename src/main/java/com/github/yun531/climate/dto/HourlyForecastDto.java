@@ -10,7 +10,9 @@ import java.util.List;
  * - 기준 시간: reportTime
  * - 각 항목: 기준 시각으로부터 hourOffset시간 후의 온도/POP
  */
-public record HourlyForecastDto(
+public record
+
+HourlyForecastDto(
         int regionId,
         LocalDateTime reportTime,
         List<HourlyPoint> hours

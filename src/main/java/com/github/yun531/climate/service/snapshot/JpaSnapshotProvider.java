@@ -104,7 +104,7 @@ public class JpaSnapshotProvider implements SnapshotProvider {
         );
     }
 
-    /** 시간대별 (0~23시간 후) temp + POP 매핑 */
+    /** 시간대별 (1~24시간 후) temp + POP 매핑 */
     private List<HourlyPoint> buildHourlyPoints(ClimateSnap c) {
         List<HourlyPoint> list = new ArrayList<>(24);
 

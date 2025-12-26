@@ -14,7 +14,7 @@ import java.util.Set;
  * - since            : 기준 시각 (null 이면 서비스에서 now 로 대체)
  * - enabledTypes     : 활성화할 AlertTypeEnum 집합 (null/empty 이면 서비스에서 기본값 적용)
  * - filterWarningKinds      : WARNING_ISSUED 에서 필터링할 WarningKind 셋 (옵션)
- * - rainHourLimit    : RAIN_ONSET 에서 hour <= 이 값인 이벤트까지만 포함 (0~23, null 이면 전체)
+ * - rainHourLimit    : RAIN_ONSET 에서 hour <= 이 값인 이벤트까지만 포함 (1~24, null 이면 전체)
  */
 public record NotificationRequest(
         List<Integer> regionIds,

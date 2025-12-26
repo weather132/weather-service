@@ -21,7 +21,7 @@ public class ForecastController {
     @GetMapping("/hourly")
     @Operation(
             summary = "시간대별 예보 조회",
-            description = "시간대별(0-23시간) 예보 조회, 3시간 마다 갱신되며 0-21시간 까지 예보를 제공하기도 한다."
+            description = "시간대별(1-24시간) 예보 조회, 3시간 마다 갱신."
     )
     public HourlyForecastDto getHourlyForecast(@RequestParam int regionId) {
         return appForecastService.getHourlyForecast(regionId);

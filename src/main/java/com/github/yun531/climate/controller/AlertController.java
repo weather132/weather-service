@@ -28,11 +28,11 @@ public class AlertController {
     )
     public ResponseEntity<List<AlertEvent>> get3HourIntervalForecast(
             @RequestParam List<Integer> regionIds,
-            @RequestParam(value = "maxHour", required = false) Integer maxHour // 0~23
+            @RequestParam(value = "maxHour", required = false) Integer maxHour // 1~24
     ) {
-        // 간단 유효성 체크 >> 이상한 값이면 23 사용
-        if (maxHour != null && (maxHour < 0 || maxHour > 23)) {
-            maxHour = 23;
+        // 간단 유효성 체크 >> 이상한 값이면 24 사용
+        if (maxHour != null && (maxHour < 1 || maxHour > 24)) {
+            maxHour = 24;
         }
 
         NotificationRequest req = new NotificationRequest(
