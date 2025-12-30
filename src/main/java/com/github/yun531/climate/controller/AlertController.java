@@ -27,7 +27,7 @@ public class AlertController {
             description = "3시간 마다 발표되는 24시간이내의 일기예보의 변동사항에 대한 알림"
     )
     public ResponseEntity<List<AlertEvent>> get3HourIntervalForecast(
-            @RequestParam List<Integer> regionIds,
+            @RequestParam List<String> regionIds,
             @RequestParam(value = "maxHour", required = false) Integer maxHour // 1~24
     ) {
         // 간단 유효성 체크 >> 이상한 값이면 24 사용
@@ -52,7 +52,7 @@ public class AlertController {
             description = "24시간 이내의 비오는 시간대와, 7일이내의 오전/오후 일기예보 알림"
     )
     public ResponseEntity<List<AlertEvent>> getDayForecast(
-            @RequestParam List<Integer> regionIds
+            @RequestParam List<String> regionIds
     ) {
         Set<AlertTypeEnum> types = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
 
@@ -73,7 +73,7 @@ public class AlertController {
             description = "1시간마다 발표되는 기상특보의 변동사항에 대한 알림"
     )
     public ResponseEntity<List<AlertEvent>> getWarning(
-            @RequestParam List<Integer> regionIds,
+            @RequestParam List<String> regionIds,
             @RequestParam(value = "warningKinds", required = false) List<WarningKind> warningKinds
     ) {
         Set<AlertTypeEnum> types = EnumSet.of(AlertTypeEnum.WARNING_ISSUED);
@@ -97,7 +97,7 @@ public class AlertController {
             description = "3시간 단기예보 변동사항(RAIN_ONSET)과 기상특보 변동사항(WARNING_ISSUED)을 통합 조회"
     )
     public ResponseEntity<List<AlertEvent>> getSummbary(
-            @RequestParam List<Integer> regionIds,
+            @RequestParam List<String> regionIds,
             @RequestParam(value = "warningKinds", required = false) List<WarningKind> warningKinds
     ) {
         Set<AlertTypeEnum> types = EnumSet.of(

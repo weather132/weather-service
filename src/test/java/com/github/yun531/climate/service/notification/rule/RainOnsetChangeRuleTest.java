@@ -35,11 +35,11 @@ class RainOnsetChangeRuleTest {
 
         int th = RainThresholdEnum.RAIN.getThreshold(); // 60
 
-        when(snapshotQueryService.loadDefaultPopSeries(101))
+        when(snapshotQueryService.loadDefaultPopSeries("101"))
                 .thenReturn(seriesWithCrossAtHour(5, th));
 
         // when
-        NotificationRequest req = rainReq(101, null);
+        NotificationRequest req = rainReq("101", null);
         var events = rule.evaluate(req);
 
         // then
@@ -47,7 +47,7 @@ class RainOnsetChangeRuleTest {
 
         var e = events.get(0);
         assertThat(e.type()).isEqualTo(AlertTypeEnum.RAIN_ONSET);
-        assertThat(e.regionId()).isEqualTo(101L);
+        assertThat(e.regionId()).isEqualTo("101");
         assertThat((Integer) e.payload().get("hourOffset")).isEqualTo(5);
         assertThat((Integer) e.payload().get("pop")).isEqualTo(th);
         assertThat(e.occurredAt()).isBeforeOrEqualTo(nowMinutes());
@@ -68,7 +68,7 @@ class RainOnsetChangeRuleTest {
         PopSeries24 current = new PopSeries24(curVals);
         PopSeries24 previous = new PopSeries24(prvVals);
 
-        when(snapshotQueryService.loadDefaultPopSeries(7))
+        when(snapshotQueryService.loadDefaultPopSeries("7"))
                 .thenReturn(new PopSeriesPair(
                         current,
                         previous,
@@ -76,7 +76,7 @@ class RainOnsetChangeRuleTest {
                         LocalDateTime.parse("2025-11-18T11:00:00"))
                 );
 
-        NotificationRequest req = rainReq(7, null);
+        NotificationRequest req = rainReq("7", null);
         var events = rule.evaluate(req);
 
         assertThat(events).isEmpty();
@@ -86,13 +86,13 @@ class RainOnsetChangeRuleTest {
     void 시계열없음_null이면_스킵() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
 
-        when(snapshotQueryService.loadDefaultPopSeries(9))
+        when(snapshotQueryService.loadDefaultPopSeries("9"))
                 .thenReturn(new PopSeriesPair(
                         null, null, 0,
                         LocalDateTime.parse("2025-11-18T11:00:00"))
                 );
 
-        NotificationRequest req = rainReq(9, null);
+        NotificationRequest req = rainReq("9", null);
         var events = rule.evaluate(req);
 
         assertThat(events).isEmpty();
@@ -101,7 +101,7 @@ class RainOnsetChangeRuleTest {
     @Test
     void 캐시_재사용_since가_있으면_두번째_호출시_재계산_안함() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
-        int regionId = 42;
+        String regionId = "42";
         int th = RainThresholdEnum.RAIN.getThreshold();
 
         when(snapshotQueryService.loadDefaultPopSeries(regionId))
@@ -125,7 +125,7 @@ class RainOnsetChangeRuleTest {
     @Test
     void invalidate_호출시_다음_호출에서_재계산() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
-        int regionId = 77;
+        String regionId = "77";
         int th = RainThresholdEnum.RAIN.getThreshold();
 
         when(snapshotQueryService.loadDefaultPopSeries(regionId))
@@ -148,7 +148,7 @@ class RainOnsetChangeRuleTest {
     @Test
     void since가_충분히_인접하면_재계산_안함() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
-        int regionId = 200;
+        String regionId = "200";
         int th = RainThresholdEnum.RAIN.getThreshold();
 
         when(snapshotQueryService.loadDefaultPopSeries(regionId))
@@ -179,7 +179,7 @@ class RainOnsetChangeRuleTest {
     @Test
     void 경계값_TTL마이너스1분은_재계산안함_TTL플러스1분은_재계산() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
-        int regionId = 120;
+        String regionId = "120";
         int th = RainThresholdEnum.RAIN.getThreshold();
 
         when(snapshotQueryService.loadDefaultPopSeries(regionId))
@@ -210,7 +210,7 @@ class RainOnsetChangeRuleTest {
     @Test
     void since를_미래로_크게_당기면_오래된_캐시로_판단되어_재계산() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
-        int regionId = 130;
+        String regionId = "130";
         int th = RainThresholdEnum.RAIN.getThreshold();
 
         when(snapshotQueryService.loadDefaultPopSeries(regionId))
@@ -233,7 +233,7 @@ class RainOnsetChangeRuleTest {
     @Test
     void 지역별_캐시_키_분리_검증() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
-        int regionId01 = 1, regionId02 = 2;
+        String regionId01 = "1", regionId02 = "2";
         int th = RainThresholdEnum.RAIN.getThreshold();
 
         PopSeriesPair series01 = seriesWithCrossAtHour(2, th);
@@ -259,7 +259,7 @@ class RainOnsetChangeRuleTest {
     @Test
     void invalidateAll_호출시_모든_지역_재계산() {
         RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
-        int regionId01 = 10, regionId02 = 20;
+        String regionId01 = "10", regionId02 = "20";
         int th = RainThresholdEnum.RAIN.getThreshold();
 
         when(snapshotQueryService.loadDefaultPopSeries(regionId01))
@@ -286,11 +286,11 @@ class RainOnsetChangeRuleTest {
 
     /** NotificationRequest helper */
 
-    private NotificationRequest rainReq(int regionId, LocalDateTime since) {
+    private NotificationRequest rainReq(String regionId, LocalDateTime since) {
         return rainReq(List.of(regionId), since);
     }
 
-    private NotificationRequest rainReq(List<Integer> regionIds, LocalDateTime since) {
+    private NotificationRequest rainReq(List<String> regionIds, LocalDateTime since) {
         // 이 룰은 enabledTypes / filterKinds / rainHourLimit 를 사용하지 않으므로 전부 null
         return new NotificationRequest(
                 regionIds,

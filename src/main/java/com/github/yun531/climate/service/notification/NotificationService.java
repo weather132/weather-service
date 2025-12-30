@@ -45,7 +45,7 @@ public class NotificationService {
     }
 
     private boolean isEmptyRegions(NotificationRequest request) {
-        List<Integer> regionIds = request.regionIds();
+        List<String> regionIds = request.regionIds();
         return regionIds == null || regionIds.isEmpty();
     }
 
@@ -59,7 +59,7 @@ public class NotificationService {
     private NotificationRequest normalize(NotificationRequest raw) {
         LocalDateTime effectiveSince    = sinceOrNow(raw.since());
         Set<AlertTypeEnum> enabled      = normalizeEnabledTypes(raw.enabledTypes());
-        List<Integer> targetRegions     = limitRegions(raw.regionIds());
+        List<String> targetRegions     = limitRegions(raw.regionIds());
         Set<WarningKind> filterKinds    = raw.filterWarningKinds();
         Integer rainHourLimit           = raw.rainHourLimit();
 
@@ -144,7 +144,7 @@ public class NotificationService {
     }
 
     /** 지역 최대 3개 제한 */
-    private List<Integer> limitRegions(List<Integer> regionIds) {
+    private List<String> limitRegions(List<String> regionIds) {
         if (regionIds == null || regionIds.isEmpty()) {
             return List.of();
         }

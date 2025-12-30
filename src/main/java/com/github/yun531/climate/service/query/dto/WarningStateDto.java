@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 public class WarningStateDto {
 
-    private int regionId;          // 지역 코드
+    private String regionId;          // 지역 코드
     private WarningKind kind;       // 호우 / 폭염 / 강풍 / 태풍 ...
     private WarningLevel level;     // 예비특보 / 주의보 / 경보
     private LocalDateTime updatedAt;      // 특보가 발효되거나 갱신된 시각

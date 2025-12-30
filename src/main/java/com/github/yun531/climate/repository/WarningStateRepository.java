@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface WarningStateRepository extends JpaRepository<WarningState, Integer> {
 
-    List<WarningState> findByRegionIdIn(Collection<Integer> regionIds);
+    List<WarningState> findByRegionIdIn(Collection<String> regionIds);
 
-    Optional<WarningState> findTopByRegionIdOrderByUpdatedAtDesc(int regionId);
+    Optional<WarningState> findTopByRegionIdOrderByUpdatedAtDesc(String regionId);
 }

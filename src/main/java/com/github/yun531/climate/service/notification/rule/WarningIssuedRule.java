@@ -42,14 +42,14 @@ public class WarningIssuedRule implements AlertRule {
 
     @Override
     public List<AlertEvent> evaluate(NotificationRequest request) {
-        List<Integer> regionIds        = request.regionIds();
+        List<String> regionIds        = request.regionIds();
         LocalDateTime since            = request.since();
         Set<WarningKind> filterKinds   = request.filterWarningKinds();
 
         return evaluateInternal(regionIds, filterKinds, since);
     }
 
-    private List<AlertEvent> evaluateInternal(List<Integer> regionIds,
+    private List<AlertEvent> evaluateInternal(List<String> regionIds,
                                               Set<WarningKind> filterKinds,
                                               LocalDateTime since) {
         if (regionIds == null || regionIds.isEmpty()) {
@@ -63,7 +63,7 @@ public class WarningIssuedRule implements AlertRule {
 
         List<AlertEvent> out = new ArrayList<>();
 
-        for (int regionId : regionIds) {
+        for (String regionId : regionIds) {
             CacheEntry<Map<WarningKind, WarningStateDto>> entry =
                     cache.getOrComputeSinceBased(
                             regionId,
@@ -104,8 +104,8 @@ public class WarningIssuedRule implements AlertRule {
     }
 
     /** 한 지역에 대한 최신 특보 상태를 DB에서 로드하고 CacheEntry 로 래핑 */
-    private CacheEntry<Map<WarningKind, WarningStateDto>> loadLatestForRegion(int regionId) {
-        Map<Integer, Map<WarningKind, WarningStateDto>> latestByRegion =
+    private CacheEntry<Map<WarningKind, WarningStateDto>> loadLatestForRegion(String regionId) {
+        Map<String, Map<WarningKind, WarningStateDto>> latestByRegion =
                 warningStateQueryService.findLatestByRegionAndKind(List.of(regionId));
 
         Map<WarningKind, WarningStateDto> byKind =
@@ -115,7 +115,7 @@ public class WarningIssuedRule implements AlertRule {
     }
 
     // 한 지역에 대한 이벤트 수집 (필요 시 특정 kind 필터링)
-    private void collectEventsForRegion(int regionId,
+    private void collectEventsForRegion(String regionId,
                                         Map<WarningKind, WarningStateDto> byKind,
                                         Set<WarningKind> filterKinds,
                                         LocalDateTime adjustedSince,
@@ -163,7 +163,7 @@ public class WarningIssuedRule implements AlertRule {
     }
 
     /** DTO → AlertEvent 변환 */
-    private AlertEvent toAlertEvent(int regionId, WarningStateDto state) {
+    private AlertEvent toAlertEvent(String regionId, WarningStateDto state) {
         LocalDateTime occurredAt =
                 (state.getUpdatedAt() != null) ? state.getUpdatedAt() : nowMinutes();
 
@@ -182,6 +182,6 @@ public class WarningIssuedRule implements AlertRule {
     }
 
     /** 캐시 무효화 */
-    public void invalidate(int regionId) { cache.invalidate(regionId); }
+    public void invalidate(String regionId) { cache.invalidate(regionId); }
     public void invalidateAll() { cache.invalidateAll(); }
 }

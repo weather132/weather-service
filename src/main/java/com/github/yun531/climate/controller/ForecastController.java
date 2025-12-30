@@ -23,7 +23,7 @@ public class ForecastController {
             summary = "시간대별 예보 조회",
             description = "시간대별(1-24시간) 예보 조회, 3시간 마다 갱신."
     )
-    public HourlyForecastDto getHourlyForecast(@RequestParam int regionId) {
+    public HourlyForecastDto getHourlyForecast(@RequestParam String regionId) {
         return appForecastService.getHourlyForecast(regionId);
     }
 
@@ -32,7 +32,7 @@ public class ForecastController {
             summary = "일자별 AM/PM 예보 조회",
             description = "일자별(0-6일차) AM/PM 예보 조회"
     )
-    public DailyForecastDto getDailyForecast(@RequestParam int regionId) {
+    public DailyForecastDto getDailyForecast(@RequestParam String regionId) {
         return appForecastService.getDailyForecast(regionId);
     }
 }

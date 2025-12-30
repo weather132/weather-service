@@ -37,7 +37,7 @@ public class JpaSnapshotProvider implements SnapshotProvider {
 
     @Override
     @Nullable
-    public ForecastSnap loadSnapshot(int regionId, int snapId) {
+    public ForecastSnap loadSnapshot(String regionId, int snapId) {
         LocalDateTime now = TimeUtil.nowMinutes();
 
         int curCode = SnapKindEnum.SNAP_CURRENT.getCode();
@@ -79,7 +79,7 @@ public class JpaSnapshotProvider implements SnapshotProvider {
      * DB에서 스냅을 조회해 ForecastSnapshot + CacheEntry로 감싸는 함수.
      * computedAt에는 스냅의 reportTime을 그대로 사용한다.
      */
-    private CacheEntry<ForecastSnap> computeSnapshotEntry(int regionId, int snapId) {
+    private CacheEntry<ForecastSnap> computeSnapshotEntry(String regionId, int snapId) {
         ClimateSnap snap = climateSnapRepository.findBySnapIdAndRegionId(snapId, regionId);
         if (snap == null) {
             // 존재하지 않는 경우 캐시에 null을 넣을지, 아예 캐시하지 않을지는 정책에 따라 조정 가능

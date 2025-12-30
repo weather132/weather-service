@@ -17,7 +17,7 @@ import java.util.List;
 public class POPSnapDto {
 
     private int snapId;
-    private int regionId;
+    private String regionId;
     private LocalDateTime reportTime;
 
     private PopSeries24 hourly;         // ---- 시간대별 POP (1~24시) ---- //
@@ -25,7 +25,7 @@ public class POPSnapDto {
 
     public POPSnapDto(
             Integer snapId,
-            Integer regionId,
+            String regionId,
             LocalDateTime reportTime,
             Integer popA01, Integer popA02, Integer popA03, Integer popA04,
             Integer popA05, Integer popA06, Integer popA07, Integer popA08, Integer popA09,

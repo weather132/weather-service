@@ -13,7 +13,7 @@ import java.util.List;
 public record
 
 HourlyForecastDto(
-        int regionId,
+        String regionId,
         LocalDateTime reportTime,
         List<HourlyPoint> hours
 ) {}

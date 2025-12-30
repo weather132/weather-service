@@ -14,5 +14,5 @@ public interface SnapshotProvider {
      * @return ForecastSnapshot 또는 존재하지 않으면 null
      */
     @Nullable
-    ForecastSnap loadSnapshot(int regionId, int snapId);
+    ForecastSnap loadSnapshot(String regionId, int snapId);
 }

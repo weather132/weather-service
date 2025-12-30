@@ -11,7 +11,7 @@ import java.util.List;
  * - 각 항목: dayOffset일 후의 AM/PM 온도/POP
  */
 public record DailyForecastDto(
-        int regionId,
+        String regionId,
         LocalDateTime reportTime,
         List<DailyPoint> days
 ) { }

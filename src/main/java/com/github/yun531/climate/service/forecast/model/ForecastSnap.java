@@ -7,7 +7,7 @@ import java.util.List;
  * DB / 외부 서버에서 가져온 스냅을 도메인에서 다루기 좋은 형태로 표현
  */
 public record ForecastSnap(
-        int regionId,
+        String regionId,
         LocalDateTime reportTime,
 
         // 시간대별 예보 (1~24시간 후)

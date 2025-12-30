@@ -43,7 +43,7 @@ public class RainOnsetChangeRule implements AlertRule {
 
     @Override
     public List<AlertEvent> evaluate(NotificationRequest request) {
-        List<Integer> regionIds = request.regionIds();
+        List<String> regionIds = request.regionIds();
         LocalDateTime since     = request.since();
         Integer maxHour         = request.rainHourLimit(); // null이면 전체 시간대
 
@@ -54,7 +54,7 @@ public class RainOnsetChangeRule implements AlertRule {
      * maxHour 까지의 비 시작 알림만 반환.
      * - maxHour == null 이면 전체 시간대 반환
      */
-    private List<AlertEvent> evaluateInternal(List<Integer> regionIds,
+    private List<AlertEvent> evaluateInternal(List<String> regionIds,
                                               LocalDateTime since,
                                               Integer maxHour) {
         if (regionIds == null || regionIds.isEmpty()) {
@@ -63,7 +63,7 @@ public class RainOnsetChangeRule implements AlertRule {
 
         List<AlertEvent> result = new ArrayList<>();
 
-        for (int regionId : regionIds) {
+        for (String regionId : regionIds) {
             CacheEntry<List<AlertEvent>> entry =
                     cache.getOrComputeSinceBased(
                             regionId,
@@ -133,7 +133,7 @@ public class RainOnsetChangeRule implements AlertRule {
     }
 
     // 한 지역에 대한 비 시작 시점 계산
-    private CacheEntry<List<AlertEvent>> computeForRegion(int regionId) {
+    private CacheEntry<List<AlertEvent>> computeForRegion(String regionId) {
         PopSeriesPair series = snapshotQueryService.loadDefaultPopSeries(regionId);
 
         if (!isValidSeries(series)) {
@@ -157,7 +157,7 @@ public class RainOnsetChangeRule implements AlertRule {
     }
 
     /** 시계열 비교 및 이벤트 생성 */
-    private List<AlertEvent> detectRainOnsetEvents(int regionId,
+    private List<AlertEvent> detectRainOnsetEvents(String regionId,
                                                    PopSeriesPair series,
                                                    LocalDateTime computedAt) {
 
@@ -229,7 +229,7 @@ public class RainOnsetChangeRule implements AlertRule {
         return pop >= RAIN_TH;
     }
 
-    private AlertEvent createRainOnsetEvent(int regionId,
+    private AlertEvent createRainOnsetEvent(String regionId,
                                             LocalDateTime computedAt,
                                             int hour,
                                             int pop) {
@@ -247,6 +247,6 @@ public class RainOnsetChangeRule implements AlertRule {
     }
 
     /** 캐시 무효화 */
-    public void invalidate(int regionId) { cache.invalidate(regionId); }
+    public void invalidate(String regionId) { cache.invalidate(regionId); }
     public void invalidateAll() { cache.invalidateAll(); }
 }

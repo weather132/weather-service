@@ -14,13 +14,13 @@ public interface ClimateSnapRepository extends JpaRepository<ClimateSnap, Intege
     List<ClimateSnap> findBySnapIdIn(List<Integer> snapIds);
 
     // region_id로 조회
-    List<ClimateSnap> findByRegionId(Integer regionId);
+    List<ClimateSnap> findByRegionId(String regionId);
 
     // snap_id와 region_id를 함께 조건으로 조회
-    ClimateSnap findBySnapIdAndRegionId(Integer snapId, Integer regionId);
+    ClimateSnap findBySnapIdAndRegionId(Integer snapId, String regionId);
 
     @Query("""
-        SELECT new com.github.yun531.climate.dto.POPSnapDto(
+        SELECT new com.github.yun531.climate.repository.dto.POPSnapDto(
             c.snapId, c.regionId, c.reportTime,
             c.popA01, c.popA02, c.popA03, c.popA04,
             c.popA05, c.popA06, c.popA07, c.popA08, c.popA09,
@@ -38,5 +38,5 @@ public interface ClimateSnapRepository extends JpaRepository<ClimateSnap, Intege
         FROM ClimateSnap c
         WHERE c.snapId IN :snapIds and c.regionId = :regionId
     """)
-    List<POPSnapDto> findPopInfoBySnapIdsAndRegionId(@Param("snapIds") List<Integer> snapIds, @Param("regionId") Integer regionId);
+    List<POPSnapDto> findPopInfoBySnapIdsAndRegionId(@Param("snapIds") List<Integer> snapIds, @Param("regionId") String regionId);
 }

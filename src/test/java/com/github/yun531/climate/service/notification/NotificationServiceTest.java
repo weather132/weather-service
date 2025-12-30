@@ -99,7 +99,7 @@ class NotificationServiceTest {
     @DisplayName("기본값: enabledTypes가 null이면 RAIN_ONSET만 실행된다")
     void default_selects_only_rain_rule_when_null() {
         LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
-        int regionId = 1;
+        String regionId = "1";
 
         NotificationRequest request = req(List.of(regionId), t, null);
 
@@ -111,7 +111,7 @@ class NotificationServiceTest {
 
         assertThat(out).hasSize(1);
         assertThat(out.get(0).type()).isEqualTo(AlertTypeEnum.RAIN_ONSET);
-        assertThat(out.get(0).regionId()).isEqualTo(1);
+        assertThat(out.get(0).regionId()).isEqualTo("1");
 
         verify(rainRule, times(1)).evaluate(any(NotificationRequest.class));
         verify(warnRule, never()).evaluate(any(NotificationRequest.class));
@@ -122,7 +122,7 @@ class NotificationServiceTest {
     @DisplayName("기본값: enabledTypes가 empty이면 RAIN_ONSET만 실행된다")
     void default_selects_only_rain_rule_when_empty() {
         LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
-        int regionId = 1;
+        String regionId = "1";
 
         NotificationRequest request = req(List.of(regionId), t, Collections.emptySet());
 
@@ -143,7 +143,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("enabledTypes에 RAIN_ONSET, WARNING_ISSUED를 주면 두 룰 모두 실행된다")
     void enabled_both_rules() {
-        int regionId01 = 1, regionId02 = 2;
+        String regionId01 = "1", regionId02 = "2";
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED);
         NotificationRequest request = req(List.of(regionId01), null, enabled);
 
@@ -176,13 +176,13 @@ class NotificationServiceTest {
     @Test
     @DisplayName("deduplicate: 동일 (type|region|occurredAt|payload) 이벤트는 한 번만 남는다")
     void deduplicate_removes_duplicates() {
-        int regionId = 1;
+        String regionId = "1";
         LocalDateTime t1 = LocalDateTime.parse("2025-11-04T05:00:00");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
         NotificationRequest request = req(List.of(regionId), t1, enabled);
 
-        AlertEvent dup1 = rainEvent(1, t1, 5, 70);
-        AlertEvent dup2 = rainEvent(1, t1, 5, 70);
+        AlertEvent dup1 = rainEvent("1", t1, 5, 70);
+        AlertEvent dup2 = rainEvent("1", t1, 5, 70);
         when(rainRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(dup1, dup2));
 
         List<AlertEvent> out = service.generate(request);
@@ -190,14 +190,14 @@ class NotificationServiceTest {
         assertThat(out).hasSize(1);
         AlertEvent e = out.get(0);
         assertThat(e.type()).isEqualTo(AlertTypeEnum.RAIN_ONSET);
-        assertThat(e.regionId()).isEqualTo(1);
+        assertThat(e.regionId()).isEqualTo("1");
         assertThat(e.occurredAt()).isEqualTo(t1);
     }
 
     @Test
     @DisplayName("지역 ID는 최대 3개까지만 룰에 전달된다 (앞 3개 사용)")
     void region_is_capped_to_three() {
-        List<Integer> regionIds = List.of(10, 11, 12, 13);
+        List<String> regionIds = List.of("10", "11", "12", "13");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
         LocalDateTime t1 = LocalDateTime.parse("2025-11-04T05:00:00");
         NotificationRequest request = req(regionIds, t1, enabled);
@@ -208,14 +208,14 @@ class NotificationServiceTest {
 
         ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
         verify(rainRule, times(1)).evaluate(captor.capture());
-        List<Integer> passed = captor.getValue().regionIds();
-        assertThat(passed).containsExactly(10, 11, 12);
+        List<String> passed = captor.getValue().regionIds();
+        assertThat(passed).containsExactly("10", "11", "12");
     }
 
     @Test
     @DisplayName("정렬: 타입 → 지역 → 타입명 → 발생시각 순으로 정렬된다")
     void sort_by_region_type_then_time() {
-        var regionIds = List.of(1, 2);
+        var regionIds = List.of("1", "2");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED);
         LocalDateTime t0 = LocalDateTime.parse("2025-11-04T04:00:00");
         LocalDateTime t1 = LocalDateTime.parse("2025-11-04T05:00:00");
@@ -223,11 +223,11 @@ class NotificationServiceTest {
         NotificationRequest request = req(regionIds, t0, enabled);
 
         when(rainRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(
-                rainEvent(2, t1, 5, 70),
-                rainEvent(1, t2, 6, 80)
+                rainEvent("2", t1, 5, 70),
+                rainEvent("1", t2, 6, 80)
         ));
         when(warnRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(
-                warningEvent(1, t1, WarningKind.RAIN, WarningLevel.WARNING)
+                warningEvent("1", t1, WarningKind.RAIN, WarningLevel.WARNING)
         ));
 
         List<AlertEvent> out = service.generate(request);
@@ -239,19 +239,19 @@ class NotificationServiceTest {
         AlertEvent e2 = out.get(2);
 
         assertThat(e0.type()).isEqualTo(AlertTypeEnum.RAIN_ONSET);
-        assertThat(e0.regionId()).isEqualTo(1);
+        assertThat(e0.regionId()).isEqualTo("1");
 
         assertThat(e1.type()).isEqualTo(AlertTypeEnum.RAIN_ONSET);
-        assertThat(e1.regionId()).isEqualTo(2);
+        assertThat(e1.regionId()).isEqualTo("2");
 
         assertThat(e2.type()).isEqualTo(AlertTypeEnum.WARNING_ISSUED);
-        assertThat(e2.regionId()).isEqualTo(1);
+        assertThat(e2.regionId()).isEqualTo("1");
     }
 
     @Test
     @DisplayName("since 값이 정규화 후 룰 evaluate의 NotificationRequest.since 로 전달된다")
     void since_is_forwarded_to_rules() {
-        var regionIds = List.of(1);
+        var regionIds = List.of("1");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
         LocalDateTime since = LocalDateTime.parse("2025-11-04T05:55:00");
         NotificationRequest request = req(regionIds, since, enabled);
@@ -279,10 +279,10 @@ class NotificationServiceTest {
         payload.put("dayParts",   List.of(List.of(1, 0)));
 
         when(forecastRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(
-                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 1, t, payload)
+                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, "1", t, payload)
         ));
 
-        var regionIds = List.of(1);
+        var regionIds = List.of("1");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
         LocalDateTime t1 = LocalDateTime.parse("2025-11-04T04:00:00");
         NotificationRequest request = req(regionIds, t1, enabled);
@@ -292,7 +292,7 @@ class NotificationServiceTest {
         assertThat(out).hasSize(1);
         AlertEvent e = out.get(0);
         assertThat(e.type()).isEqualTo(AlertTypeEnum.RAIN_FORECAST);
-        assertThat(e.regionId()).isEqualTo(1);
+        assertThat(e.regionId()).isEqualTo("1");
 
         @SuppressWarnings("unchecked")
         List<List<Integer>> hourly = (List<List<Integer>>) e.payload().get("hourlyParts");
@@ -324,12 +324,12 @@ class NotificationServiceTest {
         p3.put("dayParts",   List.of(List.of(0, 1)));
 
         when(forecastRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(
-                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 1, t, p1),
-                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 2, t, p2),
-                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, 3, t, p3)
+                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, "1", t, p1),
+                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, "2", t, p2),
+                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, "3", t, p3)
         ));
 
-        var regionIds = List.of(1, 2, 3);
+        var regionIds = List.of("1", "2", "3");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
         LocalDateTime t1 = LocalDateTime.parse("2025-11-04T04:00:00");
         NotificationRequest request = req(regionIds, t1, enabled);
@@ -339,7 +339,7 @@ class NotificationServiceTest {
         assertThat(out).hasSize(3);
         assertThat(out)
                 .extracting(AlertEvent::regionId)
-                .containsExactly(1, 2, 3);
+                .containsExactly("1", "2", "3");
 
         @SuppressWarnings("unchecked")
         List<List<Integer>> hourly1 = (List<List<Integer>>) out.get(0).payload().get("hourlyParts");
@@ -367,7 +367,7 @@ class NotificationServiceTest {
 
         ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
         verify(forecastRule, times(1)).evaluate(captor.capture());
-        assertThat(captor.getValue().regionIds()).containsExactly(1, 2, 3);
+        assertThat(captor.getValue().regionIds()).containsExactly("1", "2", "3");
 
         verify(rainRule, never()).evaluate(any(NotificationRequest.class));
         verify(warnRule, never()).evaluate(any(NotificationRequest.class));
@@ -380,7 +380,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("filterWarningKinds가 있으면 NotificationRequest에 담겨 WARNING_ISSUED 룰로 전달된다")
     void filter_kinds_is_forwarded_in_request() {
-        var regionIds = List.of(1, 2);
+        var regionIds = List.of("1", "2");
         LocalDateTime since = LocalDateTime.parse("2025-11-04T05:00:00");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.WARNING_ISSUED);
         Set<WarningKind> kinds = EnumSet.of(WarningKind.RAIN);
@@ -389,7 +389,7 @@ class NotificationServiceTest {
 
         when(warnRule.evaluate(any(NotificationRequest.class)))
                 .thenReturn(List.of(
-                        warningEvent(1, since, WarningKind.RAIN, WarningLevel.WARNING)
+                        warningEvent("1", since, WarningKind.RAIN, WarningLevel.WARNING)
                 ));
 
         List<AlertEvent> out = service.generate(request);
@@ -402,7 +402,7 @@ class NotificationServiceTest {
         verify(warnRule, times(1)).evaluate(captor.capture());
 
         NotificationRequest passed = captor.getValue();
-        assertThat(passed.regionIds()).containsExactly(1, 2);
+        assertThat(passed.regionIds()).containsExactly("1", "2");
         assertThat(passed.filterWarningKinds()).containsExactly(WarningKind.RAIN);
         assertThat(passed.since()).isEqualTo(since);
 
@@ -413,7 +413,7 @@ class NotificationServiceTest {
     @Test
     @DisplayName("rainHourLimit가 있으면 NotificationRequest에 담겨 RAIN_ONSET 룰로 전달되고 region은 최대 3개로 제한된다")
     void rainHourLimit_is_forwarded_in_request_and_regions_capped() {
-        var regionIds = List.of(10, 11, 12, 13);
+        var regionIds = List.of("10", "11", "12", "13");
         LocalDateTime since = LocalDateTime.parse("2025-11-04T05:00:00");
         int limitHour = 12;
 
@@ -422,7 +422,7 @@ class NotificationServiceTest {
 
         when(rainRule.evaluate(any(NotificationRequest.class)))
                 .thenReturn(List.of(
-                        rainEvent(10, since, 9, 80)
+                        rainEvent("10", since, 9, 80)
                 ));
 
         List<AlertEvent> out = service.generate(request);
@@ -434,7 +434,7 @@ class NotificationServiceTest {
         verify(rainRule, times(1)).evaluate(captor.capture());
 
         NotificationRequest passed = captor.getValue();
-        assertThat(passed.regionIds()).containsExactly(10, 11, 12);
+        assertThat(passed.regionIds()).containsExactly("10", "11", "12");
         assertThat(passed.since()).isEqualTo(since);
         assertThat(passed.rainHourLimit()).isEqualTo(limitHour);
 
@@ -445,7 +445,7 @@ class NotificationServiceTest {
 
     /** helpers: AlertEvent 생성 */
 
-    private static AlertEvent rainEvent(int regionId, LocalDateTime t, int hour, int pop) {
+    private static AlertEvent rainEvent(String regionId, LocalDateTime t, int hour, int pop) {
         return new AlertEvent(
                 AlertTypeEnum.RAIN_ONSET,
                 regionId,
@@ -454,7 +454,7 @@ class NotificationServiceTest {
         );
     }
 
-    private static AlertEvent warningEvent(int regionId, LocalDateTime t, WarningKind kind, WarningLevel level) {
+    private static AlertEvent warningEvent(String regionId, LocalDateTime t, WarningKind kind, WarningLevel level) {
         return new AlertEvent(
                 AlertTypeEnum.WARNING_ISSUED,
                 regionId,
@@ -465,7 +465,7 @@ class NotificationServiceTest {
 
     /** helpers: NotificationRequest 생성 */
 
-    private NotificationRequest req(List<Integer> regionIds,
+    private NotificationRequest req(List<String> regionIds,
                                     LocalDateTime since,
                                     Set<AlertTypeEnum> enabled) {
         return new NotificationRequest(
@@ -477,7 +477,7 @@ class NotificationServiceTest {
         );
     }
 
-    private NotificationRequest reqWithKinds(List<Integer> regionIds,
+    private NotificationRequest reqWithKinds(List<String> regionIds,
                                              LocalDateTime since,
                                              Set<AlertTypeEnum> enabled,
                                              Set<WarningKind> kinds) {
@@ -490,7 +490,7 @@ class NotificationServiceTest {
         );
     }
 
-    private NotificationRequest reqWithHourLimit(List<Integer> regionIds,
+    private NotificationRequest reqWithHourLimit(List<String> regionIds,
                                                  LocalDateTime since,
                                                  Set<AlertTypeEnum> enabled,
                                                  int limitHour) {

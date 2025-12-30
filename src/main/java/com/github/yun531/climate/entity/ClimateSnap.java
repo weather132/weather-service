@@ -20,7 +20,7 @@ public class ClimateSnap {
     private Integer snapId;
 
     @Column(name = "region_id", nullable = false)
-    private Integer regionId;
+    private String regionId;
 
     @Column(name = "report_time", nullable = false)    // todo : db에 넣을 때 fommating 해서 문자열로 넣느게 나을수도 있음
     private LocalDateTime reportTime;

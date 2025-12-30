@@ -17,7 +17,7 @@ import java.util.Set;
  * - rainHourLimit    : RAIN_ONSET 에서 hour <= 이 값인 이벤트까지만 포함 (1~24, null 이면 전체)
  */
 public record NotificationRequest(
-        List<Integer> regionIds,
+        List<String> regionIds,
         @Nullable LocalDateTime since,
         @Nullable Set<AlertTypeEnum> enabledTypes,
         @Nullable Set<WarningKind> filterWarningKinds,

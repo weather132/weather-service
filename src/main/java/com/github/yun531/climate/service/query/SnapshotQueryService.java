@@ -36,17 +36,17 @@ public class SnapshotQueryService {
     /* ======================= 알림용 POP 시계열 ======================= */
 
     /** 기본 POP 시계열: (현재, 이전) SNAP */
-    public PopSeriesPair loadDefaultPopSeries(int regionId) {
+    public PopSeriesPair loadDefaultPopSeries(String regionId) {
         return loadPopSeries(regionId, SNAP_CURRENT, SNAP_PREV);
     }
 
     /** 기본 POP 예보 요약: 현재 SNAP 기준 */
-    public PopForecastSeries loadDefaultForecastSeries(int regionId) {
+    public PopForecastSeries loadDefaultForecastSeries(String regionId) {
         return loadForecastSeries(regionId, SNAP_CURRENT);
     }
 
     /** 비(POP) 판정에 필요한 시계열을 로드 (현재*이전 스냅샷) */
-    public PopSeriesPair loadPopSeries(int regionId, int currentSnapId, int previousSnapId) {
+    public PopSeriesPair loadPopSeries(String regionId, int currentSnapId, int previousSnapId) {
         ForecastSnap cur = snapshotProvider.loadSnapshot(regionId, currentSnapId);
         ForecastSnap prv = snapshotProvider.loadSnapshot(regionId, previousSnapId);
 
@@ -69,7 +69,7 @@ public class SnapshotQueryService {
     }
 
     /** 예보 요약용: 시간대 POP + 일자별 POP */
-    public PopForecastSeries loadForecastSeries(int regionId, int snapId) {
+    public PopForecastSeries loadForecastSeries(String regionId, int snapId) {
         ForecastSnap snap = snapshotProvider.loadSnapshot(regionId, snapId);
         if (snap == null) {
             return emptyForecastSeries();
@@ -82,7 +82,7 @@ public class SnapshotQueryService {
     /* ======================= 일반 일기예보 API용 ======================= */
 
     /** 시간대별 온도+POP 예보 (현재 SNAP 기준) */
-    public HourlyForecastDto getHourlyForecast(int regionId) {
+    public HourlyForecastDto getHourlyForecast(String regionId) {
         ForecastSnap snap = snapshotProvider.loadSnapshot(regionId, SNAP_CURRENT);
         if (snap == null) {
             return null; // 필요하면 Optional/예외로 바꿔도 됨
@@ -106,7 +106,7 @@ public class SnapshotQueryService {
     }
 
     /** 일자별 am/pm 온도+POP 예보 (현재 SNAP 기준) */
-    public DailyForecastDto getDailyForecast(int regionId) {
+    public DailyForecastDto getDailyForecast(String regionId) {
         ForecastSnap snap = snapshotProvider.loadSnapshot(regionId, SNAP_CURRENT);
         if (snap == null) {
             return null;

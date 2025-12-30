@@ -110,7 +110,7 @@ class NotificationServiceIT {
     @Test
     @DisplayName("receiveWarnings=false: 비 시작(AlertType=RAIN_ONSET) 알림만 생성되고 특보(WARNING_ISSUED)는 제외된다")
     void only_rain_when_receiveWarnings_false() {
-        int regionId01 = 1;
+        String regionId01 = "1";
         var since = LocalDateTime.parse("2025-11-04T04:00:00");
         NotificationRequest request = new NotificationRequest(
                 List.of(regionId01),
@@ -140,7 +140,7 @@ class NotificationServiceIT {
     @DisplayName("지역 ID는 최대 3개까지만 룰에 전달된다 (앞 3개 사용)")
     void region_capped_to_three() {
         var since = LocalDateTime.parse("2025-11-04T04:00:00");
-        var regionIds = List.of(10, 11, 12, 13); // 4개 입력
+        var regionIds = List.of("10", "11", "12", "13"); // 4개 입력
         Set<AlertTypeEnum> enabled =
                 EnumSet.of(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED, AlertTypeEnum.RAIN_FORECAST);
 
@@ -160,14 +160,14 @@ class NotificationServiceIT {
         verify(rainRule, times(1)).evaluate(captor.capture());
         var passed = captor.getValue().regionIds();
 
-        assertThat(passed).containsExactly(10, 11, 12);
+        assertThat(passed).containsExactly("10", "11", "12");
     }
 
     @Test
     @DisplayName("정렬: 타입 → 지역 → 타입명 → 시각 순으로 정렬된다")
     void sort_rule_applied() {
         var since = LocalDateTime.parse("2025-11-04T04:00:00");
-        var regionIds = List.of(1, 2);
+        var regionIds = List.of("1", "2");
         Set<AlertTypeEnum> enabled =
                 EnumSet.of(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED, AlertTypeEnum.RAIN_FORECAST);
 
@@ -209,7 +209,7 @@ class NotificationServiceIT {
                 .filter(e -> e.type() == AlertTypeEnum.RAIN_ONSET)
                 .toList();
 
-        List<Integer> regionNums = rainEvents.stream()
+        List<String> regionNums = rainEvents.stream()
                 .map(AlertEvent::regionId)
                 .toList();
 
@@ -223,7 +223,7 @@ class NotificationServiceIT {
     @Test
     @DisplayName("filterWarningKinds가 있으면 해당 값이 포함된 NotificationRequest가 WARNING_ISSUED 룰로 전달된다")
     void filterWarningKinds_is_forwarded_in_request() {
-        var regionIds = List.of(1, 2);
+        var regionIds = List.of("1", "2");
         LocalDateTime since = LocalDateTime.parse("2025-11-04T04:00:00");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.WARNING_ISSUED);
         Set<WarningKind> kinds = EnumSet.of(WarningKind.RAIN);
@@ -252,7 +252,7 @@ class NotificationServiceIT {
                 .evaluate(captor.capture());
 
         NotificationRequest passed = captor.getValue();
-        assertThat(passed.regionIds()).containsExactly(1, 2);
+        assertThat(passed.regionIds()).containsExactly("1", "2");
         assertThat(passed.filterWarningKinds()).containsExactly(WarningKind.RAIN);
         assertThat(passed.since()).isEqualTo(since);
 
@@ -263,7 +263,7 @@ class NotificationServiceIT {
     @Test
     @DisplayName("rainHourLimit가 있으면 해당 값과 함께 NotificationRequest가 RAIN_ONSET 룰로 전달된다")
     void rainHourLimit_is_forwarded_in_request() {
-        var regionIds = List.of(10, 11, 12, 13); // 4개 → limitRegions 로 앞 3개만 사용
+        var regionIds = List.of("10", "11", "12", "13"); // 4개 → limitRegions 로 앞 3개만 사용
         LocalDateTime since = LocalDateTime.parse("2025-11-04T04:00:00");
         int limitHour = 12;
 
@@ -286,7 +286,7 @@ class NotificationServiceIT {
 
         NotificationRequest passed = captor.getValue();
         // limitRegions 적용 확인 (앞 3개만 전달)
-        assertThat(passed.regionIds()).containsExactly(10, 11, 12);
+        assertThat(passed.regionIds()).containsExactly("10", "11", "12");
         assertThat(passed.since()).isEqualTo(since);
         assertThat(passed.rainHourLimit()).isEqualTo(limitHour);
 
@@ -302,7 +302,7 @@ class NotificationServiceIT {
     @DisplayName("RAIN_FORECAST: enabledTypes에 RAIN_FORECAST만 있으면 예보 요약 이벤트만 생성되고 다른 룰은 호출되지 않는다")
     void only_forecast_when_enabled_rain_forecast() {
         var since = LocalDateTime.parse("2025-11-18T07:00:00");
-        var regionIds = List.of(1);   // climate_snap 시드에 존재하는 지역
+        var regionIds = List.of("1");   // climate_snap 시드에 존재하는 지역
 
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
 
@@ -335,7 +335,7 @@ class NotificationServiceIT {
     @DisplayName("RAIN_FORECAST: payload에 hourlyParts/dayParts가 포함되고 형식이 유지된다")
     void forecast_payload_structure_is_valid() {
         var since = LocalDateTime.parse("2025-11-18T07:00:00");
-        var regionIds = List.of(1);
+        var regionIds = List.of("1");
 
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
 
@@ -354,7 +354,7 @@ class NotificationServiceIT {
         assertThat(events).hasSize(1);
         AlertEvent e = events.get(0);
         assertThat(e.type()).isEqualTo(AlertTypeEnum.RAIN_FORECAST);
-        assertThat(e.regionId()).isEqualTo(1);
+        assertThat(e.regionId()).isEqualTo("1");
 
         Map<String, Object> payload = e.payload();
         assertThat(payload).containsKeys("_srcRule", "hourlyParts", "dayParts");

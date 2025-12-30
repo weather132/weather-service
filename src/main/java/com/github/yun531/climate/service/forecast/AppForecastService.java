@@ -30,7 +30,7 @@ public class AppForecastService {
      * - ClimateService.getHourlyForecast(regionId)로 스냅샷 기준 예보를 가져온 뒤
      * - 현재 시각(now)과 reportTime 차이만큼 hourOffset을 앞으로 당겨서 반환.
      */
-    public HourlyForecastDto getHourlyForecast(int regionId) {
+    public HourlyForecastDto getHourlyForecast(String regionId) {
         HourlyForecastDto base = snapshotQueryService.getHourlyForecast(regionId);
         if (base == null) {
             return null;
@@ -39,7 +39,7 @@ public class AppForecastService {
     }
 
     /** 일자별 예보 조회. */
-    public DailyForecastDto getDailyForecast(int regionId) {
+    public DailyForecastDto getDailyForecast(String regionId) {
         return snapshotQueryService.getDailyForecast(regionId);
     }
 

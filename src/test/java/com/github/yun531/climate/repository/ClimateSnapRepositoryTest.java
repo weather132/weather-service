@@ -41,7 +41,7 @@ class ClimateSnapRepositoryTest {
     @Test
     void findPopInfoBySnapIdsAndRegionId_DTO_프로젝션_검증_DB값기반() {
         // given
-        int regionId = 1;
+        String regionId = "1";
         List<Integer> snapIds = List.of(SnapKindEnum.SNAP_CURRENT.getCode(),
                                         SnapKindEnum.SNAP_PREVIOUS.getCode());
 
@@ -74,7 +74,7 @@ class ClimateSnapRepositoryTest {
     @Test
     void 기본_파인더_검증_DB값기반() {
         // given
-        int regionId = 1;
+        String regionId = "1";
 
         // when & then
         // DB에는 동일 region_id=1 레코드가 2건(snap_id=1,10)

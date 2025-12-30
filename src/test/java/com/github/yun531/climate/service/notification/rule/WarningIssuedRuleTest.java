@@ -30,7 +30,7 @@ class WarningIssuedRuleTest {
     void since_null이면_모두_이벤트_발생() {
         // given
         WarningIssuedRule rule = new WarningIssuedRule(warningStateQueryService);
-        int regionId = 100;
+        String regionId = "100";
 
         var dtoRain = new WarningStateDto(
                 regionId,
@@ -81,7 +81,7 @@ class WarningIssuedRuleTest {
     void since_지정시_isNewlyIssuedSince_true인_것만_포함() {
         // given
         WarningIssuedRule rule = new WarningIssuedRule(warningStateQueryService);
-        int regionId = 200;
+        String regionId = "200";
         LocalDateTime since = LocalDateTime.parse("2025-11-04T06:30:00");
         LocalDateTime adjustedSince = since.minusMinutes(90); // WarningIssuedRule.adjustSince 로 보정되는 값
 
@@ -135,7 +135,7 @@ class WarningIssuedRuleTest {
     void filterWarningKinds가_있으면_해당_kind만_이벤트_생성() {
         // 옵션: 필터링까지 검증하고 싶다면 이렇게 하나 더 둘 수 있음
         WarningIssuedRule rule = new WarningIssuedRule(warningStateQueryService);
-        int regionId = 300;
+        String regionId = "300";
 
         var dtoRain = new WarningStateDto(
                 regionId,

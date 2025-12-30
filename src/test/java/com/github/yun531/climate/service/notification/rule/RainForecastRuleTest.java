@@ -43,14 +43,14 @@ class RainForecastRuleTest {
         // 시간대별 POP 은 해당 테스트에서 의미가 없으므로 0으로 채움
         PopSeries24 hourly = new PopSeries24(Collections.nCopies(24, 0));
 
-        when(snapshotQueryService.loadForecastSeries(1, snapId))
+        when(snapshotQueryService.loadForecastSeries("1", snapId))
                 .thenReturn(new PopForecastSeries(hourly, daily));
 
         RainForecastRule rule = new RainForecastRule(snapshotQueryService);
 
         // when
         NotificationRequest request = new NotificationRequest(
-                List.of(1),
+                List.of("1"),
                 LocalDateTime.parse("2025-11-18T08:00:00"), // since
                 null,   // enabledTypes (룰에서 사용 안 함)
                 null,   // filterWarningKinds
@@ -100,14 +100,14 @@ class RainForecastRuleTest {
 
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
 
-        when(snapshotQueryService.loadForecastSeries(1, snapId))
+        when(snapshotQueryService.loadForecastSeries("1", snapId))
                 .thenReturn(new PopForecastSeries(hourly, daily));
 
         RainForecastRule rule = new RainForecastRule(snapshotQueryService);
 
         // when
         NotificationRequest request = new NotificationRequest(
-                List.of(1),
+                List.of("1"),
                 nowMinutes(),   // since: 첫 호출이라 어떤 값을 넣어도 계산됨
                 null,
                 null,

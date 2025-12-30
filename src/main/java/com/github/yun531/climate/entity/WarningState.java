@@ -24,7 +24,7 @@ public class WarningState {
     private Integer warningId;                 // PK
 
     @Column(name = "region_id", nullable = false)
-    private Integer regionId;                  // 지역코드
+    private String regionId;                  // 지역코드
 
     @Enumerated(EnumType.STRING)   // Enumerated 지원 안하는 DB 있음, 주의
     @Column(name = "kind", length = 16)

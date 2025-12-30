@@ -41,7 +41,7 @@ class SnapshotQueryServiceTest {
     @Test
     void loadPopSeries_정상_현재이전_길이_gap_값검증() {
         // given
-        int regionId = 100;
+        String regionId = "100";
         int curId = SnapKindEnum.SNAP_CURRENT.getCode();
         int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
@@ -97,7 +97,7 @@ class SnapshotQueryServiceTest {
     @Test
     void loadPopSeries_스냅하나라도없으면_null과_gap0반환() {
         // given
-        int regionId = 200;
+        String regionId = "200";
         int curId = SnapKindEnum.SNAP_CURRENT.getCode();
         int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
@@ -124,7 +124,7 @@ class SnapshotQueryServiceTest {
     @Test
     void loadDefaultPopSeries_provider호출파라미터_검증() {
         // given
-        int regionId = 7;
+        String regionId = "7";
         int curId = SnapKindEnum.SNAP_CURRENT.getCode();
         int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
@@ -156,7 +156,7 @@ class SnapshotQueryServiceTest {
     @Test
     void loadForecastSeries_hourly와_daily_매핑검증() {
         // given
-        int regionId = 55;
+        String regionId = "55";
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
 
         // hourly POP: 0..23, temp는 null로 두고 POP만 검증
@@ -212,7 +212,7 @@ class SnapshotQueryServiceTest {
     @Test
     void loadForecastSeries_snapshot없으면_null들_반환() {
         // given
-        int regionId = 99;
+        String regionId = "99";
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
 
         when(snapshotProvider.loadSnapshot(regionId, snapId)).thenReturn(null);

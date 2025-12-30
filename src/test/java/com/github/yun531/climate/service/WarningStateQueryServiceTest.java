@@ -39,7 +39,7 @@ class WarningStateQueryServiceTest {
 
     @Test
     void findLatestByRegionAndKind_지역별_kind별_최신1건씩_반환() {
-        int regionId01 = 3, regionId02 = 4;
+        String regionId01 = "3", regionId02 = "4";
 
         // R1: RAIN 2건(시간 다르게), HEAT 1건
         WarningState r1rainOld = repo.save(WarningState.builder().regionId(regionId01).kind(WarningKind.RAIN).level(WarningLevel.ADVISORY).build());
@@ -55,7 +55,7 @@ class WarningStateQueryServiceTest {
         jdbc.update("UPDATE warning_state SET updated_at='2025-11-04 08:00:00' WHERE warning_id=?", r2wind.getWarningId());
 
         // when
-        Map<Integer, Map<WarningKind, WarningStateDto>> map =
+        Map<String, Map<WarningKind, WarningStateDto>> map =
                 service.findLatestByRegionAndKind(List.of(regionId01, regionId02));
 
         // then
@@ -73,7 +73,7 @@ class WarningStateQueryServiceTest {
 
     @Test
     void isNewlyIssuedSince_업데이트시각이_since보다_나중이면_true() {
-        int regionId = 1;
+        String regionId = "1";
 
         WarningStateDto dto = new WarningStateDto(
                 regionId, WarningKind.RAIN, WarningLevel.ADVISORY,
@@ -86,9 +86,9 @@ class WarningStateQueryServiceTest {
 
     @Test
     void isNewlyIssuedSince_null이나_동일이거나_이전이면_false() {
-        int regionId = 1;
+        String regionId = "1";
 
-        WarningStateDto nullTime = new WarningStateDto(1, WarningKind.RAIN, WarningLevel.ADVISORY, null);
+        WarningStateDto nullTime = new WarningStateDto("1", WarningKind.RAIN, WarningLevel.ADVISORY, null);
         assertThat(service.isNewlyIssuedSince(nullTime, nowMinutes())).isFalse();
 
         WarningStateDto same = new WarningStateDto(

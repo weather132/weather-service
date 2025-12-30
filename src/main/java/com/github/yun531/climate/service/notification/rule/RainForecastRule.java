@@ -50,7 +50,7 @@ public class RainForecastRule implements AlertRule {
 
     @Override
     public List<AlertEvent> evaluate(NotificationRequest request) {
-        List<Integer> regionIds   = request.regionIds();
+        List<String> regionIds   = request.regionIds();
         LocalDateTime since       = request.since();   // null 가능 (RegionCache 쪽에서 처리)
 
         if (regionIds == null || regionIds.isEmpty()) {
@@ -59,7 +59,7 @@ public class RainForecastRule implements AlertRule {
 
         List<AlertEvent> result = new ArrayList<>();
 
-        for (int regionId : regionIds) {
+        for (String regionId : regionIds) {
             CacheEntry<List<AlertEvent>> entry =
                     cache.getOrComputeSinceBased(
                             regionId,
@@ -88,7 +88,7 @@ public class RainForecastRule implements AlertRule {
     }
 
     // 한 지역에 대한 비 예보 계산 → CacheEntry로 반환
-    private CacheEntry<List<AlertEvent>> computeForRegion(int regionId) {
+    private CacheEntry<List<AlertEvent>> computeForRegion(String regionId) {
         PopForecastSeries series = loadForecastSeries(regionId);
         if (series == null) {
             return new CacheEntry<>(List.of(), null);
@@ -110,7 +110,7 @@ public class RainForecastRule implements AlertRule {
         return new CacheEntry<>(List.of(event), computedAt);
     }
 
-    private PopForecastSeries loadForecastSeries(int regionId) {
+    private PopForecastSeries loadForecastSeries(String regionId) {
         PopForecastSeries series = snapshotQueryService.loadForecastSeries(regionId, SNAP_CURRENT_CODE);
         if (series == null) {
             return null;
@@ -214,6 +214,6 @@ public class RainForecastRule implements AlertRule {
     }
 
     /** 캐시 무효화 */
-    public void invalidate(int regionId) { cache.invalidate(regionId); }
+    public void invalidate(String regionId) { cache.invalidate(regionId); }
     public void invalidateAll() { cache.invalidateAll(); }
 }
