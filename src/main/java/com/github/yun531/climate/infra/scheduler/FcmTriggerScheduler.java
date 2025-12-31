@@ -15,7 +15,7 @@ public class FcmTriggerScheduler {
     private final FcmTopicPushService fcm;
 
     /** 개발/검증 중에는 true로 두면 실제 발송 없이 검증만 수행 */
-    private static final boolean DRY_RUN = true;
+    private static final boolean DRY_RUN = false;
 
     // 09~22시 정각에만 hourly 전송
     @Scheduled(cron = "0 0 9-22 * * *")
