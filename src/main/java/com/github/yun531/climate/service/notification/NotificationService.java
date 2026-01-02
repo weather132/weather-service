@@ -59,7 +59,7 @@ public class NotificationService {
     private NotificationRequest normalize(NotificationRequest raw) {
         LocalDateTime effectiveSince    = sinceOrNow(raw.since());
         Set<AlertTypeEnum> enabled      = normalizeEnabledTypes(raw.enabledTypes());
-        List<String> targetRegions     = limitRegions(raw.regionIds());
+        List<String> targetRegions      = limitRegions(raw.regionIds());
         Set<WarningKind> filterKinds    = raw.filterWarningKinds();
         Integer rainHourLimit           = raw.rainHourLimit();
 
