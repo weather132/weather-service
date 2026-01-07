@@ -36,6 +36,8 @@ public class RainOnsetChangeRule implements AlertRule {
     /** 지역별 캐시: 계산결과 + 계산시각 */
     private final RegionCache<List<AlertEvent>> cache = new RegionCache<>();
 
+    //todo: 시간 업데이트 해줘야됨
+
     @Override
     public AlertTypeEnum supports() {
         return AlertTypeEnum.RAIN_ONSET;

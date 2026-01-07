@@ -59,6 +59,7 @@ public class AppForecastService {
             return base;
         }
 
+        // todo: diffHours 사용해서 reportedTime 가공 및 저장
         // 스냅샷은 3시간마다 갱신되므로, 최대 2시간까지만 보정
         int diffHours = Math.min(rawDiffHours, 2);
 

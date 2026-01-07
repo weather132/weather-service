@@ -103,7 +103,6 @@ public class JpaSnapshotProvider implements SnapshotProvider {
                 daily
         );
     }
-
     /** 시간대별 (1~24시간 후) temp + POP 매핑 */
     private List<HourlyPoint> buildHourlyPoints(ClimateSnap c) {
         List<HourlyPoint> list = new ArrayList<>(24);
@@ -129,6 +128,7 @@ public class JpaSnapshotProvider implements SnapshotProvider {
         list.add(new HourlyPoint(19, c.getTempA19(), c.getPopA19()));
         list.add(new HourlyPoint(20, c.getTempA20(), c.getPopA20()));
         list.add(new HourlyPoint(21, c.getTempA21(), c.getPopA21()));
+
         list.add(new HourlyPoint(22, c.getTempA22(), c.getPopA22()));
         list.add(new HourlyPoint(23, c.getTempA23(), c.getPopA23()));
         list.add(new HourlyPoint(24, c.getTempA24(), c.getPopA24()));
