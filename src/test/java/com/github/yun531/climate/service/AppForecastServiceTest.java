@@ -77,7 +77,7 @@ class AppForecastServiceTest {
     }
 
     @Test
-    @DisplayName("hourly forecast: 1시간 지난 경우 앞 1개를 제거하고 hourOffset을 1부터 재부여한다")
+    @DisplayName("hourly forecast: 1시간 경과 시 앞 1개 제거 + hourOffset 재부여 + reportTime 보정")
     void adjustHourlyOffsets_shiftsByOneHour_whenOneHourPassed() {
         String regionId = "11";
 
@@ -114,7 +114,7 @@ class AppForecastServiceTest {
         assertEquals(50, hours.get(2).pop());
 
         assertEquals(regionId, result.regionId());
-        assertEquals(reportTime, result.reportTime());
+        assertEquals(reportTime.plusHours(1), result.reportTime());
     }
 
     @Test

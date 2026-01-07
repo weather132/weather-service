@@ -36,7 +36,7 @@ class RainOnsetChangeRuleTest {
         int th = RainThresholdEnum.RAIN.getThreshold(); // 60
 
         when(snapshotQueryService.loadDefaultPopSeries("101"))
-                .thenReturn(seriesWithCrossAtHour(5, th));
+                .thenReturn(seriesWithCrossAtHour(5, th)); // reportTime 고정(2025-11-18T11:00)
 
         // when
         NotificationRequest req = rainReq("101", null);
@@ -48,8 +48,13 @@ class RainOnsetChangeRuleTest {
         var e = events.get(0);
         assertThat(e.type()).isEqualTo(AlertTypeEnum.RAIN_ONSET);
         assertThat(e.regionId()).isEqualTo("101");
-        assertThat((Integer) e.payload().get("hourOffset")).isEqualTo(5);
+
+        // reportTime이 과거로 고정되어 diffHours=2 클램프가 걸림 → 5 - 2 = 3
+        assertThat((Integer) e.payload().get("hourOffset")).isEqualTo(3);
+
         assertThat((Integer) e.payload().get("pop")).isEqualTo(th);
+
+        // occurredAt도 reportTime + 2h 로 보정될 수 있음(여기서는 2025-11-18T13:00)
         assertThat(e.occurredAt()).isBeforeOrEqualTo(nowMinutes());
     }
 
@@ -151,28 +156,30 @@ class RainOnsetChangeRuleTest {
         String regionId = "200";
         int th = RainThresholdEnum.RAIN.getThreshold();
 
+        PopSeriesPair series = seriesWithCrossAtHour(10, th); // curReportTime 고정
         when(snapshotQueryService.loadDefaultPopSeries(regionId))
-                .thenReturn(seriesWithCrossAtHour(10, th));
+                .thenReturn(series);
 
         // 최초 계산
         NotificationRequest firstReq = rainReq(regionId, null);
         var events1 = rule.evaluate(firstReq);
         assertThat(events1).hasSize(1);
-        LocalDateTime computedAt = events1.get(0).occurredAt();
         verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
 
+        // 캐시 기준시각(보정 전)
+        LocalDateTime baseComputedAt = series.curReportTime();
+
         // TTL - 10분 이내면 재계산 안 함
-        LocalDateTime sinceNear = computedAt.plusMinutes(TTL_MINUTES - 10);
+        LocalDateTime sinceNear = baseComputedAt.plusMinutes(TTL_MINUTES - 10);
         NotificationRequest nearReq = rainReq(regionId, sinceNear);
         rule.evaluate(nearReq);
         verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
 
         // TTL + 10분 이후면 재계산
-        LocalDateTime sinceFar = computedAt.plusMinutes(TTL_MINUTES + 10);
+        LocalDateTime sinceFar = baseComputedAt.plusMinutes(TTL_MINUTES + 10);
         NotificationRequest farReq = rainReq(regionId, sinceFar);
         rule.evaluate(farReq);
 
-        // 총 2회 호출 확인
         verify(snapshotQueryService, times(2)).loadDefaultPopSeries(regionId);
     }
 
@@ -182,26 +189,26 @@ class RainOnsetChangeRuleTest {
         String regionId = "120";
         int th = RainThresholdEnum.RAIN.getThreshold();
 
+        PopSeriesPair series = seriesWithCrossAtHour(5, th); // curReportTime 고정
         when(snapshotQueryService.loadDefaultPopSeries(regionId))
-                .thenReturn(seriesWithCrossAtHour(5, th));
+                .thenReturn(series);
 
         // 최초 계산
         NotificationRequest firstReq = rainReq(regionId, null);
         var events1 = rule.evaluate(firstReq);
         assertThat(events1).hasSize(1);
-        LocalDateTime computedAt = events1.get(0).occurredAt();
         verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
 
-        // since = computedAt + (TTL - 1)분 → threshold = since - TTL = computedAt - 1분
-        // computedAt 이 threshold 이전이 아니므로 재계산 안 함
-        LocalDateTime sinceMinus1 = computedAt.plusMinutes(TTL_MINUTES - 1);
+        LocalDateTime baseComputedAt = series.curReportTime();
+
+        // since = computedAt + (TTL - 1)분 → threshold = computedAt - 1분 → 재계산 안 함
+        LocalDateTime sinceMinus1 = baseComputedAt.plusMinutes(TTL_MINUTES - 1);
         NotificationRequest minusReq = rainReq(regionId, sinceMinus1);
         rule.evaluate(minusReq);
         verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
 
-        // since = computedAt + (TTL + 1)분 → threshold = computedAt + 1분
-        // computedAt 이 threshold 이전이므로 재계산
-        LocalDateTime sincePlus1 = computedAt.plusMinutes(TTL_MINUTES + 1);
+        // since = computedAt + (TTL + 1)분 → threshold = computedAt + 1분 → 재계산 함
+        LocalDateTime sincePlus1 = baseComputedAt.plusMinutes(TTL_MINUTES + 1);
         NotificationRequest plusReq = rainReq(regionId, sincePlus1);
         rule.evaluate(plusReq);
         verify(snapshotQueryService, times(2)).loadDefaultPopSeries(regionId);
