@@ -10,7 +10,7 @@ import java.util.List;
 public class PopSeries24 {
     private final List<Integer> values; // size 26
 
-    /** 1~24시간 후 POP 조회 */
+    /** 1~26시간 후 POP 조회 */
     public int get(int offsetHour) {
         return values.get(offsetHour - 1);
     }

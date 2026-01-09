@@ -3,12 +3,13 @@ package com.github.yun531.climate.service.notification.rule.compute;
 import com.github.yun531.climate.service.notification.model.PopDailySeries7;
 import com.github.yun531.climate.service.notification.model.PopForecastSeries;
 import com.github.yun531.climate.service.notification.model.PopSeries24;
+import com.github.yun531.climate.service.notification.model.RainForecastParts;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * PopForecastSeries -> (hourlyParts, dayParts) 계산만 담당
+ * PopForecastSeries -> RainForecastParts 계산만 담당
  */
 public class RainForecastComputer {
 
@@ -62,6 +63,7 @@ public class RainForecastComputer {
         return o;
     }
 
+
     private List<List<Integer>> buildDayParts(PopForecastSeries fs) {
         PopDailySeries7 daily = fs.daily();
         if (daily == null || daily.days() == null || daily.days().isEmpty()) return List.of();
@@ -75,6 +77,4 @@ public class RainForecastComputer {
 
         return parts.isEmpty() ? List.of() : List.copyOf(parts);
     }
-
-    public record RainForecastParts(List<List<Integer>> hourlyParts, List<List<Integer>> dayParts) {}
 }

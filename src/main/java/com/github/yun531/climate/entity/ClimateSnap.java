@@ -26,7 +26,7 @@ public class ClimateSnap {
     private LocalDateTime reportTime;
 
 
-    // ---- 시간대별 온도 (01~24시) ----
+    // ---- 시간대별 온도 (01~26시) ----
     @Column(name = "temp_A01") private Integer tempA01; @Column(name = "temp_A02") private Integer tempA02;
     @Column(name = "temp_A03") private Integer tempA03; @Column(name = "temp_A04") private Integer tempA04; @Column(name = "temp_A05") private Integer tempA05;
     @Column(name = "temp_A06") private Integer tempA06; @Column(name = "temp_A07") private Integer tempA07; @Column(name = "temp_A08") private Integer tempA08;
@@ -47,7 +47,7 @@ public class ClimateSnap {
     @Column(name = "temp_A6d_min") private Integer tempA6dMin; @Column(name = "temp_A6d_max") private Integer tempA6dMax;
 
 
-    // ---- 시간대별 강수확률 (01~24시) ----
+    // ---- 시간대별 강수확률 (01~26시) ----
     @Column(name = "POP_A01") private Integer popA01; @Column(name = "POP_A02") private Integer popA02;
     @Column(name = "POP_A03") private Integer popA03; @Column(name = "POP_A04") private Integer popA04; @Column(name = "POP_A05") private Integer popA05;
     @Column(name = "POP_A06") private Integer popA06; @Column(name = "POP_A07") private Integer popA07; @Column(name = "POP_A08") private Integer popA08;

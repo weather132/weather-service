@@ -20,7 +20,7 @@ public class POPSnapDto {
     private String regionId;
     private LocalDateTime reportTime;
 
-    private PopSeries24 hourly;         // ---- 시간대별 POP (1~24시) ---- //
+    private PopSeries24 hourly;         // ---- 시간대별 POP (1~26시) ---- //
     private PopDailySeries7 daily;      // ---- 일자별 (0~6일) 오전/오후 POP ----
 
     public POPSnapDto(
@@ -44,7 +44,7 @@ public class POPSnapDto {
         this.regionId = regionId;
         this.reportTime = reportTime;
 
-        // ---- 시간대별 POP 24개 → PopSeries24 ----
+        // ---- 시간대별 POP 26개 → PopSeries24 ----
         this.hourly = new PopSeries24(List.of(
                 n(popA01), n(popA02), n(popA03), n(popA04),
                 n(popA05), n(popA06), n(popA07), n(popA08), n(popA09),

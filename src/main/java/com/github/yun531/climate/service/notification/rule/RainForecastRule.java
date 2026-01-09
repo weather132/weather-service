@@ -4,6 +4,7 @@ import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.model.PopForecastSeries;
+import com.github.yun531.climate.service.notification.model.RainForecastParts;
 import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
 import com.github.yun531.climate.service.notification.rule.adjust.RainForecastPartsAdjuster;
 import com.github.yun531.climate.service.notification.rule.compute.RainForecastComputer;
@@ -65,7 +66,7 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEv
             return new CacheEntry<>(List.of(), null);
         }
 
-        RainForecastComputer.RainForecastParts parts = computer.compute(series);
+        RainForecastParts parts = computer.compute(series);
 
         Map<String, Object> payload = Map.of(
                 PAYLOAD_SRC_RULE_KEY, PAYLOAD_SRC_RULE_NAME,
