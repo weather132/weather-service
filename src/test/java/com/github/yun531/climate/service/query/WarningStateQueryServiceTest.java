@@ -1,4 +1,4 @@
-package com.github.yun531.climate.service;
+package com.github.yun531.climate.service.query;
 
 
 import com.github.yun531.climate.service.notification.model.WarningKind;
@@ -6,7 +6,6 @@ import com.github.yun531.climate.service.notification.model.WarningLevel;
 import com.github.yun531.climate.service.query.dto.WarningStateDto;
 import com.github.yun531.climate.entity.WarningState;
 import com.github.yun531.climate.repository.WarningStateRepository;
-import com.github.yun531.climate.service.query.WarningStateQueryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;

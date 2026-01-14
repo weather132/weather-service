@@ -5,7 +5,7 @@ import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.model.PopSeriesPair;
 import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
-import com.github.yun531.climate.service.notification.rule.adjust.RainOnsetEventOffsetAdjuster;
+import com.github.yun531.climate.service.notification.rule.adjust.RainOnsetEventValidAtAdjuster;
 import com.github.yun531.climate.service.notification.rule.compute.RainOnsetEventComputer;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.util.cache.CacheEntry;
@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,24 +27,27 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
     private static final int RAIN_TH = RainThresholdEnum.RAIN.getThreshold();
     private static final int RECOMPUTE_THRESHOLD_MINUTES = 165;
 
-    private static final String PAYLOAD_SRC_RULE_KEY  = "_srcRule";
-    private static final String PAYLOAD_SRC_RULE_NAME = "RainOnsetChangeRule";
-    private static final String PAYLOAD_HOUR_KEY      = "hourOffset";
-    private static final String PAYLOAD_POP_KEY       = "pop";
+    private static final String PAYLOAD_SRC_RULE_KEY   = "_srcRule";
+    private static final String PAYLOAD_SRC_RULE_NAME  = "RainOnsetChangeRule";
+    private static final String PAYLOAD_VALID_AT_KEY   = "validAt";
+    private static final String PAYLOAD_POP_KEY        = "pop";
 
-    private static final int MAX_SHIFT_HOURS = 2;
+    // now 기준으로 1~24시간 윈도우만 반환
+    private static final int WINDOW_HOURS = 24;
 
     private final SnapshotQueryService snapshotQueryService;
 
-    private final RainOnsetEventOffsetAdjuster offsetAdjuster =
-            new RainOnsetEventOffsetAdjuster(PAYLOAD_HOUR_KEY, MAX_SHIFT_HOURS);
+    // baseTime 없이 now 기준 윈도우(+1~+24)로 제한
+    private final RainOnsetEventValidAtAdjuster  windowAdjuster =
+            new RainOnsetEventValidAtAdjuster(PAYLOAD_VALID_AT_KEY, WINDOW_HOURS);
 
+    // (앞서 수정한) validAt 기반 RainOnsetEventComputer를 사용
     private final RainOnsetEventComputer computer =
             new RainOnsetEventComputer(
                     RAIN_TH,
                     PAYLOAD_SRC_RULE_KEY,
                     PAYLOAD_SRC_RULE_NAME,
-                    PAYLOAD_HOUR_KEY,
+                    PAYLOAD_VALID_AT_KEY,
                     PAYLOAD_POP_KEY
             );
 
@@ -64,6 +69,7 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
             return new CacheEntry<>(List.of(), null);
         }
 
+        // 캐시 computedAt은 기존처럼 reportTime 사용(재계산 정책/로그 목적)
         LocalDateTime computedAt = series.curReportTime();
         List<AlertEvent> events = computer.detect(regionId, series, computedAt);
 
@@ -78,35 +84,53 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
                                            NotificationRequest request) {
         if (events == null || events.isEmpty()) return List.of();
 
-        // 반환 직전에만 hourOffset / occurredAt 보정
-        List<AlertEvent> adjusted = offsetAdjuster.adjust(events, computedAt, now);
+        // baseTime 없이 now 기준 윈도우(+1~+24)로 제한 + occurredAt을 nowHour로 통일
+        List<AlertEvent> adjusted = windowAdjuster.adjust(events, now);
         if (adjusted == null || adjusted.isEmpty()) return List.of();
 
         Integer maxHour = request.rainHourLimit();
         if (maxHour != null) {
-            adjusted = filterByMaxHour(adjusted, maxHour);
+            adjusted = filterByMaxHour(adjusted, maxHour, now);
         }
 
-        return (adjusted == null || adjusted.isEmpty()) ? List.of() : adjusted;
+        return adjusted.isEmpty() ? List.of() : List.copyOf(adjusted);
     }
 
-    private List<AlertEvent> filterByMaxHour(List<AlertEvent> events, int maxHourInclusive) {
+    /**
+     * rainHourLimit: now 기준 N시간 이내만 남김
+     * - validAt <= nowHour + maxHourInclusive
+     */
+    private List<AlertEvent> filterByMaxHour(List<AlertEvent> events, int maxHourInclusive, LocalDateTime now) {
+        LocalDateTime nowHour = now.truncatedTo(ChronoUnit.HOURS);
+        LocalDateTime limit = nowHour.plusHours(maxHourInclusive);
+
         List<AlertEvent> out = new ArrayList<>();
         for (AlertEvent e : events) {
-            Integer h = extractHour(e);
-            if (h == null || h <= maxHourInclusive) out.add(e);
+            LocalDateTime at = extractValidAt(e);
+            if (at == null || !at.isAfter(limit)) { // at <= limit
+                out.add(e);
+            }
         }
         return out.isEmpty() ? List.of() : List.copyOf(out);
     }
 
     @Nullable
-    private Integer extractHour(AlertEvent event) {
+    private LocalDateTime extractValidAt(AlertEvent event) {
         Map<String, Object> payload = event.payload();
         if (payload == null) return null;
 
-        Object v = payload.get(PAYLOAD_HOUR_KEY);
-        if (v instanceof Integer i) return i;
-        if (v instanceof Number n) return n.intValue();
+        Object v = payload.get(PAYLOAD_VALID_AT_KEY);
+
+        if (v instanceof LocalDateTime t) return t;
+
+        if (v instanceof String s) {
+            try {
+                return LocalDateTime.parse(s);
+            } catch (DateTimeParseException ignored) {
+                return null;
+            }
+        }
+
         return null;
     }
 }

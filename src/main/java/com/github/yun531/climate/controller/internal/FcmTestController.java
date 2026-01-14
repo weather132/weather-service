@@ -27,7 +27,7 @@ public class FcmTestController {
     private final FcmTopicPushService fcm;
     private final FcmTriggerProperties props;
 
-    // 서비스(FcmTopicPushService)와 동일하게 LocalDateTime 기반 포맷으로 통일
+    /** 서비스(FcmTopicPushService)와 동일하게 LocalDateTime(ISO_LOCAL_DATE_TIME) 포맷으로 통일 */
     private static final DateTimeFormatter ISO_LOCAL = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     @PostMapping("/hourly")
@@ -60,14 +60,14 @@ public class FcmTestController {
         String topic = props.dailyTopicPrefix() + String.format("%02d", hour);
         try {
             String messageId = fcm.sendDailyTrigger(hour, dryRun);
-            log.info("[FCM-TEST] daily ok topic={} dryRun={} messageId={}", topic, dryRun, messageId);
+            log.info("[FCM-TEST] daily ok topic={} hour={} dryRun={} messageId={}", topic, hour, dryRun, messageId);
             return ResponseEntity.ok(FcmTestResponse.success(topic, dryRun, messageId));
         } catch (FirebaseMessagingException e) {
-            log.error("[FCM-TEST] daily firebase fail topic={} dryRun={}", topic, dryRun, e);
+            log.error("[FCM-TEST] daily firebase fail topic={} hour={} dryRun={}", topic, hour, dryRun, e);
             return ResponseEntity.internalServerError()
                     .body(FcmTestResponse.fail(topic, dryRun, e.getMessage()));
         } catch (Exception e) {
-            log.error("[FCM-TEST] daily fail topic={} dryRun={}", topic, dryRun, e);
+            log.error("[FCM-TEST] daily fail topic={} hour={} dryRun={}", topic, hour, dryRun, e);
             return ResponseEntity.internalServerError()
                     .body(FcmTestResponse.fail(topic, dryRun, e.getClass().getSimpleName() + ": " + e.getMessage()));
         }
@@ -75,7 +75,6 @@ public class FcmTestController {
 
     @PostMapping("/send")
     public ResponseEntity<FcmTestResponse> send(@RequestBody FcmTestRequest req) {
-        // topic 기본 검증
         String topic = (req.topic() == null) ? "" : req.topic().trim();
         boolean dryRun = req.dryRun();
 
@@ -87,15 +86,14 @@ public class FcmTestController {
         try {
             Map<String, String> data = new HashMap<>();
 
-            // type 기본값 처리(원하면 "CUSTOM" 같은 값으로 통일해도 됨)
+            // type 기본값
             String type = (req.type() == null || req.type().isBlank()) ? "CUSTOM" : req.type().trim();
             data.put("type", type);
 
-            // triggerAt: 클라에서 내려주는 값이 없으면 서버 현재시각(분 단위)으로
-            // - ISO_LOCAL_DATE_TIME 우선
-            // - ISO_OFFSET_DATE_TIME도 들어올 수 있어서 받아서 Local로 변환
-            String triggerAtLocal = normalizeTriggerAtLocal(req.triggerAt());
-            data.put("triggerAtLocal", triggerAtLocal);
+            // triggerAtLocal: "서버/클라가 공통으로 쓰는 로컬 시각(문자열)"로 정규화해서 보냄
+            // - 미입력: 서버 nowMinutes()
+            // - 입력: ISO_LOCAL_DATE_TIME 또는 ISO_OFFSET_DATE_TIME 허용
+            data.put("triggerAtLocal", normalizeTriggerAtLocal(req.triggerAt()));
 
             // hour(선택)
             if (req.hour() != null) data.put("hour", String.valueOf(req.hour()));
@@ -120,10 +118,16 @@ public class FcmTestController {
     }
 
     /**
-     * triggerAt 입력값을 "ISO_LOCAL_DATE_TIME"로 정규화.
-     * - null/blank면: 서버 현재시각(TimeUtil.nowMinutes()) 사용
-     * - ISO_LOCAL_DATE_TIME이면: 그대로 사용
-     * - ISO_OFFSET_DATE_TIME이면: offset 제거 후 local로 변환해서 사용
+     * triggerAt 입력을 "ISO_LOCAL_DATE_TIME" 문자열로 정규화한다.
+     *
+     * 규칙:
+     * - null/blank: 서버 현재시각(TimeUtil.nowMinutes()) 사용
+     * - ISO_LOCAL_DATE_TIME: 그대로 사용
+     * - ISO_OFFSET_DATE_TIME: 오프셋 포함 시각을 LocalDateTime으로 변환해 사용
+     *
+     * 예)
+     * - "2026-01-14T20:10:00"         -> 그대로
+     * - "2026-01-14T20:10:00+09:00"  -> "2026-01-14T20:10:00"
      */
     private String normalizeTriggerAtLocal(String triggerAt) {
         if (triggerAt == null || triggerAt.isBlank()) {
@@ -133,14 +137,14 @@ public class FcmTestController {
 
         String s = triggerAt.trim();
 
-        // 1) ISO_LOCAL_DATE_TIME 시도
+        // 1) ISO_LOCAL_DATE_TIME
         try {
             LocalDateTime.parse(s, ISO_LOCAL);
             return s;
         } catch (DateTimeParseException ignored) {
         }
 
-        // 2) ISO_OFFSET_DATE_TIME 시도 → Local 변환
+        // 2) ISO_OFFSET_DATE_TIME -> Local 변환 후 ISO_LOCAL로 출력
         try {
             return OffsetDateTime.parse(s, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                     .toLocalDateTime()
@@ -148,7 +152,6 @@ public class FcmTestController {
         } catch (DateTimeParseException ignored) {
         }
 
-        // 그 외 포맷은 명확히 실패 처리(테스트 컨트롤러니까 입력을 엄격히 잡는 편이 디버깅이 쉬움)
         throw new IllegalArgumentException("triggerAt must be ISO_LOCAL_DATE_TIME or ISO_OFFSET_DATE_TIME");
     }
 }

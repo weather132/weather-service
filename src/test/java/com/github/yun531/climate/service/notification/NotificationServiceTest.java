@@ -270,13 +270,17 @@ class NotificationServiceTest {
      */
 
     @Test
-    @DisplayName("RAIN_FORECAST: 룰이 만든 payload(hourlyParts/dayParts)를 그대로 전달한다")
+    @DisplayName("RAIN_FORECAST: 룰이 만든 payload(hourlyParts/dayParts)를 그대로 전달한다 (hourlyParts는 validAt 구간)")
     void forecast_payload_is_preserved() {
         LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
 
+        // hourlyParts: [[startIso, endIso], ...]
         Map<String, Object> payload = new HashMap<>();
-        payload.put("hourlyParts", List.of(List.of(9, 12)));
-        payload.put("dayParts",   List.of(List.of(1, 0)));
+        payload.put("hourlyParts", List.of(List.of(
+                "2026-01-14T09:00:00",
+                "2026-01-14T12:00:00"
+        )));
+        payload.put("dayParts", List.of(List.of(1, 0)));
 
         when(forecastRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(
                 new AlertEvent(AlertTypeEnum.RAIN_FORECAST, "1", t, payload)
@@ -284,8 +288,8 @@ class NotificationServiceTest {
 
         var regionIds = List.of("1");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
-        LocalDateTime t1 = LocalDateTime.parse("2025-11-04T04:00:00");
-        NotificationRequest request = req(regionIds, t1, enabled);
+        LocalDateTime since = LocalDateTime.parse("2025-11-04T04:00:00");
+        NotificationRequest request = req(regionIds, since, enabled);
 
         List<AlertEvent> out = service.generate(request);
 
@@ -295,11 +299,11 @@ class NotificationServiceTest {
         assertThat(e.regionId()).isEqualTo("1");
 
         @SuppressWarnings("unchecked")
-        List<List<Integer>> hourly = (List<List<Integer>>) e.payload().get("hourlyParts");
+        List<List<String>> hourly = (List<List<String>>) e.payload().get("hourlyParts");
         @SuppressWarnings("unchecked")
         List<List<Integer>> day = (List<List<Integer>>) e.payload().get("dayParts");
 
-        assertThat(hourly).containsExactly(List.of(9, 12));
+        assertThat(hourly).containsExactly(List.of("2026-01-14T09:00:00", "2026-01-14T12:00:00"));
         assertThat(day).containsExactly(List.of(1, 0));
 
         verify(rainRule, never()).evaluate(any(NotificationRequest.class));
@@ -307,21 +311,21 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("RAIN_FORECAST: 지역 3개 입력 시 각 지역별 이벤트가 그대로 전달된다")
+    @DisplayName("RAIN_FORECAST: 지역 3개 입력 시 각 지역별 이벤트가 그대로 전달된다 (hourlyParts는 validAt 구간)")
     void forecast_three_regions_payload_and_regions() {
         LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
 
         Map<String, Object> p1 = new HashMap<>();
-        p1.put("hourlyParts", List.of(List.of(9, 12)));
-        p1.put("dayParts",   List.of(List.of(1, 0)));
+        p1.put("hourlyParts", List.of(List.of("2026-01-14T09:00:00", "2026-01-14T12:00:00")));
+        p1.put("dayParts", List.of(List.of(1, 0)));
 
         Map<String, Object> p2 = new HashMap<>();
-        p2.put("hourlyParts", List.of(List.of(15, 15)));
-        p2.put("dayParts",   List.of());
+        p2.put("hourlyParts", List.of(List.of("2026-01-14T15:00:00", "2026-01-14T15:00:00")));
+        p2.put("dayParts", List.of());
 
         Map<String, Object> p3 = new HashMap<>();
         p3.put("hourlyParts", List.of());
-        p3.put("dayParts",   List.of(List.of(0, 1)));
+        p3.put("dayParts", List.of(List.of(0, 1)));
 
         when(forecastRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(
                 new AlertEvent(AlertTypeEnum.RAIN_FORECAST, "1", t, p1),
@@ -331,35 +335,33 @@ class NotificationServiceTest {
 
         var regionIds = List.of("1", "2", "3");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
-        LocalDateTime t1 = LocalDateTime.parse("2025-11-04T04:00:00");
-        NotificationRequest request = req(regionIds, t1, enabled);
+        LocalDateTime since = LocalDateTime.parse("2025-11-04T04:00:00");
+        NotificationRequest request = req(regionIds, since, enabled);
 
         List<AlertEvent> out = service.generate(request);
 
         assertThat(out).hasSize(3);
-        assertThat(out)
-                .extracting(AlertEvent::regionId)
-                .containsExactly("1", "2", "3");
+        assertThat(out).extracting(AlertEvent::regionId).containsExactly("1", "2", "3");
 
         @SuppressWarnings("unchecked")
-        List<List<Integer>> hourly1 = (List<List<Integer>>) out.get(0).payload().get("hourlyParts");
+        List<List<String>> hourly1 = (List<List<String>>) out.get(0).payload().get("hourlyParts");
         @SuppressWarnings("unchecked")
         List<List<Integer>> day1 = (List<List<Integer>>) out.get(0).payload().get("dayParts");
 
         @SuppressWarnings("unchecked")
-        List<List<Integer>> hourly2 = (List<List<Integer>>) out.get(1).payload().get("hourlyParts");
+        List<List<String>> hourly2 = (List<List<String>>) out.get(1).payload().get("hourlyParts");
         @SuppressWarnings("unchecked")
         List<List<Integer>> day2 = (List<List<Integer>>) out.get(1).payload().get("dayParts");
 
         @SuppressWarnings("unchecked")
-        List<List<Integer>> hourly3 = (List<List<Integer>>) out.get(2).payload().get("hourlyParts");
+        List<List<String>> hourly3 = (List<List<String>>) out.get(2).payload().get("hourlyParts");
         @SuppressWarnings("unchecked")
         List<List<Integer>> day3 = (List<List<Integer>>) out.get(2).payload().get("dayParts");
 
-        assertThat(hourly1).containsExactly(List.of(9, 12));
+        assertThat(hourly1).containsExactly(List.of("2026-01-14T09:00:00", "2026-01-14T12:00:00"));
         assertThat(day1).containsExactly(List.of(1, 0));
 
-        assertThat(hourly2).containsExactly(List.of(15, 15));
+        assertThat(hourly2).containsExactly(List.of("2026-01-14T15:00:00", "2026-01-14T15:00:00"));
         assertThat(day2).isEmpty();
 
         assertThat(hourly3).isEmpty();

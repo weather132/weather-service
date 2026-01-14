@@ -9,6 +9,7 @@ import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.rule.RainForecastRule;
 import com.github.yun531.climate.service.notification.rule.RainOnsetChangeRule;
 import com.github.yun531.climate.service.notification.rule.WarningIssuedRule;
+import com.github.yun531.climate.util.time.TimeUtil;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -50,24 +51,74 @@ import static org.mockito.Mockito.*;
         "DELETE FROM warning_state",
         "SET FOREIGN_KEY_CHECKS = 1",
 
-        // --- climate_snap 시드
-        "INSERT INTO climate_snap VALUES " +
-                "(10, 1,  '2025-11-18 08:00:00'," +
-                " 1,2,3,4,5,6,7,8,9,10,11,12,13,12,11,10,9,8,7,6,5,4,3,2,1,5," +
-                "  5,5, 7,7, 8,8, 7,7, 6,6, 5,5, 6,6," +
-                "  50,40,50,60,60, 60,40,30,20,10, 0,0,10,20,20, 30,40,60,10,0, 20,40,70,40,60,70," +
-                "  70,40, 40,40, 30,30, 40,40, 30,60, 50,50, 40,40)," +
-                "(1, 1, '2025-11-18 11:00:00'," +
-                "  1,2,3,4,5,6,7,8,9,10,11,12,13,12,11,10,9,8,7,6,5,4,3,2,1,5," +
-                "  5,5, 7,7, 8,8, 7,7, 6,6, 5,5, 6,6," +
-                "  40,50,60,60,60, 60,30,20,10,0, 0,10,20,20,30, 60,60,60,0,20, 40,70,40,60,70,80," +
-                "  30,30, 40,40, 30,60, 50,50, 40,40, 20,20, 0,0)",
+        // --- nowHour / reportTime 세팅 (세션 변수)
+        "SET @now_hr := STR_TO_DATE(DATE_FORMAT(NOW(), '%Y-%m-%d %H:00:00'), '%Y-%m-%d %H:%i:%s')",
+        "SET @rt_cur := @now_hr",
+        "SET @rt_prev := DATE_SUB(@rt_cur, INTERVAL 3 HOUR)",
+
+        // --- climate_snap 시드 (컬럼명 명시로 값 밀림 방지)
+        "INSERT INTO climate_snap ("
+                + " snap_id, region_id, report_time,"
+
+                + " temp_a01,temp_a02,temp_a03,temp_a04,temp_a05,temp_a06,temp_a07,temp_a08,temp_a09,"
+                + " temp_a10,temp_a11,temp_a12,temp_a13,temp_a14,temp_a15,temp_a16,temp_a17,temp_a18,temp_a19,"
+                + " temp_a20,temp_a21,temp_a22,temp_a23,temp_a24,temp_a25,temp_a26,"
+
+                + " temp_a0d_max,temp_a0d_min,temp_a1d_max,temp_a1d_min,temp_a2d_max,temp_a2d_min,"
+                + " temp_a3d_max,temp_a3d_min,temp_a4d_max,temp_a4d_min,temp_a5d_max,temp_a5d_min,temp_a6d_max,temp_a6d_min,"
+
+                + " pop_a01,pop_a02,pop_a03,pop_a04,pop_a05,pop_a06,pop_a07,pop_a08,pop_a09,"
+                + " pop_a10,pop_a11,pop_a12,pop_a13,pop_a14,pop_a15,pop_a16,pop_a17,pop_a18,pop_a19,"
+                + " pop_a20,pop_a21,pop_a22,pop_a23,pop_a24,pop_a25,pop_a26,"
+
+                + " pop_a0d_am,pop_a0d_pm,pop_a1d_am,pop_a1d_pm,pop_a2d_am,pop_a2d_pm,"
+                + " pop_a3d_am,pop_a3d_pm,pop_a4d_am,pop_a4d_pm,pop_a5d_am,pop_a5d_pm,pop_a6d_am,pop_a6d_pm,"
+
+
+                + " valid_at_a01,valid_at_a02,valid_at_a03,valid_at_a04,valid_at_a05,valid_at_a06,valid_at_a07,valid_at_a08,valid_at_a09,"
+                + " valid_at_a10,valid_at_a11,valid_at_a12,valid_at_a13,valid_at_a14,valid_at_a15,valid_at_a16,valid_at_a17,valid_at_a18,valid_at_a19,"
+                + " valid_at_a20,valid_at_a21,valid_at_a22,valid_at_a23,valid_at_a24,valid_at_a25,valid_at_a26"
+                + ") VALUES "
+
+                // ---- prev (snap_id=10)
+                + "(10, '1', @rt_prev, "
+                + " 1,2,3,4,5,6,7,8,9, 10,11,12,13,12,11,10,9,8,7, 6,5,4,3,2,1,5,"
+                + " 5,5, 7,7, 8,8, 7,7, 6,6, 5,5, 6,6,"
+                + " 50,40,50,60,60, 60,40,30,20, 10,0,0,10,20,20, 30,40,60,10, 0,20,40,70,40,60,70,"
+                + " 70,40, 40,40, 30,30, 40,40, 30,60, 50,50, 40,40,"
+                + " DATE_ADD(@rt_prev, INTERVAL 1 HOUR),  DATE_ADD(@rt_prev, INTERVAL 2 HOUR),  DATE_ADD(@rt_prev, INTERVAL 3 HOUR),"
+                + " DATE_ADD(@rt_prev, INTERVAL 4 HOUR),  DATE_ADD(@rt_prev, INTERVAL 5 HOUR),  DATE_ADD(@rt_prev, INTERVAL 6 HOUR),"
+                + " DATE_ADD(@rt_prev, INTERVAL 7 HOUR),  DATE_ADD(@rt_prev, INTERVAL 8 HOUR),  DATE_ADD(@rt_prev, INTERVAL 9 HOUR),"
+                + " DATE_ADD(@rt_prev, INTERVAL 10 HOUR), DATE_ADD(@rt_prev, INTERVAL 11 HOUR), DATE_ADD(@rt_prev, INTERVAL 12 HOUR),"
+                + " DATE_ADD(@rt_prev, INTERVAL 13 HOUR), DATE_ADD(@rt_prev, INTERVAL 14 HOUR), DATE_ADD(@rt_prev, INTERVAL 15 HOUR),"
+                + " DATE_ADD(@rt_prev, INTERVAL 16 HOUR), DATE_ADD(@rt_prev, INTERVAL 17 HOUR), DATE_ADD(@rt_prev, INTERVAL 18 HOUR),"
+                + " DATE_ADD(@rt_prev, INTERVAL 19 HOUR), DATE_ADD(@rt_prev, INTERVAL 20 HOUR), DATE_ADD(@rt_prev, INTERVAL 21 HOUR),"
+                + " DATE_ADD(@rt_prev, INTERVAL 22 HOUR), DATE_ADD(@rt_prev, INTERVAL 23 HOUR), DATE_ADD(@rt_prev, INTERVAL 24 HOUR),"
+                + " DATE_ADD(@rt_prev, INTERVAL 25 HOUR), DATE_ADD(@rt_prev, INTERVAL 26 HOUR)"
+                + "),"
+
+                // ---- cur (snap_id=1)
+                + "(1, '1', @rt_cur, "
+                + " 1,2,3,4,5,6,7,8,9, 10,11,12,13,12,11,10,9,8,7, 6,5,4,3,2,1,5,"
+                + " 5,5, 7,7, 8,8, 7,7, 6,6, 5,5, 6,6,"
+                + " 40,50,60,60,60, 60,30,20,10, 0,0,10,20,20,30, 60,60,60, 0,20,40,70,40,60,70,80,"
+                + " 30,30, 40,40, 30,60, 50,50, 40,40, 20,20, 0,0,"
+                + " DATE_ADD(@rt_cur, INTERVAL 1 HOUR),  DATE_ADD(@rt_cur, INTERVAL 2 HOUR),  DATE_ADD(@rt_cur, INTERVAL 3 HOUR),"
+                + " DATE_ADD(@rt_cur, INTERVAL 4 HOUR),  DATE_ADD(@rt_cur, INTERVAL 5 HOUR),  DATE_ADD(@rt_cur, INTERVAL 6 HOUR),"
+                + " DATE_ADD(@rt_cur, INTERVAL 7 HOUR),  DATE_ADD(@rt_cur, INTERVAL 8 HOUR),  DATE_ADD(@rt_cur, INTERVAL 9 HOUR),"
+                + " DATE_ADD(@rt_cur, INTERVAL 10 HOUR), DATE_ADD(@rt_cur, INTERVAL 11 HOUR), DATE_ADD(@rt_cur, INTERVAL 12 HOUR),"
+                + " DATE_ADD(@rt_cur, INTERVAL 13 HOUR), DATE_ADD(@rt_cur, INTERVAL 14 HOUR), DATE_ADD(@rt_cur, INTERVAL 15 HOUR),"
+                + " DATE_ADD(@rt_cur, INTERVAL 16 HOUR), DATE_ADD(@rt_cur, INTERVAL 17 HOUR), DATE_ADD(@rt_cur, INTERVAL 18 HOUR),"
+                + " DATE_ADD(@rt_cur, INTERVAL 19 HOUR), DATE_ADD(@rt_cur, INTERVAL 20 HOUR), DATE_ADD(@rt_cur, INTERVAL 21 HOUR),"
+                + " DATE_ADD(@rt_cur, INTERVAL 22 HOUR), DATE_ADD(@rt_cur, INTERVAL 23 HOUR), DATE_ADD(@rt_cur, INTERVAL 24 HOUR),"
+                + " DATE_ADD(@rt_cur, INTERVAL 25 HOUR), DATE_ADD(@rt_cur, INTERVAL 26 HOUR)"
+                + ")",
 
         // --- warning_state 시드
-        "INSERT INTO warning_state (region_id, kind, level, updated_at) VALUES " +
-                "(1, 'RAIN',  'ADVISORY', '2025-11-04 05:00:00')," +
-                "(1, 'HEAT',  'WARNING',  '2025-11-04 06:30:00')," +
-                "(2, 'WIND',  'ADVISORY', '2025-11-04 07:15:00')"
+        "INSERT INTO warning_state (region_id, kind, level, updated_at) VALUES "
+                + "(1, 'RAIN',  'ADVISORY', '2025-11-04 05:00:00'),"
+                + "(1, 'HEAT',  'WARNING',  '2025-11-04 06:30:00'),"
+                + "(2, 'WIND',  'ADVISORY', '2025-11-04 07:15:00')"
 })
 @Import(NotificationServiceIT.SpyConfig.class)
 class NotificationServiceIT {
@@ -132,7 +183,6 @@ class NotificationServiceIT {
 
         verify(rainRule, times(1)).evaluate(any(NotificationRequest.class));
         verify(warningRule, never()).evaluate(any(NotificationRequest.class));
-        // FORECAST는 enabledTypes에 없으므로 호출 안 됨
         verify(forecastRule, never()).evaluate(any(NotificationRequest.class));
     }
 
@@ -189,12 +239,8 @@ class NotificationServiceIT {
         List<Integer> warnIdx = new ArrayList<>();
         for (int i = 0; i < events.size(); i++) {
             AlertEvent e = events.get(i);
-            if (e.type() == AlertTypeEnum.RAIN_ONSET) {
-                rainIdx.add(i);
-            }
-            if (e.type() == AlertTypeEnum.WARNING_ISSUED) {
-                warnIdx.add(i);
-            }
+            if (e.type() == AlertTypeEnum.RAIN_ONSET) rainIdx.add(i);
+            if (e.type() == AlertTypeEnum.WARNING_ISSUED) warnIdx.add(i);
         }
         assertThat(rainIdx).isNotEmpty();
         assertThat(warnIdx).isNotEmpty();
@@ -248,8 +294,7 @@ class NotificationServiceIT {
                 .containsOnly(WarningKind.RAIN);
 
         ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
-        verify(warningRule, times(1))
-                .evaluate(captor.capture());
+        verify(warningRule, times(1)).evaluate(captor.capture());
 
         NotificationRequest passed = captor.getValue();
         assertThat(passed.regionIds()).containsExactly("1", "2");
@@ -281,11 +326,9 @@ class NotificationServiceIT {
 
         // then: RainOnsetChangeRule에 전달된 NotificationRequest 내용 검증
         ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
-        verify(rainRule, times(1))
-                .evaluate(captor.capture());
+        verify(rainRule, times(1)).evaluate(captor.capture());
 
         NotificationRequest passed = captor.getValue();
-        // limitRegions 적용 확인 (앞 3개만 전달)
         assertThat(passed.regionIds()).containsExactly("10", "11", "12");
         assertThat(passed.since()).isEqualTo(since);
         assertThat(passed.rainHourLimit()).isEqualTo(limitHour);
@@ -302,7 +345,7 @@ class NotificationServiceIT {
     @DisplayName("RAIN_FORECAST: enabledTypes에 RAIN_FORECAST만 있으면 예보 요약 이벤트만 생성되고 다른 룰은 호출되지 않는다")
     void only_forecast_when_enabled_rain_forecast() {
         var since = LocalDateTime.parse("2025-11-18T07:00:00");
-        var regionIds = List.of("1");   // climate_snap 시드에 존재하는 지역
+        var regionIds = List.of("1");
 
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
 
@@ -332,7 +375,7 @@ class NotificationServiceIT {
     }
 
     @Test
-    @DisplayName("RAIN_FORECAST: payload에 hourlyParts/dayParts가 포함되고 형식이 유지된다")
+    @DisplayName("RAIN_FORECAST: payload에 hourlyParts/dayParts가 포함되고 형식이 유지된다 (hourlyParts는 validAt 구간)")
     void forecast_payload_structure_is_valid() {
         var since = LocalDateTime.parse("2025-11-18T07:00:00");
         var regionIds = List.of("1");
@@ -359,24 +402,42 @@ class NotificationServiceIT {
         Map<String, Object> payload = e.payload();
         assertThat(payload).containsKeys("_srcRule", "hourlyParts", "dayParts");
 
-        @SuppressWarnings("unchecked")
-        List<List<Integer>> hourly = (List<List<Integer>>) payload.get("hourlyParts");
-        @SuppressWarnings("unchecked")
-        List<List<Integer>> day = (List<List<Integer>>) payload.get("dayParts");
+        // hourlyParts: [[startValidAt, endValidAt], ...]
+        Object hourlyObj = payload.get("hourlyParts");
+        assertThat(hourlyObj).isInstanceOf(List.class);
 
-        // hourlyParts: [startHourOff, endHourOff] 쌍 리스트, hourOff는 1~24 범위, start <= end
-        for (List<Integer> part : hourly) {
+        @SuppressWarnings("unchecked")
+        List<?> hourly = (List<?>) hourlyObj;
+
+        for (Object partObj : hourly) {
+            assertThat(partObj).isInstanceOf(List.class);
+            List<?> part = (List<?>) partObj;
             assertThat(part).hasSize(2);
-            assertThat(part.get(0)).isBetween(1, 24);
-            assertThat(part.get(1)).isBetween(1, 24);
-            assertThat(part.get(0)).isLessThanOrEqualTo(part.get(1));
+
+            LocalDateTime start = toLdt(part.get(0));
+            LocalDateTime end = toLdt(part.get(1));
+
+            assertThat(start).isNotNull();
+            assertThat(end).isNotNull();
+            assertThat(start).isBeforeOrEqualTo(end);
         }
 
         // dayParts: [amFlag, pmFlag] 쌍 리스트, 값은 0 또는 1
+        @SuppressWarnings("unchecked")
+        List<List<Integer>> day = (List<List<Integer>>) payload.get("dayParts");
+
+        assertThat(day).isNotNull();
         for (List<Integer> dp : day) {
             assertThat(dp).hasSize(2);
             assertThat(dp.get(0)).isIn(0, 1);
             assertThat(dp.get(1)).isIn(0, 1);
         }
+    }
+
+    private static LocalDateTime toLdt(Object v) {
+        if (v == null) return null;
+        if (v instanceof LocalDateTime t) return t;
+        if (v instanceof String s) return LocalDateTime.parse(s);
+        return null;
     }
 }
