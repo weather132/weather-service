@@ -1,7 +1,9 @@
 package com.github.yun531.climate.service.forecast.model;
 
+import java.time.LocalDateTime;
+
 public record HourlyPoint(
-        int hourOffset,      // 1~25      \
+        LocalDateTime validAt,      // 발효시간
         Integer temp,
         Integer pop
 ) {}

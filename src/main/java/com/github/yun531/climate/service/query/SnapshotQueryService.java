@@ -90,11 +90,9 @@ public class SnapshotQueryService {
 
         List<HourlyPoint> hours =
                 snap.hourly().stream()
-                        .sorted(Comparator.comparingInt(HourlyPoint::hourOffset))
-                        .map(p -> new HourlyPoint(
-                                p.hourOffset(),   // 몇 시간 후
-                                p.temp(),
-                                p.pop()
+                        .sorted(Comparator.comparing(
+                                HourlyPoint::validAt,
+                                Comparator.nullsLast(Comparator.naturalOrder())
                         ))
                         .toList();
 
@@ -117,8 +115,8 @@ public class SnapshotQueryService {
                         .sorted(Comparator.comparingInt(DailyPoint::dayOffset))
                         .map(d -> new DailyPoint(
                                 d.dayOffset(),
-                                d.maxTemp(),
                                 d.minTemp(),
+                                d.maxTemp(),
                                 d.amPop(),
                                 d.pmPop()
                         ))
@@ -134,12 +132,20 @@ public class SnapshotQueryService {
     /* ======================= POP 추출 헬퍼 ======================= */
 
     private PopSeries24 toPopSeries24(ForecastSnap snap) {
-        // hourOffset 기준 정렬 후 POP만 뽑아서 size 24 리스트 생성
-        List<Integer> pops = snap.hourly().stream()
-                .sorted(Comparator.comparingInt(HourlyPoint::hourOffset))
-                .map(p -> n(p.pop()))
-                .toList();
-        return new PopSeries24(pops);
+        // validAt 기준 정렬 후 (validAt, pop) 포인트 26개로 생성
+        List<PopSeries24.Point> points =
+                snap.hourly().stream()
+                        .sorted(Comparator.comparing(
+                                HourlyPoint::validAt,
+                                Comparator.nullsLast(Comparator.naturalOrder())
+                        ))
+                        .map(p -> new PopSeries24.Point(
+                                p.validAt(),
+                                n(p.pop())
+                        ))
+                        .toList();
+
+        return new PopSeries24(points);
     }
 
     private PopDailySeries7 toPopDailySeries7(ForecastSnap snap) {

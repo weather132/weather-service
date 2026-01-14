@@ -1,34 +1,43 @@
 package com.github.yun531.climate.service.notification.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
-@AllArgsConstructor
 public class PopSeries24 {
-    private final List<Integer> values; // size 26
+    public static final int SIZE = 26;   //(A01~A26)
 
-    /** 1~26시간 후 POP 조회 */
-    public int get(int offsetHour) {
-        return values.get(offsetHour - 1);
-    }
+    public record Point(
+            LocalDateTime validAt,
+            int pop
+    ) {}
 
-    /** 내부 index 기반 접근 */
-    public int getByIndex(int index0to23) {
-        return values.get(index0to23);
-    }
+    private final List<Point> points;
 
-    public int size() { return values.size(); }
 
-    public int max() {
-        int max = 0;
-        for (Integer v : values) {
-            if (v != null && v > max) {
-                max = v;
-            }
+    public PopSeries24(List<Point> points) {
+        this.points = List.copyOf(points);
+        if (this.points.size() != SIZE) {
+            throw new IllegalArgumentException("PopSeries24 must have " + SIZE + " points.");
         }
-        return max;
     }
+
+    /** 1~26시간 후 POP 조회 (기존 시그니처 유지) */
+    public int get(int offsetHour) {
+        return points.get(offsetHour - 1).pop();
+    }
+
+    /** 1~26시간 후 validAt 조회 (신규) */
+    public LocalDateTime validAt(int offsetHour) {
+        return points.get(offsetHour - 1).validAt();
+    }
+
+    /** 내부 index 기반 validAt (신규) */
+    public LocalDateTime validAtByIndex(int index0to25) {
+        return points.get(index0to25).validAt();
+    }
+
+    public int size() { return points.size(); }
 }

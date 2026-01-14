@@ -3,10 +3,9 @@ package com.github.yun531.climate.service.forecast;
 import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
+import com.github.yun531.climate.util.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +22,7 @@ public class AppForecastService {
         if (base == null) {
             return null;
         }
-        return offsetAdjuster.adjust(base, LocalDateTime.now());
+        return offsetAdjuster.adjust(base, TimeUtil.nowMinutes());
     }
 
     public DailyForecastDto getDailyForecast(String regionId) {
