@@ -7,84 +7,102 @@ import com.github.yun531.climate.service.notification.model.PopSeriesPair;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * PopSeriesPair(현재/이전 POP) -> "비 시작" 이벤트 목록 계산만 담당
+ * - validAt(절대 시각) 기준으로 prev와 비교
  */
 public class RainOnsetEventComputer {
 
     private final int rainThreshold;
     private final String srcRuleKey;
     private final String srcRuleName;
-    private final String hourKey;
+    private final String validAtKey;
     private final String popKey;
+    private final int maxPoints;
 
     public RainOnsetEventComputer(int rainThreshold,
                                   String srcRuleKey,
                                   String srcRuleName,
-                                  String hourKey,
+                                  String validAtKey,
                                   String popKey) {
+        this(rainThreshold, srcRuleKey, srcRuleName, validAtKey, popKey, PopSeries24.SIZE);
+    }
+
+    public RainOnsetEventComputer(int rainThreshold,
+                                  String srcRuleKey,
+                                  String srcRuleName,
+                                  String validAtKey,
+                                  String popKey,
+                                  int maxPoints) {
         this.rainThreshold = rainThreshold;
         this.srcRuleKey = srcRuleKey;
         this.srcRuleName = srcRuleName;
-        this.hourKey = hourKey;
+        this.validAtKey = validAtKey;
         this.popKey = popKey;
+        this.maxPoints = Math.max(1, maxPoints);
     }
 
     public List<AlertEvent> detect(String regionId, PopSeriesPair series, LocalDateTime computedAt) {
+        if (series == null) return List.of();
+
         PopSeries24 cur = series.current();
         PopSeries24 prv = series.previous();
-        int gapHours = series.reportTimeGap();
+        if (cur == null || prv == null) return List.of();
+        if (cur.getPoints() == null || cur.getPoints().isEmpty()) return List.of();
 
-        int lastComparableHour = computeMaxComparableHour(cur, prv, gapHours);
-        if (lastComparableHour < 0) return List.of();
+        // prev: validAt -> pop
+        Map<LocalDateTime, Integer> prevPopByValidAt = new HashMap<>();
+        if (prv.getPoints() != null) {
+            for (PopSeries24.Point p : prv.getPoints()) {
+                if (p == null || p.validAt() == null) continue;
+                prevPopByValidAt.put(p.validAt(), p.pop());
+            }
+        }
+
+        // current: validAt 기준 정렬 후 maxPoints만
+        List<PopSeries24.Point> curPoints =
+                cur.getPoints().stream()
+                        .filter(p -> p != null && p.validAt() != null)
+                        .sorted(Comparator.comparing(PopSeries24.Point::validAt))
+                        .limit(maxPoints)
+                        .toList();
+
+        if (curPoints.isEmpty()) return List.of();
 
         List<AlertEvent> events = new ArrayList<>();
 
-        for (int hour = 1; hour <= 24; hour++) {
-            boolean emit;
-            if (hour <= lastComparableHour) {
-                emit = isRainOnset(cur, prv, gapHours, hour);
+        for (PopSeries24.Point p : curPoints) {
+            LocalDateTime at = p.validAt();
+            int curPop = p.pop();
+
+            boolean emit = false;
+
+            Integer prevPop = prevPopByValidAt.get(at);
+            if (prevPop != null) {
+                // 비교 가능: 이전 비 아님 -> 현재 비
+                emit = prevPop < rainThreshold && curPop >= rainThreshold;
             } else {
-                emit = isRain(cur, hour);
+                // 비교 불가 구간: 현재 비면 발생(기존 정책의 "isRain" 대응)
+                emit = curPop >= rainThreshold;
             }
 
             if (!emit) continue;
 
-            int pop = cur.get(hour);
-            events.add(createEvent(regionId, computedAt, hour, pop));
+            events.add(createEvent(regionId, computedAt, at, curPop));
         }
 
         return events.isEmpty() ? List.of() : List.copyOf(events);
     }
 
-    private int computeMaxComparableHour(PopSeries24 cur, PopSeries24 prv, int gapHours) {
-        if (gapHours < 0) return -1;
-
-        int curLimit = cur.size() - 1;
-        int prvLimit = prv.size() - 1 - gapHours;
-        if (curLimit < 0 || prvLimit < 0) return -1;
-
-        return Math.min(curLimit, prvLimit);
-    }
-
-    private boolean isRainOnset(PopSeries24 cur, PopSeries24 prv, int gapHours, int hour) {
-        int prevIdx = hour + gapHours;
-        int prevPop = prv.get(prevIdx);
-        int curPop = cur.get(hour);
-        return prevPop < rainThreshold && curPop >= rainThreshold;
-    }
-
-    private boolean isRain(PopSeries24 series, int hour) {
-        return series.get(hour) >= rainThreshold;
-    }
-
-    private AlertEvent createEvent(String regionId, LocalDateTime computedAt, int hour, int pop) {
+    private AlertEvent createEvent(String regionId, LocalDateTime computedAt, LocalDateTime validAt, int pop) {
         Map<String, Object> payload = Map.of(
                 srcRuleKey, srcRuleName,
-                hourKey, hour,
+                validAtKey, validAt.toString(), // "2026-01-14T21:00:00"
                 popKey, pop
         );
         return new AlertEvent(AlertTypeEnum.RAIN_ONSET, regionId, computedAt, payload);

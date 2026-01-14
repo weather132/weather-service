@@ -2,10 +2,9 @@ package com.github.yun531.climate.service.forecast;
 
 import com.github.yun531.climate.dto.HourlyForecastDto;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;
-import com.github.yun531.climate.util.time.OffsetShiftUtil;
+import com.github.yun531.climate.util.time.TimeShiftUtil;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -15,13 +14,13 @@ import java.util.List;
  * - reportTime(기준시각)을 now에 맞춰 shiftedBaseTime으로 보정
  * - hourly는 "validAt(발효시각)" 기준으로, shiftedBaseTime 이후의 포인트 중 최대 24개로 절단
  */
-public class HourlyForecastOffsetAdjuster {
+public class HourlyForecastWindowAdjuster {
 
     private static final int WINDOW_SIZE = 24;
 
     private final int maxShiftHours;
 
-    public HourlyForecastOffsetAdjuster(int maxShiftHours) {
+    public HourlyForecastWindowAdjuster(int maxShiftHours) {
         this.maxShiftHours = maxShiftHours;
     }
 
@@ -30,8 +29,8 @@ public class HourlyForecastOffsetAdjuster {
             return base;
         }
 
-        OffsetShiftUtil.OffsetShift shift =
-                OffsetShiftUtil.compute(base.reportTime(), now, maxShiftHours);
+        TimeShiftUtil.Shift shift =
+                TimeShiftUtil.computeShift(base.reportTime(), now, maxShiftHours);
 
         // 0시간이면 "정렬만 보장"하고 그대로 반환해도 됨
         if (shift.diffHours() <= 0) {

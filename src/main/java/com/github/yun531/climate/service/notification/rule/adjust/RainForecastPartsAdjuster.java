@@ -1,7 +1,7 @@
 package com.github.yun531.climate.service.notification.rule.adjust;
 
 import com.github.yun531.climate.service.notification.model.AlertEvent;
-import com.github.yun531.climate.util.time.OffsetShiftUtil;
+import com.github.yun531.climate.util.time.TimeShiftUtil;
 import io.micrometer.common.lang.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +55,7 @@ public class RainForecastPartsAdjuster {
             return List.copyOf(events);
         }
 
-        OffsetShiftUtil.OffsetShift shift = OffsetShiftUtil.compute(baseTime, now, maxShiftHours);
+        TimeShiftUtil.Shift shift = TimeShiftUtil.computeShift(baseTime, now, maxShiftHours);
 
         int diffHours = Math.max(0, shift.diffHours()); // 0/1/2
         int dayShift = Math.max(0, shift.dayShift());
@@ -98,7 +98,7 @@ public class RainForecastPartsAdjuster {
      * hourlyParts: [startValidAt, endValidAt] 리스트를 window로 클리핑
      * - 완전히 밖이면 제거
      * - 걸치면 경계로 잘라서 보존
-     * - end는 포함(inclusive)로 취급(기존 offset [s,e] 포함과 동일한 감각)
+     * - end는 포함(inclusive)로 취급
      */
     private List<List<LocalDateTime>> clampHourlyPartsToWindow(List<List<LocalDateTime>> parts,
                                                                LocalDateTime windowStart,

@@ -14,15 +14,15 @@ public class AppForecastService {
     private final SnapshotQueryService snapshotQueryService;
 
     // 3시간 스냅샷을 0/1/2시간 재사용
-    private final HourlyForecastOffsetAdjuster offsetAdjuster =
-            new HourlyForecastOffsetAdjuster(2);
+    private final HourlyForecastWindowAdjuster windowAdjuster =
+            new HourlyForecastWindowAdjuster(2);
 
     public HourlyForecastDto getHourlyForecast(String regionId) {
         HourlyForecastDto base = snapshotQueryService.getHourlyForecast(regionId);
         if (base == null) {
             return null;
         }
-        return offsetAdjuster.adjust(base, TimeUtil.nowMinutes());
+        return windowAdjuster.adjust(base, TimeUtil.nowMinutes());
     }
 
     public DailyForecastDto getDailyForecast(String regionId) {

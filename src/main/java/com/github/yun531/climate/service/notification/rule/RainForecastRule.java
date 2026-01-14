@@ -42,7 +42,7 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEv
     private final RainForecastComputer computer =
             new RainForecastComputer(RAIN_THRESHOLD, MAX_HOURLY_HOURS);
 
-    private final RainForecastPartsAdjuster partsAdjuster =
+    private final RainForecastPartsAdjuster windowAdjuster =
             new RainForecastPartsAdjuster(
                     PAYLOAD_HOURLY_PARTS_KEY,
                     PAYLOAD_DAY_PARTS_KEY,
@@ -119,7 +119,7 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEv
         if (events == null || events.isEmpty()) return List.of();
 
         // 반환 직전에 parts(시간축) 보정
-        List<AlertEvent> adjusted = partsAdjuster.adjust(events, computedAt, now);
+        List<AlertEvent> adjusted = windowAdjuster.adjust(events, computedAt, now);
         return (adjusted == null || adjusted.isEmpty()) ? List.of() : adjusted;
     }
 }
