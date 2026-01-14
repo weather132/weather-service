@@ -25,6 +25,20 @@ public class ClimateSnap {
     @Column(name = "report_time", nullable = false)    // todo : db에 넣을 때 fommating 해서 문자열로 넣느게 나을수도 있음
     private LocalDateTime reportTime;
 
+    // ---- 시간대별 발효시각 (01~26시) ----
+    @Column(name = "valid_at_A01") private LocalDateTime validAtA01; @Column(name = "valid_at_A02") private LocalDateTime validAtA02;
+    @Column(name = "valid_at_A03") private LocalDateTime validAtA03; @Column(name = "valid_at_A04") private LocalDateTime validAtA04;
+    @Column(name = "valid_at_A05") private LocalDateTime validAtA05; @Column(name = "valid_at_A06") private LocalDateTime validAtA06;
+    @Column(name = "valid_at_A07") private LocalDateTime validAtA07; @Column(name = "valid_at_A08") private LocalDateTime validAtA08;
+    @Column(name = "valid_at_A09") private LocalDateTime validAtA09; @Column(name = "valid_at_A10") private LocalDateTime validAtA10;
+    @Column(name = "valid_at_A11") private LocalDateTime validAtA11; @Column(name = "valid_at_A12") private LocalDateTime validAtA12;
+    @Column(name = "valid_at_A13") private LocalDateTime validAtA13; @Column(name = "valid_at_A14") private LocalDateTime validAtA14;
+    @Column(name = "valid_at_A15") private LocalDateTime validAtA15; @Column(name = "valid_at_A16") private LocalDateTime validAtA16;
+    @Column(name = "valid_at_A17") private LocalDateTime validAtA17; @Column(name = "valid_at_A18") private LocalDateTime validAtA18;
+    @Column(name = "valid_at_A19") private LocalDateTime validAtA19; @Column(name = "valid_at_A20") private LocalDateTime validAtA20;
+    @Column(name = "valid_at_A21") private LocalDateTime validAtA21; @Column(name = "valid_at_A22") private LocalDateTime validAtA22;
+    @Column(name = "valid_at_A23") private LocalDateTime validAtA23; @Column(name = "valid_at_A24") private LocalDateTime validAtA24;
+    @Column(name = "valid_at_A25") private LocalDateTime validAtA25; @Column(name = "valid_at_A26") private LocalDateTime validAtA26;
 
     // ---- 시간대별 온도 (01~26시) ----
     @Column(name = "temp_A01") private Integer tempA01; @Column(name = "temp_A02") private Integer tempA02;

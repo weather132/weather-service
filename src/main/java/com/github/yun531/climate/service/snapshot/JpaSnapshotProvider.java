@@ -10,6 +10,7 @@ import com.github.yun531.climate.util.cache.CacheEntry;
 import com.github.yun531.climate.util.cache.RegionCache;
 import com.github.yun531.climate.util.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,7 @@ import java.util.List;
  * regionId + snapId 기준으로 스냅샷을 캐시한다.
  */
 @Component
+@Primary    //todo: ApiSnapshotProvider 으로 수정할 때, 옮겨줘야 함
 @RequiredArgsConstructor
 public class JpaSnapshotProvider implements SnapshotProvider {
 
@@ -88,7 +90,6 @@ public class JpaSnapshotProvider implements SnapshotProvider {
         }
 
         ForecastSnap snapshot = toSnapshot(snap);
-        // 캐시 TTL 기준 시각을 reportTime으로 사용
         return new CacheEntry<>(snapshot, snapshot.reportTime());
     }
 
@@ -104,37 +105,38 @@ public class JpaSnapshotProvider implements SnapshotProvider {
                 daily
         );
     }
-    /** 시간대별 (1~26시간 후) temp + POP 매핑 */
+
+    /** 시간대별 (A01~A26) temp + POP 매핑 */
     private List<HourlyPoint> buildHourlyPoints(ClimateSnap c) {
-        List<HourlyPoint> list = new ArrayList<>(24);
+        List<HourlyPoint> list = new ArrayList<>(26);
 
-        list.add(new HourlyPoint(1,  c.getTempA01(), c.getPopA01()));
-        list.add(new HourlyPoint(2,  c.getTempA02(), c.getPopA02()));
-        list.add(new HourlyPoint(3,  c.getTempA03(), c.getPopA03()));
-        list.add(new HourlyPoint(4,  c.getTempA04(), c.getPopA04()));
-        list.add(new HourlyPoint(5,  c.getTempA05(), c.getPopA05()));
-        list.add(new HourlyPoint(6,  c.getTempA06(), c.getPopA06()));
-        list.add(new HourlyPoint(7,  c.getTempA07(), c.getPopA07()));
-        list.add(new HourlyPoint(8,  c.getTempA08(), c.getPopA08()));
-        list.add(new HourlyPoint(9,  c.getTempA09(), c.getPopA09()));
-        list.add(new HourlyPoint(10, c.getTempA10(), c.getPopA10()));
-        list.add(new HourlyPoint(11, c.getTempA11(), c.getPopA11()));
-        list.add(new HourlyPoint(12, c.getTempA12(), c.getPopA12()));
-        list.add(new HourlyPoint(13, c.getTempA13(), c.getPopA13()));
-        list.add(new HourlyPoint(14, c.getTempA14(), c.getPopA14()));
-        list.add(new HourlyPoint(15, c.getTempA15(), c.getPopA15()));
-        list.add(new HourlyPoint(16, c.getTempA16(), c.getPopA16()));
-        list.add(new HourlyPoint(17, c.getTempA17(), c.getPopA17()));
-        list.add(new HourlyPoint(18, c.getTempA18(), c.getPopA18()));
-        list.add(new HourlyPoint(19, c.getTempA19(), c.getPopA19()));
-        list.add(new HourlyPoint(20, c.getTempA20(), c.getPopA20()));
-        list.add(new HourlyPoint(21, c.getTempA21(), c.getPopA21()));
-
-        list.add(new HourlyPoint(22, c.getTempA22(), c.getPopA22()));
-        list.add(new HourlyPoint(23, c.getTempA23(), c.getPopA23()));
-        list.add(new HourlyPoint(24, c.getTempA24(), c.getPopA24()));
-        list.add(new HourlyPoint(25, c.getTempA25(), c.getPopA25()));
-        list.add(new HourlyPoint(26, c.getTempA26(), c.getPopA26()));
+        // A01~A26: (validAt, temp, pop)
+        list.add(new HourlyPoint(c.getValidAtA01(), c.getTempA01(), c.getPopA01()));
+        list.add(new HourlyPoint(c.getValidAtA02(), c.getTempA02(), c.getPopA02()));
+        list.add(new HourlyPoint(c.getValidAtA03(), c.getTempA03(), c.getPopA03()));
+        list.add(new HourlyPoint(c.getValidAtA04(), c.getTempA04(), c.getPopA04()));
+        list.add(new HourlyPoint(c.getValidAtA05(), c.getTempA05(), c.getPopA05()));
+        list.add(new HourlyPoint(c.getValidAtA06(), c.getTempA06(), c.getPopA06()));
+        list.add(new HourlyPoint(c.getValidAtA07(), c.getTempA07(), c.getPopA07()));
+        list.add(new HourlyPoint(c.getValidAtA08(), c.getTempA08(), c.getPopA08()));
+        list.add(new HourlyPoint(c.getValidAtA09(), c.getTempA09(), c.getPopA09()));
+        list.add(new HourlyPoint(c.getValidAtA10(), c.getTempA10(), c.getPopA10()));
+        list.add(new HourlyPoint(c.getValidAtA11(), c.getTempA11(), c.getPopA11()));
+        list.add(new HourlyPoint(c.getValidAtA12(), c.getTempA12(), c.getPopA12()));
+        list.add(new HourlyPoint(c.getValidAtA13(), c.getTempA13(), c.getPopA13()));
+        list.add(new HourlyPoint(c.getValidAtA14(), c.getTempA14(), c.getPopA14()));
+        list.add(new HourlyPoint(c.getValidAtA15(), c.getTempA15(), c.getPopA15()));
+        list.add(new HourlyPoint(c.getValidAtA16(), c.getTempA16(), c.getPopA16()));
+        list.add(new HourlyPoint(c.getValidAtA17(), c.getTempA17(), c.getPopA17()));
+        list.add(new HourlyPoint(c.getValidAtA18(), c.getTempA18(), c.getPopA18()));
+        list.add(new HourlyPoint(c.getValidAtA19(), c.getTempA19(), c.getPopA19()));
+        list.add(new HourlyPoint(c.getValidAtA20(), c.getTempA20(), c.getPopA20()));
+        list.add(new HourlyPoint(c.getValidAtA21(), c.getTempA21(), c.getPopA21()));
+        list.add(new HourlyPoint(c.getValidAtA22(), c.getTempA22(), c.getPopA22()));
+        list.add(new HourlyPoint(c.getValidAtA23(), c.getTempA23(), c.getPopA23()));
+        list.add(new HourlyPoint(c.getValidAtA24(), c.getTempA24(), c.getPopA24()));
+        list.add(new HourlyPoint(c.getValidAtA25(), c.getTempA25(), c.getPopA25()));
+        list.add(new HourlyPoint(c.getValidAtA26(), c.getTempA26(), c.getPopA26()));
 
         return List.copyOf(list);
     }
