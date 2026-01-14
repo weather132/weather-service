@@ -27,6 +27,7 @@ import java.util.List;
 public class JpaSnapshotProvider implements SnapshotProvider {
 
     private final ClimateSnapRepository climateSnapRepository;
+    //todo: api provider 추가할 때, 02,05, ... , 23 시의 스냅샷만 접근 가능, 각 시간대의 10분까지 해당 시간대의 스냅샷 접근이 막힘 (ex. 02시 스냅은 02:10분 부터만 접근 가능)
 
     /** 스냅샷 캐시 TTL (분 단위) - 스냅이 3시간마다 갱신*/
     private static final int SNAP_CACHE_TTL_MINUTES = 3 * 60 ;

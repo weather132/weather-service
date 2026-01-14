@@ -10,7 +10,7 @@ public record ForecastSnap(
         String regionId,
         LocalDateTime reportTime,
 
-        // 시간대별 예보 (1~24시간 후)
+        // 시간대별 예보 (1~26시간 후)
         List<HourlyPoint> hourly,
         // 일자별 am/pm 예보 (0~6일차)
         List<DailyPoint> daily

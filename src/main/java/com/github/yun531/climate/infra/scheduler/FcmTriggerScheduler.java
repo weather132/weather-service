@@ -17,6 +17,8 @@ public class FcmTriggerScheduler {
     /** 개발/검증 중에는 true로 두면 실제 발송 없이 검증만 수행 */
     private static final boolean DRY_RUN = false;
 
+    //todo: 정각이 아닌 정각 + 10분 으로 스케줄러 수정
+
     // 09~22시 정각에만 hourly 전송
     @Scheduled(cron = "0 0 9-22 * * *")
     public void triggerHourlyBetween09And22() {
