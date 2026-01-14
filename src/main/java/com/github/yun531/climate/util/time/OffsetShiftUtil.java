@@ -19,14 +19,15 @@ public final class OffsetShiftUtil {
             return new OffsetShift(0, baseTime, 0);
         }
 
-        long diffMinutes = Duration.between(baseTime, now).toMinutes();
-        int rawDiffHours = (int) (diffMinutes / 60);
+        LocalDateTime bt = baseTime.truncatedTo(ChronoUnit.HOURS);
+        LocalDateTime nw = now.truncatedTo(ChronoUnit.HOURS);
 
-        if (rawDiffHours <= 0) {
+        long diffHoursRaw = ChronoUnit.HOURS.between(bt, nw);
+        if (diffHoursRaw <= 0) {
             return new OffsetShift(0, baseTime, 0);
         }
 
-        int diffHours = Math.min(rawDiffHours, maxShiftHours);
+        int diffHours = (int) Math.min(diffHoursRaw, (long) maxShiftHours);
         LocalDateTime shiftedBaseTime = baseTime.plusHours(diffHours);
 
         int dayShift = (int) ChronoUnit.DAYS.between(baseTime.toLocalDate(), shiftedBaseTime.toLocalDate());
