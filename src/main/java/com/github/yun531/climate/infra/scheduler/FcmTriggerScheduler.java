@@ -17,10 +17,8 @@ public class FcmTriggerScheduler {
     /** 개발/검증 중에는 true로 두면 실제 발송 없이 검증만 수행 */
     private static final boolean DRY_RUN = false;
 
-    //todo: 정각이 아닌 정각 + 10분 으로 스케줄러 수정
-
-    // 09~22시 정각에만 hourly 전송
-    @Scheduled(cron = "0 0 9-22 * * *")
+    // 08~23시(3시간 간격)의 5분에만 hourly 전송
+    @Scheduled(cron = "0 5 8-23/3 * * *")
     public void triggerHourlyBetween09And22() {
         var now = TimeUtil.nowMinutes();
         int hour = now.getHour();
@@ -33,8 +31,8 @@ public class FcmTriggerScheduler {
         }
     }
 
-    // 매 시간 정각(00~23)마다 daily 전송
-    @Scheduled(cron = "0 0 * * * *")
+    // 매 시간(00~23) + 5분 마다 daily 전송
+    @Scheduled(cron = "0 5 * * * *")
     public void triggerDailyEveryHour() {
         var now = TimeUtil.nowMinutes();
         int hour = now.getHour();
