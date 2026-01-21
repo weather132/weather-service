@@ -7,18 +7,18 @@ import com.github.yun531.climate.service.notification.model.PopSeriesPair;
 import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
 import com.github.yun531.climate.service.notification.rule.adjust.RainOnsetEventValidAtAdjuster;
 import com.github.yun531.climate.service.notification.rule.compute.RainOnsetEventComputer;
+import com.github.yun531.climate.service.notification.util.AlertPayloads;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.util.cache.CacheEntry;
+
 import io.micrometer.common.lang.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -116,21 +116,6 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
 
     @Nullable
     private LocalDateTime extractValidAt(AlertEvent event) {
-        Map<String, Object> payload = event.payload();
-        if (payload == null) return null;
-
-        Object v = payload.get(PAYLOAD_VALID_AT_KEY);
-
-        if (v instanceof LocalDateTime t) return t;
-
-        if (v instanceof String s) {
-            try {
-                return LocalDateTime.parse(s);
-            } catch (DateTimeParseException ignored) {
-                return null;
-            }
-        }
-
-        return null;
+        return AlertPayloads.readLocalDateTime(event, PAYLOAD_VALID_AT_KEY);
     }
 }

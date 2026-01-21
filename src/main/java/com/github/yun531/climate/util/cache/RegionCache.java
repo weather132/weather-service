@@ -14,10 +14,6 @@ public class RegionCache<T> {
         return map.get(regionId);
     }
 
-    public void put(String regionId, T value, LocalDateTime computedAt) {
-        map.put(regionId, new CacheEntry<>(value, computedAt));
-    }
-
     public void putEntry(String regionId, CacheEntry<T> entry) {
         map.put(regionId, entry);
     }
@@ -25,7 +21,6 @@ public class RegionCache<T> {
     /**
      *  - since == null 이면 무조건 재계산
      *  - 아니면 since - thresholdMinutes 보다 computedAt 가 이전이면 재계산
-     *
      *  computer: 캐시 미존재/만료 시 새 CacheEntry<T>를 만드는 함수
      */
     public CacheEntry<T> getOrComputeSinceBased(

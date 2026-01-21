@@ -5,6 +5,7 @@ import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
@@ -19,7 +20,13 @@ import java.util.Set;
 public record NotificationRequest(
         List<String> regionIds,
         @Nullable LocalDateTime since,
-        @Nullable Set<AlertTypeEnum> enabledTypes,
+        Set<AlertTypeEnum> enabledTypes,
         @Nullable Set<WarningKind> filterWarningKinds,
         @Nullable Integer rainHourLimit
-) {}
+) {
+    public NotificationRequest {
+        enabledTypes = (enabledTypes == null || enabledTypes.isEmpty())
+                ? EnumSet.noneOf(AlertTypeEnum.class)
+                : EnumSet.copyOf(enabledTypes);
+    }
+}

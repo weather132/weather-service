@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * HourlyForecastDto(시간대별 예보)를 now 기준으로 재표현.
  * - 스냅샷 3시간 갱신 가정: maxShiftHours=2 (0/1/2시간 재사용)
- * - reportTime(기준시각)을 now에 맞춰 shiftedBaseTime으로 보정
+ * - reportTime(기준시각)을 now에 맞춰 shiftedBaseTime 으로 보정
  * - hourly는 "validAt(발효시각)" 기준으로, shiftedBaseTime 이후의 포인트 중 최대 24개로 절단
  */
 public class HourlyForecastWindowAdjuster {

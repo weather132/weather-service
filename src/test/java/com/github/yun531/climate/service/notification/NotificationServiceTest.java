@@ -1,10 +1,10 @@
 package com.github.yun531.climate.service.notification;
 
-import com.github.yun531.climate.service.notification.model.WarningKind;
-import com.github.yun531.climate.service.notification.model.WarningLevel;
+import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
-import com.github.yun531.climate.service.notification.dto.NotificationRequest;
+import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.notification.model.WarningLevel;
 import com.github.yun531.climate.service.notification.rule.RainForecastRule;
 import com.github.yun531.climate.service.notification.rule.RainOnsetChangeRule;
 import com.github.yun531.climate.service.notification.rule.WarningIssuedRule;
@@ -92,52 +92,40 @@ class NotificationServiceTest {
     }
 
     /**
-     * enabledTypes 기본/정상 동작
+     * enabledTypes 정책 동작
+     * - null/empty => noneOf => 아무 룰도 실행 안 함
      */
 
     @Test
-    @DisplayName("기본값: enabledTypes가 null이면 RAIN_ONSET만 실행된다")
-    void default_selects_only_rain_rule_when_null() {
+    @DisplayName("enabledTypes가 null이면 아무 룰도 실행되지 않고 빈 리스트를 반환한다")
+    void none_when_enabledTypes_null() {
         LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
         String regionId = "1";
 
         NotificationRequest request = req(List.of(regionId), t, null);
 
-        when(rainRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(
-                rainEvent(regionId, t, 5, 70)
-        ));
-
+        // when
         List<AlertEvent> out = service.generate(request);
 
-        assertThat(out).hasSize(1);
-        assertThat(out.get(0).type()).isEqualTo(AlertTypeEnum.RAIN_ONSET);
-        assertThat(out.get(0).regionId()).isEqualTo("1");
-
-        verify(rainRule, times(1)).evaluate(any(NotificationRequest.class));
-        verify(warnRule, never()).evaluate(any(NotificationRequest.class));
-        verify(forecastRule, never()).evaluate(any(NotificationRequest.class));
+        // then
+        assertThat(out).isEmpty();
+        verifyNoInteractions(rainRule, warnRule, forecastRule);
     }
 
     @Test
-    @DisplayName("기본값: enabledTypes가 empty이면 RAIN_ONSET만 실행된다")
-    void default_selects_only_rain_rule_when_empty() {
+    @DisplayName("enabledTypes가 empty면 아무 룰도 실행되지 않고 빈 리스트를 반환한다")
+    void none_when_enabledTypes_empty() {
         LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
         String regionId = "1";
 
         NotificationRequest request = req(List.of(regionId), t, Collections.emptySet());
 
-        when(rainRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(
-                rainEvent(regionId, t, 5, 70)
-        ));
-
+        // when
         List<AlertEvent> out = service.generate(request);
 
-        assertThat(out).hasSize(1);
-        assertThat(out.get(0).type()).isEqualTo(AlertTypeEnum.RAIN_ONSET);
-
-        verify(rainRule, times(1)).evaluate(any(NotificationRequest.class));
-        verify(warnRule, never()).evaluate(any(NotificationRequest.class));
-        verify(forecastRule, never()).evaluate(any(NotificationRequest.class));
+        // then
+        assertThat(out).isEmpty();
+        verifyNoInteractions(rainRule, warnRule, forecastRule);
     }
 
     @Test
@@ -213,8 +201,8 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("정렬: 타입 → 지역 → 타입명 → 발생시각 순으로 정렬된다")
-    void sort_by_region_type_then_time() {
+    @DisplayName("정렬: 타입 → 지역 → 발생시각 순으로 정렬된다")
+    void sort_by_type_region_then_time() {
         var regionIds = List.of("1", "2");
         Set<AlertTypeEnum> enabled = EnumSet.of(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED);
         LocalDateTime t0 = LocalDateTime.parse("2025-11-04T04:00:00");
@@ -274,7 +262,6 @@ class NotificationServiceTest {
     void forecast_payload_is_preserved() {
         LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
 
-        // hourlyParts: [[startIso, endIso], ...]
         Map<String, Object> payload = new HashMap<>();
         payload.put("hourlyParts", List.of(List.of(
                 "2026-01-14T09:00:00",
@@ -444,8 +431,7 @@ class NotificationServiceTest {
         verify(forecastRule, never()).evaluate(any(NotificationRequest.class));
     }
 
-
-    /** helpers: AlertEvent 생성 */
+    /* helpers: AlertEvent 생성 */
 
     private static AlertEvent rainEvent(String regionId, LocalDateTime t, int hour, int pop) {
         return new AlertEvent(
@@ -465,7 +451,7 @@ class NotificationServiceTest {
         );
     }
 
-    /** helpers: NotificationRequest 생성 */
+    /* helpers: NotificationRequest 생성 */
 
     private NotificationRequest req(List<String> regionIds,
                                     LocalDateTime since,

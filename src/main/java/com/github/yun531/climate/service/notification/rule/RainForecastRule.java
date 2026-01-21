@@ -1,5 +1,6 @@
 package com.github.yun531.climate.service.notification.rule;
 
+import com.github.yun531.climate.config.snapshot.SnapshotCacheProperties;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.*;
 import com.github.yun531.climate.service.notification.rule.adjust.RainForecastPartsAdjuster;
@@ -23,24 +24,27 @@ import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
 @RequiredArgsConstructor
 public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEvent>> {
 
-    private static final Logger log = LoggerFactory.getLogger(RainForecastPartsAdjuster.class);
+    private static final Logger log = LoggerFactory.getLogger(RainForecastRule.class);
 
     private final SnapshotQueryService snapshotQueryService;
+    private final SnapshotCacheProperties cacheProps;
 
     private static final int SNAP_CURRENT_CODE = SnapKindEnum.SNAP_CURRENT.getCode();
-    private static final int RAIN_THRESHOLD    = RainThresholdEnum.RAIN.getThreshold();
-    private static final int RECOMPUTE_THRESHOLD_MINUTES = 165;
+    private static final int RAIN_THRESHOLD = RainThresholdEnum.RAIN.getThreshold();
 
-    private static final String PAYLOAD_SRC_RULE_KEY      = "_srcRule";
-    private static final String PAYLOAD_SRC_RULE_NAME     = "RainForecastRule";
-    private static final String PAYLOAD_HOURLY_PARTS_KEY  = "hourlyParts";
-    private static final String PAYLOAD_DAY_PARTS_KEY     = "dayParts";
+    private static final String PAYLOAD_SRC_RULE_KEY     = "_srcRule";
+    private static final String PAYLOAD_SRC_RULE_NAME    = "RainForecastRule";
+    private static final String PAYLOAD_HOURLY_PARTS_KEY = "hourlyParts";
+    private static final String PAYLOAD_DAY_PARTS_KEY    = "dayParts";
 
     private static final int MAX_HOURLY_HOURS = 26;
     private static final int MAX_SHIFT_HOURS  = 2; // 3시간 스냅샷을 0/1/2시간 재사용
 
     private final RainForecastComputer computer =
-            new RainForecastComputer(RAIN_THRESHOLD, MAX_HOURLY_HOURS);
+            new RainForecastComputer(
+                    RAIN_THRESHOLD,
+                    MAX_HOURLY_HOURS
+            );
 
     private final RainForecastPartsAdjuster windowAdjuster =
             new RainForecastPartsAdjuster(
@@ -57,7 +61,7 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEv
 
     @Override
     protected int thresholdMinutes() {
-        return RECOMPUTE_THRESHOLD_MINUTES;
+        return cacheProps.recomputeThresholdMinutes();
     }
 
     @Override
@@ -70,7 +74,7 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEv
         RainForecastParts parts = computer.compute(series);
 
 
-        var pts = (series.hourly() == null) ? List.<PopSeries24.Point>of() : series.hourly().getPoints();
+        var pts = (series.hourly() == null) ? List.<PopSeries24.Point>of() : series.hourly().points();
         long nullValidAt = pts.stream().filter(p -> p.validAt() == null).count();
         long rainCnt24 = pts.stream()
                 .sorted(Comparator.comparing(PopSeries24.Point::validAt, Comparator.nullsLast(Comparator.naturalOrder())))

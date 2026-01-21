@@ -34,13 +34,14 @@ public class AlertController {
         if (maxHour != null && (maxHour < 1 || maxHour > 24)) {
             maxHour = 24;
         }
+        Set<AlertTypeEnum> types = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
 
         NotificationRequest req = new NotificationRequest(
                 regionIds,
                 null,   // since -> 서비스에서 now 로 보정
-                null,   // enabledTypes -> 서비스에서 기본(RAIN_ONSET) 적용
-                null,   // filterWarningKinds
-                maxHour // rainHourLimit
+                types,   // enabledTypes
+                null,    // filterWarningKinds
+                maxHour  // rainHourLimit
         );
         List<AlertEvent> out = notificationService.generate(req);
         return ResponseEntity.ok(out);

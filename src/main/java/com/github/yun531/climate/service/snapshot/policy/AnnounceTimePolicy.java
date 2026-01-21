@@ -12,12 +12,10 @@ public class AnnounceTimePolicy {
 
     // 발표 시각: 02,05,08,11,14,17,20,23
     private static final List<Integer> ANNOUNCE_HOURS = List.of(2, 5, 8, 11, 14, 17, 20, 23);
-
-    // “발표 후 10분부터 접근 가능”
     private final int availableDelayMinutes;
 
     public AnnounceTimePolicy() {
-        this(10);
+        this(10);   // “발표 후 10분부터 접근 가능”
     }
 
     public AnnounceTimePolicy(int availableDelayMinutes) {

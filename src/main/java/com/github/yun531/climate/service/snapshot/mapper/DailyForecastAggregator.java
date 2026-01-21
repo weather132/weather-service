@@ -1,6 +1,6 @@
 package com.github.yun531.climate.service.snapshot.mapper;
 
-import com.github.yun531.climate.infra.snapshot.dto.DailyForecastItem;
+import com.github.yun531.climate.infra.snapshotapi.dto.DailyForecastItem;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 
 import java.time.LocalDate;

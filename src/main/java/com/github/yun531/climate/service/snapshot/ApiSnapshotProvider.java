@@ -1,8 +1,8 @@
 package com.github.yun531.climate.service.snapshot;
 
 import com.github.yun531.climate.config.snapshot.SnapshotCacheProperties;
-import com.github.yun531.climate.infra.snapshot.SnapshotApiClient;
-import com.github.yun531.climate.infra.snapshot.dto.HourlySnapshotResponse;
+import com.github.yun531.climate.infra.snapshotapi.SnapshotApiClient;
+import com.github.yun531.climate.infra.snapshotapi.dto.HourlySnapshotResponse;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import com.github.yun531.climate.service.snapshot.mapper.ForecastSnapAssembler;
@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * API 기반 SnapshotProvider 구현체.
  * - CURRENT/PREV 발표시각을 정책(AnnounceTimePolicy)으로 계산
- * - hourly/daily API를 호출하여 ForecastSnap으로 조립
+ * - hourly/daily API를 호출하여 ForecastSnap 으로 조립
  * - regionId 기준 CURRENT/PREV 캐시 + daily 재사용 캐시
  */
 @Component

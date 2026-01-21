@@ -119,12 +119,10 @@ public class FcmTestController {
 
     /**
      * triggerAt 입력을 "ISO_LOCAL_DATE_TIME" 문자열로 정규화한다.
-     *
      * 규칙:
      * - null/blank: 서버 현재시각(TimeUtil.nowMinutes()) 사용
      * - ISO_LOCAL_DATE_TIME: 그대로 사용
-     * - ISO_OFFSET_DATE_TIME: 오프셋 포함 시각을 LocalDateTime으로 변환해 사용
-     *
+     * - ISO_OFFSET_DATE_TIME: 오프셋 포함 시각을 LocalDateTime 으로 변환해 사용
      * 예)
      * - "2026-01-14T20:10:00"         -> 그대로
      * - "2026-01-14T20:10:00+09:00"  -> "2026-01-14T20:10:00"

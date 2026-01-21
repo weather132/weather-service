@@ -27,7 +27,7 @@ public final class TimeShiftUtil {
             return new Shift(0, baseTime, 0);
         }
 
-        int shiftHours = (int) Math.min(raw, (long) maxShiftHours);
+        int shiftHours = (int) Math.min(raw, maxShiftHours);
         LocalDateTime shiftedBaseTime = baseTime.plusHours(shiftHours);
 
         int dayShift = (int) ChronoUnit.DAYS.between(baseTime.toLocalDate(), shiftedBaseTime.toLocalDate());

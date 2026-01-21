@@ -1,5 +1,6 @@
 package com.github.yun531.climate.service.notification.rule;
 
+import com.github.yun531.climate.config.snapshot.SnapshotCacheProperties;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.PopDailySeries7;
 import com.github.yun531.climate.service.notification.model.PopForecastSeries;
@@ -48,7 +49,8 @@ class RainForecastRuleDayPartsTest {
         when(snapshotQueryService.loadForecastSeries(regionId, snapId))
                 .thenReturn(new PopForecastSeries(hourly, daily));
 
-        RainForecastRule rule = new RainForecastRule(snapshotQueryService);
+        SnapshotCacheProperties cacheProps = new SnapshotCacheProperties(180, 60, 165);
+        RainForecastRule rule = new RainForecastRule(snapshotQueryService, cacheProps);
 
         // when
         NotificationRequest request = new NotificationRequest(

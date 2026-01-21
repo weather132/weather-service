@@ -24,7 +24,7 @@ public class WarningStateQueryService {
         // regionId 순서를 보존하는 결과 맵 골격
         Map<String, Map<WarningKind, WarningStateDto>> result = initResultSkeleton(regionIds);
 
-        // DB에서 모든 WarningState 로드
+        // DB 에서 모든 WarningState 로드
         List<WarningState> warningStates = loadStates(regionIds);
 
         // regionId + kind 별로 최신 상태 선별

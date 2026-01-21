@@ -36,13 +36,11 @@ public class RainForecastPartsAdjuster {
 
     /**
      * - baseTime(=entry.computedAt)를 now 기준으로 diffHours(<=2) 시프트
-     * - event.occurredAt을 shiftedBaseTime으로 보정
-     *
+     * - event.occurredAt을 shiftedBaseTime 으로 보정
      * - hourlyParts: [startValidAt, endValidAt]를 now+diffHours 기준 "24시간 영역"으로 클리핑
      *      windowStart = now + (diffHours + 1)
      *      windowEnd   = now + (diffHours + 24)
      *   -> window와 겹치는 구간만 남기고, start/end는 window 경계로 자름
-     *
      * - dayParts: 날짜가 넘어가면 dayShift 만큼 앞에서 drop, 뒤를 [0,0]으로 채움 (기존 유지)
      */
     public List<AlertEvent> adjust(List<AlertEvent> events,

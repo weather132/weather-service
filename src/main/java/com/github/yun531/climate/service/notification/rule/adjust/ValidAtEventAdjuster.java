@@ -1,15 +1,14 @@
 package com.github.yun531.climate.service.notification.rule.adjust;
 
 import com.github.yun531.climate.service.notification.model.AlertEvent;
+import com.github.yun531.climate.service.notification.util.AlertPayloads;
 import io.micrometer.common.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 /**
  * baseTime 없이 now 기준으로 validAt 윈도우(1~24h)만 남기는 Adjuster
@@ -24,10 +23,6 @@ public class ValidAtEventAdjuster {
     private final String validAtKey;
     private final int windowHours; // 보통 24
 
-    public ValidAtEventAdjuster(String validAtKey) {
-        this(validAtKey, 24);
-    }
-
     public ValidAtEventAdjuster(String validAtKey, int windowHours) {
         this.validAtKey = validAtKey;
         this.windowHours = windowHours;
@@ -40,7 +35,7 @@ public class ValidAtEventAdjuster {
         LocalDateTime nowHour = now.truncatedTo(ChronoUnit.HOURS);
 
         LocalDateTime windowStart = nowHour.plusHours(1L);
-        LocalDateTime windowEnd   = nowHour.plusHours((long) windowHours);
+        LocalDateTime windowEnd   = nowHour.plusHours(windowHours);
 
         List<AlertEvent> kept = new ArrayList<>(events.size());
 
@@ -72,22 +67,6 @@ public class ValidAtEventAdjuster {
 
     @Nullable
     private LocalDateTime readValidAt(AlertEvent e) {
-        if (e == null) return null;
-
-        Map<String, Object> payload = e.payload();
-        if (payload == null) return null;
-
-        Object v = payload.get(validAtKey);
-        if (v instanceof LocalDateTime t) return t;
-
-        if (v instanceof String s) {
-            try {
-                return LocalDateTime.parse(s); // ISO-8601 기대: "2026-01-14T21:00:00"
-            } catch (DateTimeParseException ignored) {
-                return null;
-            }
-        }
-
-        return null;
+        return AlertPayloads.readLocalDateTime(e, validAtKey);
     }
 }

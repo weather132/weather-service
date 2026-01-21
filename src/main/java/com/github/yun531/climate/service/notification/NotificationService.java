@@ -1,10 +1,9 @@
 package com.github.yun531.climate.service.notification;
 
-import com.github.yun531.climate.service.notification.model.WarningKind;
-import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
+import com.github.yun531.climate.service.notification.model.AlertEvent;
+import com.github.yun531.climate.service.notification.model.WarningKind;
 import com.github.yun531.climate.service.notification.rule.AlertRule;
-import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -20,8 +19,6 @@ import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
 public class NotificationService {
 
     private static final int MAX_REGION_COUNT = 3;
-    private static final Set<AlertTypeEnum> DEFAULT_ENABLED_TYPES =
-            EnumSet.of(AlertTypeEnum.RAIN_ONSET);
 
     private final List<AlertRule> rules; // @Component 룰 자동 주입
 
@@ -33,10 +30,15 @@ public class NotificationService {
             return List.of();
         }
 
-        // 1) Request 정규화 (since, enabledTypes, regionIds 등)
+        // 1) Request 정규화 (since, regionIds 등)
         NotificationRequest normalized = normalize(request);
+        if (normalized.enabledTypes().isEmpty()) {
+            return List.of();    // enabledTypes가 비어있으면 아무 것도 실행하지 않음
+        }
+
         // 2) 룰 실행 및 이벤트 수집
         List<AlertEvent> events = collectEvents(normalized);
+
         // 3) 중복 제거 및 정렬
         List<AlertEvent> deduped = deduplicate(events);
         sortEvents(deduped);
@@ -52,21 +54,20 @@ public class NotificationService {
     /**
      * raw NotificationRequest 를
      * - since: null → now
-     * - enabledTypes: null/empty → 기본값
      * - regionIds: 최대 3개로 제한
-     * 으로 정규화한 새 Request 로 변환.
+     * 로 정규화한 새 Request 로 변환.
      */
     private NotificationRequest normalize(NotificationRequest raw) {
-        LocalDateTime effectiveSince    = sinceOrNow(raw.since());
-        Set<AlertTypeEnum> enabled      = normalizeEnabledTypes(raw.enabledTypes());
-        List<String> targetRegions      = limitRegions(raw.regionIds());
-        Set<WarningKind> filterKinds    = raw.filterWarningKinds();
-        Integer rainHourLimit           = raw.rainHourLimit();
+        LocalDateTime effectiveSince = sinceOrNow(raw.since());
+        List<String> targetRegions = limitRegions(raw.regionIds());
+
+        Set<WarningKind> filterKinds = raw.filterWarningKinds();
+        Integer rainHourLimit = raw.rainHourLimit();
 
         return new NotificationRequest(
                 targetRegions,
                 effectiveSince,
-                enabled,
+                raw.enabledTypes(),   // 이미 non-null + EnumSet 정규화됨
                 filterKinds,
                 rainHourLimit
         );
@@ -74,18 +75,24 @@ public class NotificationService {
 
     /** 룰 실행 / 이벤트 수집 */
     private List<AlertEvent> collectEvents(NotificationRequest request) {
-        Set<AlertTypeEnum> enabledTypes = request.enabledTypes();
+        var enabledTypes = request.enabledTypes();
 
         return rules.stream()
                 .filter(r -> enabledTypes.contains(r.supports()))
-                .flatMap(r -> r.evaluate(request).stream())
+                .flatMap(r -> {
+                    List<AlertEvent> out = r.evaluate(request);
+                    return (out == null ? List.<AlertEvent>of() : out).stream();
+                })
                 .toList();
     }
 
     /** 중복 제거 */
     private List<AlertEvent> deduplicate(List<AlertEvent> events) {
+        if (events == null || events.isEmpty()) return List.of();
+
         Map<String, AlertEvent> map = new LinkedHashMap<>();
         for (AlertEvent event : events) {
+            if (event == null) continue;
             String key = keyOf(event);
             map.putIfAbsent(key, event);
         }
@@ -94,11 +101,9 @@ public class NotificationService {
 
     /** <type>|<regionId>|<occurredAt>|<payload> 형태로 키 생성 */
     private String keyOf(AlertEvent event) {
-        String type   = (event.type() == null) ?
-                            "?" : event.type().name();
+        String type = (event.type() == null) ? "?" : event.type().name();
         String region = String.valueOf(event.regionId());
-        String ts     = (event.occurredAt() == null) ?
-                            "?" : event.occurredAt().toString();
+        String ts = (event.occurredAt() == null) ? "?" : event.occurredAt().toString();
 
         String payloadKey = normalizePayload(event.payload());
         return type + "|" + region + "|" + ts + "|" + payloadKey;
@@ -119,8 +124,10 @@ public class NotificationService {
         return String.valueOf(v);
     }
 
-    /** event 정렬: 타입(ordinal) → 지역ID → 타입 이름 → 발생시각 순 */
+    /** event 정렬: 타입(ordinal) → 지역 ID → 발생시각 순 */
     private void sortEvents(List<AlertEvent> events) {
+        if (events == null || events.isEmpty()) return;
+
         events.sort(Comparator
                 .comparing(AlertEvent::type,
                         Comparator.nullsLast(Comparator.comparingInt(Enum::ordinal)))
@@ -130,26 +137,14 @@ public class NotificationService {
                         Comparator.nullsLast(Comparator.naturalOrder())));
     }
 
-    /** since 가 null이면 현재 시각을 사용 */
+    /** since 가 null 이면 현재 시각을 사용 */
     private LocalDateTime sinceOrNow(@Nullable LocalDateTime since) {
         return (since != null) ? since : nowMinutes();
     }
 
-    /** null/빈 값이면 기본(RAIN_ONSET)으로 교체, 아니면 복사 */
-    private Set<AlertTypeEnum> normalizeEnabledTypes(@Nullable Set<AlertTypeEnum> enabledTypes) {
-        if (enabledTypes == null || enabledTypes.isEmpty()) {
-            return EnumSet.copyOf(DEFAULT_ENABLED_TYPES);
-        }
-        return EnumSet.copyOf(enabledTypes);
-    }
-
     /** 지역 최대 3개 제한 */
     private List<String> limitRegions(List<String> regionIds) {
-        if (regionIds == null || regionIds.isEmpty()) {
-            return List.of();
-        }
-        return regionIds.stream()
-                .limit(MAX_REGION_COUNT)
-                .toList();
+        if (regionIds == null || regionIds.isEmpty()) return List.of();
+        return regionIds.stream().limit(MAX_REGION_COUNT).toList();
     }
 }

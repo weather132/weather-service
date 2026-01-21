@@ -53,20 +53,17 @@ public class RainOnsetEventComputer {
         PopSeries24 cur = series.current();
         PopSeries24 prv = series.previous();
         if (cur == null || prv == null) return List.of();
-        if (cur.getPoints() == null || cur.getPoints().isEmpty()) return List.of();
 
         // prev: validAt -> pop
         Map<LocalDateTime, Integer> prevPopByValidAt = new HashMap<>();
-        if (prv.getPoints() != null) {
-            for (PopSeries24.Point p : prv.getPoints()) {
-                if (p == null || p.validAt() == null) continue;
-                prevPopByValidAt.put(p.validAt(), p.pop());
-            }
+        for (PopSeries24.Point p : prv.points()) {
+            if (p == null || p.validAt() == null) continue;
+            prevPopByValidAt.put(p.validAt(), p.pop());
         }
 
         // current: validAt 기준 정렬 후 maxPoints만
         List<PopSeries24.Point> curPoints =
-                cur.getPoints().stream()
+                cur.points().stream()
                         .filter(p -> p != null && p.validAt() != null)
                         .sorted(Comparator.comparing(PopSeries24.Point::validAt))
                         .limit(maxPoints)
@@ -80,8 +77,7 @@ public class RainOnsetEventComputer {
             LocalDateTime at = p.validAt();
             int curPop = p.pop();
 
-            boolean emit = false;
-
+            boolean emit;
             Integer prevPop = prevPopByValidAt.get(at);
             if (prevPop != null) {
                 // 비교 가능: 이전 비 아님 -> 현재 비

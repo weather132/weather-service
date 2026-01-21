@@ -25,7 +25,7 @@ public class SwaggerConfig {
                         .description("Climate Notification Service Swagger UI")
                         .version("v1")
                 )
-                /**.components(
+                /*.components(
                         new Components().addSecuritySchemes("bearerAuth", securityScheme())
                 )
                 .addSecurityItem(
@@ -33,7 +33,7 @@ public class SwaggerConfig {
                 )*/;
     }
 
-    /** JWT 인증을 위한 SecurityScheme 설정
+    /* JWT 인증을 위한 SecurityScheme 설정
     private SecurityScheme securityScheme() {
         return new SecurityScheme()
                 .type(SecurityScheme.Type.HTTP)

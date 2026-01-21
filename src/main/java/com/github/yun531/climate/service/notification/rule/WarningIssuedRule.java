@@ -54,7 +54,7 @@ public class WarningIssuedRule
         return now;
     }
 
-    /** 한 지역에 대한 최신 특보 상태를 DB에서 로드하고 CacheEntry로 래핑 */
+    /** 한 지역에 대한 최신 특보 상태를 DB 에서 로드하고 CacheEntry로 래핑 */
     @Override
     protected CacheEntry<Map<WarningKind, WarningStateDto>> computeForRegion(String regionId) {
         Map<String, Map<WarningKind, WarningStateDto>> latestByRegion =
@@ -119,7 +119,7 @@ public class WarningIssuedRule
                                  LocalDateTime adjustedSince) {
         if (state == null) return false;
 
-        // adjustedSince가 null이면 “전부 새로 발효된 것으로 간주”
+        // adjustedSince가 null 이면 “전부 새로 발효된 것으로 간주”
         if (adjustedSince == null) return true;
 
         return warningStateQueryService.isNewlyIssuedSince(state, adjustedSince);

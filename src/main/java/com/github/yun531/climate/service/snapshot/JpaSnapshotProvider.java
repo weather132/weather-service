@@ -1,5 +1,6 @@
 package com.github.yun531.climate.service.snapshot;
 
+import com.github.yun531.climate.config.snapshot.SnapshotCacheProperties;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;
@@ -20,7 +21,7 @@ import java.util.List;
 
 /**
  * JPA 기반 SnapshotProvider 구현체.
- * climate_snap 테이블의 ClimateSnap 엔티티를 ForecastSnapshot으로 변환하고,
+ * climate_snap 테이블의 ClimateSnap 엔티티를 ForecastSnapshot 으로 변환하고,
  * regionId + snapId 기준으로 스냅샷을 캐시한다.
  */
 @Component
@@ -29,10 +30,7 @@ import java.util.List;
 public class JpaSnapshotProvider implements SnapshotProvider {
 
     private final ClimateSnapRepository climateSnapRepository;
-    //todo: api provider 추가할 때, 02,05, ... , 23 시의 스냅샷만 접근 가능, 각 시간대의 10분까지 해당 시간대의 스냅샷 접근이 막힘 (ex. 02시 스냅은 02:10분 부터만 접근 가능)
-
-    /** 스냅샷 캐시 TTL (분 단위) - 스냅이 3시간마다 갱신*/
-    private static final int SNAP_CACHE_TTL_MINUTES = 3 * 60 ;
+    private final SnapshotCacheProperties cacheProps;
 
     /** regionId 별 CURRENT/PREVIOUS 스냅샷 캐시 */
     private final RegionCache<ForecastSnap> currentCache = new RegionCache<>();
@@ -52,7 +50,7 @@ public class JpaSnapshotProvider implements SnapshotProvider {
                     currentCache.getOrComputeSinceBased(
                             regionId,
                             now,
-                            SNAP_CACHE_TTL_MINUTES,
+                            cacheProps.snapTtlMinutes(),
                             () -> computeSnapshotEntry(regionId, curCode)
                     );
             return entry.value();
@@ -64,7 +62,7 @@ public class JpaSnapshotProvider implements SnapshotProvider {
                     previousCache.getOrComputeSinceBased(
                             regionId,
                             now,
-                            SNAP_CACHE_TTL_MINUTES,
+                            cacheProps.snapTtlMinutes(),
                             () -> computeSnapshotEntry(regionId, prevCode)
                     );
             return entry.value();
@@ -79,8 +77,8 @@ public class JpaSnapshotProvider implements SnapshotProvider {
     }
 
     /**
-     * DB에서 스냅을 조회해 ForecastSnapshot + CacheEntry로 감싸는 함수.
-     * computedAt에는 스냅의 reportTime을 그대로 사용한다.
+     * DB 에서 스냅을 조회해 ForecastSnapshot + CacheEntry로 감싸는 함수.
+     * computedAt 에는 스냅의 reportTime을 그대로 사용한다.
      */
     private CacheEntry<ForecastSnap> computeSnapshotEntry(String regionId, int snapId) {
         ClimateSnap snap = climateSnapRepository.findBySnapIdAndRegionId(snapId, regionId);
@@ -106,7 +104,7 @@ public class JpaSnapshotProvider implements SnapshotProvider {
         );
     }
 
-    /** 시간대별 (A01~A26) temp + POP 매핑 */
+    /** 시간대별 (A01~A26) temp plus POP 매핑 */
     private List<HourlyPoint> buildHourlyPoints(ClimateSnap c) {
         List<HourlyPoint> list = new ArrayList<>(26);
 

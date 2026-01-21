@@ -1,4 +1,4 @@
-package com.github.yun531.climate.infra.snapshot.dto;
+package com.github.yun531.climate.infra.snapshotapi.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

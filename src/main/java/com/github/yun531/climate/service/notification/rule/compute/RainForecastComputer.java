@@ -4,19 +4,17 @@ import com.github.yun531.climate.service.notification.model.PopDailySeries7;
 import com.github.yun531.climate.service.notification.model.PopForecastSeries;
 import com.github.yun531.climate.service.notification.model.PopSeries24;
 import com.github.yun531.climate.service.notification.model.RainForecastParts;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * PopForecastSeries -> RainForecastParts 계산만 담당
  */
 public class RainForecastComputer {
-    private static final Logger log = LoggerFactory.getLogger(RainForecastComputer.class);
 
     private final int rainThreshold;
     private final int maxHourlyHours;
@@ -35,31 +33,47 @@ public class RainForecastComputer {
 
     private List<RainForecastParts.HourlyPart> buildHourlyParts(PopForecastSeries fs) {
         PopSeries24 hourly = fs.hourly();
-        if (hourly == null || hourly.getPoints() == null || hourly.getPoints().isEmpty()) {
-            return List.of();
-        }
+        if (hourly == null) return List.of();
 
-        // validAt 기준 정렬 (null은 뒤로)
-        List<PopSeries24.Point> sorted =
-                hourly.getPoints().stream()
-                        .sorted(Comparator.comparing(
-                                PopSeries24.Point::validAt,
-                                Comparator.nullsLast(Comparator.naturalOrder())
-                        ))
-                        .toList();
+        List<PopSeries24.Point> raw = hourly.points();
+        if (raw.isEmpty()) return List.of();
 
-        // validAt 없는 포인트는 시간구간 계산 불가 → 제외
-        int maxCount = Math.max(0, Math.min(maxHourlyHours, sorted.size()));
-        List<PopSeries24.Point> points =
-                sorted.stream()
-                        .filter(p -> p.validAt() != null)
-                        .limit(maxCount)
-                        .toList();
-
+        List<PopSeries24.Point> points = normalizeHourlyPoints(raw, maxHourlyHours);
         if (points.isEmpty()) return List.of();
 
-        // POP 임계치 연속 구간 계산 (간격 체크 없음)
+        List<RainForecastParts.HourlyPart> parts = computeRainSegments(points, rainThreshold);
+        return parts.isEmpty() ? List.of() : List.copyOf(parts);
+    }
+
+    /** 원본 포인트를 "시간 구간 계산 가능한 형태"로 정규화한다. */
+    private List<PopSeries24.Point> normalizeHourlyPoints(List<PopSeries24.Point> raw, int maxHourlyHours) {
+        // validAt 기준 정렬 (null은 뒤로)
+        List<PopSeries24.Point> sorted = raw.stream()
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(
+                        PopSeries24.Point::validAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
+                .toList();
+
+        int maxCount = Math.max(0, Math.min(maxHourlyHours, sorted.size()));
+
+        // validAt 없는 포인트는 시간구간 계산 불가 → 제외 + 상한 적용
+        return sorted.stream()
+                .filter(p -> p.validAt() != null)
+                .limit(maxCount)
+                .toList();
+    }
+
+    /**  POP 임계치 이상이 연속되는 구간을 HourlyPart로 만든다.
+     *  - 간격 체크 없음(입력 points는 시간순 정렬되어 있다고 가정)
+     *  - 구간의 끝은 "직전 시각(prevAt)" 포함                    */
+    private List<RainForecastParts.HourlyPart> computeRainSegments(
+            List<PopSeries24.Point> points,
+            int rainThreshold
+    ) {
         List<RainForecastParts.HourlyPart> parts = new ArrayList<>();
+
         boolean inRain = false;
         LocalDateTime segStart = null;
         LocalDateTime prevAt = null;
@@ -75,13 +89,11 @@ public class RainForecastComputer {
                 }
             } else {
                 if (inRain) {
-                    // 직전 시각(prevAt)까지 포함
                     parts.add(new RainForecastParts.HourlyPart(segStart, prevAt));
                     inRain = false;
                     segStart = null;
                 }
             }
-
             prevAt = at;
         }
 
@@ -90,30 +102,12 @@ public class RainForecastComputer {
             parts.add(new RainForecastParts.HourlyPart(segStart, prevAt));
         }
 
-        /***
-        // ---- 계산 완료된 hourlyParts 로그 ----
-        if (!parts.isEmpty()) {
-            // regionId가 필요하면 PopForecastSeries/PopSeries24 쪽에서 꺼낼 수 있는지 확인 필요
-            log.info("RainForecastComputer hourlyParts computed: count={}, threshold={}, maxCountUsed={}",
-                    parts.size(), rainThreshold, maxCount);
-
-            for (int i = 0; i < parts.size(); i++) {
-                RainForecastParts.HourlyPart hp = parts.get(i);
-                // HourlyPart 필드명이 start()/end()가 아니면 여기만 맞춰 변경
-                log.info("  hourlyPart[{}]: start={}, end={}", i, hp.start(), hp.end());
-            }
-        } else {
-            log.info("RainForecastComputer hourlyParts computed: empty (threshold={}, maxCountUsed={})",
-                    rainThreshold, maxCount);
-        }
-        **/
-
-        return parts.isEmpty() ? List.of() : List.copyOf(parts);
+        return parts;
     }
 
     private List<RainForecastParts.DayPart> buildDayParts(PopForecastSeries fs) {
         PopDailySeries7 daily = fs.daily();
-        if (daily == null || daily.days() == null || daily.days().isEmpty()) return List.of();
+        if (daily == null || daily.days().isEmpty()) return List.of();
 
         List<RainForecastParts.DayPart> parts = new ArrayList<>(daily.days().size());
 
