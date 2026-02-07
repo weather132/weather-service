@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-/** regionId(정수 키) 기준의 In-memory 캐시 유틸 */
+/** regionId(String 키) 기준의 In-memory 캐시 유틸 */
 public class RegionCache<T> {
 
     private final Map<String, CacheEntry<T>> map = new ConcurrentHashMap<>();
@@ -21,33 +21,19 @@ public class RegionCache<T> {
     /**
      *  - since == null 이면 무조건 재계산
      *  - 아니면 since - thresholdMinutes 보다 computedAt 가 이전이면 재계산
-     *  computer: 캐시 미존재/만료 시 새 CacheEntry<T>를 만드는 함수
+     *  - compute()를 사용해 원자적으로 갱신한다(동시성 중복 계산 감소)
      */
     public CacheEntry<T> getOrComputeSinceBased(
             String regionId,
             LocalDateTime since,
             int thresholdMinutes,
-            Supplier<CacheEntry<T>> computer      // 람다(함수 객체)
+            Supplier<CacheEntry<T>> computer
     ) {
-        CacheEntry<T> entry = get(regionId);
-
-        if (needsRecomputeSinceBased(entry, since, thresholdMinutes)) {
-            entry = computer.get();
-            putEntry(regionId, entry);
-        }
-        return entry;
-    }
-
-    private boolean needsRecomputeSinceBased(
-            CacheEntry<T> entry,
-            LocalDateTime since,
-            int thresholdMinutes
-    ) {
-        if (since == null) return true;
-        if (entry == null || entry.computedAt() == null) return true;
-
-        LocalDateTime floor = since.minusMinutes(thresholdMinutes);
-        return entry.computedAt().isBefore(floor);
+        return map.compute(regionId, (k, oldEntry) -> {
+            if (oldEntry == null) return computer.get();
+            if (oldEntry.needsRecomputeSinceBased(since, thresholdMinutes)) return computer.get();
+            return oldEntry;
+        });
     }
 
     /** 캐시 무효화 */
