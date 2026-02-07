@@ -1,4 +1,4 @@
-package com.github.yun531.climate.infra.scheduler;
+package com.github.yun531.climate.infra.fcm.scheduler;
 
 import com.github.yun531.climate.infra.fcm.FcmTopicPushService;
 import com.github.yun531.climate.util.time.TimeUtil;
@@ -23,12 +23,7 @@ public class FcmTriggerScheduler {
         var now = TimeUtil.nowMinutes();
         int hour = now.getHour();
 
-        try {
-            String hourlyId = fcm.sendHourlyTrigger(DRY_RUN);
-            log.info("[FCM] hourly sent. hour={}, dryRun={}, messageId={}", hour, DRY_RUN, hourlyId);
-        } catch (Exception e) {
-            log.error("[FCM] hourly failed. hour={}, dryRun={}", hour, DRY_RUN, e);
-        }
+        run("hourly", hour, () -> fcm.sendHourlyTrigger(now, hour, DRY_RUN));
     }
 
     // 매 시간(00~23) + 5분 마다 daily 전송
@@ -37,11 +32,20 @@ public class FcmTriggerScheduler {
         var now = TimeUtil.nowMinutes();
         int hour = now.getHour();
 
+        run("daily", hour, () -> fcm.sendDailyTrigger(now, hour, DRY_RUN));
+    }
+
+    private void run(String kind, int hour, FcmCall call) {
         try {
-            String dailyId = fcm.sendDailyTrigger(hour, DRY_RUN);
-            log.info("[FCM] daily sent. hour={}, dryRun={}, messageId={}", hour, DRY_RUN, dailyId);
+            String messageId = call.call();
+            log.info("[FCM] {} sent. hour={}, dryRun={}, messageId={}", kind, hour, DRY_RUN, messageId);
         } catch (Exception e) {
-            log.error("[FCM] daily failed. hour={}, dryRun={}", hour, DRY_RUN, e);
+            log.error("[FCM] {} failed. hour={}, dryRun={}", kind, hour, DRY_RUN, e);
         }
+    }
+
+    @FunctionalInterface
+    private interface FcmCall {
+        String call() throws Exception;
     }
 }

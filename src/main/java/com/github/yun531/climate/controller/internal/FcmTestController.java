@@ -32,17 +32,22 @@ public class FcmTestController {
 
     @PostMapping("/hourly")
     public ResponseEntity<FcmTestResponse> hourly(@RequestParam(defaultValue = "true") boolean dryRun) {
+        var now = TimeUtil.nowMinutes();
+        int hour = now.getHour();
+
         String topic = props.hourlyTopic();
         try {
-            String messageId = fcm.sendHourlyTrigger(dryRun);
-            log.info("[FCM-TEST] hourly ok topic={} dryRun={} messageId={}", topic, dryRun, messageId);
+            String messageId = fcm.sendHourlyTrigger(now, hour, dryRun);
+            log.info("[FCM-TEST] hourly ok topic={} hour={} dryRun={} messageId={}", topic, hour, dryRun, messageId);
             return ResponseEntity.ok(FcmTestResponse.success(topic, dryRun, messageId));
+
         } catch (FirebaseMessagingException e) {
-            log.error("[FCM-TEST] hourly firebase fail topic={} dryRun={}", topic, dryRun, e);
+            log.error("[FCM-TEST] hourly firebase fail topic={} hour={} dryRun={}", topic, hour, dryRun, e);
             return ResponseEntity.internalServerError()
                     .body(FcmTestResponse.fail(topic, dryRun, e.getMessage()));
+
         } catch (Exception e) {
-            log.error("[FCM-TEST] hourly fail topic={} dryRun={}", topic, dryRun, e);
+            log.error("[FCM-TEST] hourly fail topic={} hour={} dryRun={}", topic, hour, dryRun, e);
             return ResponseEntity.internalServerError()
                     .body(FcmTestResponse.fail(topic, dryRun, e.getClass().getSimpleName() + ": " + e.getMessage()));
         }
@@ -57,17 +62,25 @@ public class FcmTestController {
                     .body(FcmTestResponse.fail(topic, dryRun, "hour must be 0..23"));
         }
 
+        var now = TimeUtil.nowMinutes();
+        int nowHour = now.getHour(); // 로그용(서버 현재시각 기준)
+
         String topic = props.dailyTopicPrefix() + String.format("%02d", hour);
         try {
-            String messageId = fcm.sendDailyTrigger(hour, dryRun);
-            log.info("[FCM-TEST] daily ok topic={} hour={} dryRun={} messageId={}", topic, hour, dryRun, messageId);
+            String messageId = fcm.sendDailyTrigger(now, hour, dryRun);
+            log.info("[FCM-TEST] daily ok topic={} targetHour={} nowHour={} dryRun={} messageId={}",
+                    topic, hour, nowHour, dryRun, messageId);
             return ResponseEntity.ok(FcmTestResponse.success(topic, dryRun, messageId));
+
         } catch (FirebaseMessagingException e) {
-            log.error("[FCM-TEST] daily firebase fail topic={} hour={} dryRun={}", topic, hour, dryRun, e);
+            log.error("[FCM-TEST] daily firebase fail topic={} targetHour={} nowHour={} dryRun={}",
+                    topic, hour, nowHour, dryRun, e);
             return ResponseEntity.internalServerError()
                     .body(FcmTestResponse.fail(topic, dryRun, e.getMessage()));
+
         } catch (Exception e) {
-            log.error("[FCM-TEST] daily fail topic={} hour={} dryRun={}", topic, hour, dryRun, e);
+            log.error("[FCM-TEST] daily fail topic={} targetHour={} nowHour={} dryRun={}",
+                    topic, hour, nowHour, dryRun, e);
             return ResponseEntity.internalServerError()
                     .body(FcmTestResponse.fail(topic, dryRun, e.getClass().getSimpleName() + ": " + e.getMessage()));
         }
@@ -90,12 +103,10 @@ public class FcmTestController {
             String type = (req.type() == null || req.type().isBlank()) ? "CUSTOM" : req.type().trim();
             data.put("type", type);
 
-            // triggerAtLocal: "서버/클라가 공통으로 쓰는 로컬 시각(문자열)"로 정규화해서 보냄
-            // - 미입력: 서버 nowMinutes()
-            // - 입력: ISO_LOCAL_DATE_TIME 또는 ISO_OFFSET_DATE_TIME 허용
+            // triggerAtLocal 정규화
             data.put("triggerAtLocal", normalizeTriggerAtLocal(req.triggerAt()));
 
-            // hour(선택)
+            // hour
             if (req.hour() != null) data.put("hour", String.valueOf(req.hour()));
 
             String messageId = fcm.sendCustomTopic(topic, data, dryRun);
@@ -106,10 +117,12 @@ public class FcmTestController {
             log.warn("[FCM-TEST] send bad-request topic={} dryRun={} msg={}", topic, dryRun, e.getMessage());
             return ResponseEntity.badRequest()
                     .body(FcmTestResponse.fail(topic, dryRun, e.getMessage()));
+
         } catch (FirebaseMessagingException e) {
             log.error("[FCM-TEST] send firebase fail topic={} dryRun={}", topic, dryRun, e);
             return ResponseEntity.internalServerError()
                     .body(FcmTestResponse.fail(topic, dryRun, e.getMessage()));
+
         } catch (Exception e) {
             log.error("[FCM-TEST] send fail topic={} dryRun={}", topic, dryRun, e);
             return ResponseEntity.internalServerError()
@@ -123,9 +136,6 @@ public class FcmTestController {
      * - null/blank: 서버 현재시각(TimeUtil.nowMinutes()) 사용
      * - ISO_LOCAL_DATE_TIME: 그대로 사용
      * - ISO_OFFSET_DATE_TIME: 오프셋 포함 시각을 LocalDateTime 으로 변환해 사용
-     * 예)
-     * - "2026-01-14T20:10:00"         -> 그대로
-     * - "2026-01-14T20:10:00+09:00"  -> "2026-01-14T20:10:00"
      */
     private String normalizeTriggerAtLocal(String triggerAt) {
         if (triggerAt == null || triggerAt.isBlank()) {
@@ -135,14 +145,14 @@ public class FcmTestController {
 
         String s = triggerAt.trim();
 
-        // 1) ISO_LOCAL_DATE_TIME
+        // ISO_LOCAL_DATE_TIME
         try {
             LocalDateTime.parse(s, ISO_LOCAL);
             return s;
         } catch (DateTimeParseException ignored) {
         }
 
-        // 2) ISO_OFFSET_DATE_TIME -> Local 변환 후 ISO_LOCAL로 출력
+        // ISO_OFFSET_DATE_TIME -> Local 변환 후 ISO_LOCAL로 출력
         try {
             return OffsetDateTime.parse(s, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                     .toLocalDateTime()
