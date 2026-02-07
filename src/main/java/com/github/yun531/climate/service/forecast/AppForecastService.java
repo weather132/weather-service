@@ -11,17 +11,17 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AppForecastService {
 
+    private static final int MAX_SHIFT_HOURS = 2;
+
     private final SnapshotQueryService snapshotQueryService;
 
     // 3시간 스냅샷을 0/1/2시간 재사용
     private final HourlyForecastWindowAdjuster windowAdjuster =
-            new HourlyForecastWindowAdjuster(2);
+            new HourlyForecastWindowAdjuster(MAX_SHIFT_HOURS);
 
     public HourlyForecastDto getHourlyForecast(String regionId) {
         HourlyForecastDto base = snapshotQueryService.getHourlyForecast(regionId);
-        if (base == null) {
-            return null;
-        }
+        if (base == null) return null;
         return windowAdjuster.adjust(base, TimeUtil.nowMinutes());
     }
 

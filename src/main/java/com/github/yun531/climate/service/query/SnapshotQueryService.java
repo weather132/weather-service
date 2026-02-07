@@ -2,7 +2,6 @@ package com.github.yun531.climate.service.query;
 
 import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
-import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;
@@ -11,6 +10,7 @@ import com.github.yun531.climate.service.notification.model.PopForecastSeries;
 import com.github.yun531.climate.service.notification.model.PopSeries24;
 import com.github.yun531.climate.service.notification.model.PopSeriesPair;
 import com.github.yun531.climate.service.snapshot.SnapshotProvider;
+import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +31,14 @@ public class SnapshotQueryService {
     private static final int SNAP_CURRENT = SnapKindEnum.SNAP_CURRENT.getCode();
     private static final int SNAP_PREV    = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
+    /** 정렬기준 */
+    private static final Comparator<LocalDateTime> NULLS_LAST_TIME =
+            Comparator.nullsLast(Comparator.naturalOrder());
+    private static final Comparator<HourlyPoint> BY_VALID_AT =
+            Comparator.comparing(HourlyPoint::validAt, NULLS_LAST_TIME);
+    private static final Comparator<DailyPoint> BY_DAY_OFFSET =
+            Comparator.comparingInt(DailyPoint::dayOffset);
+
     private final SnapshotProvider snapshotProvider;
 
     /* ======================= 알림용 POP 시계열 ======================= */
@@ -50,12 +58,9 @@ public class SnapshotQueryService {
         ForecastSnap cur = snapshotProvider.loadSnapshot(regionId, currentSnapId);
         ForecastSnap prv = snapshotProvider.loadSnapshot(regionId, previousSnapId);
 
-        if (cur == null || prv == null) {
-            return emptyPopSeries();
-        }
+        if (cur == null || prv == null) return emptyPopSeries();
 
         int reportTimeGap = computeReportTimeGap(prv.reportTime(), cur.reportTime());
-        LocalDateTime curReportTime = cur.reportTime();
 
         PopSeries24 curHourly = toPopSeries24(cur);
         PopSeries24 prvHourly = toPopSeries24(prv);
@@ -64,19 +69,19 @@ public class SnapshotQueryService {
                 curHourly,
                 prvHourly,
                 reportTimeGap,
-                curReportTime
+                cur.reportTime()
         );
     }
 
     /** 예보 요약용: 시간대 POP + 일자별 POP */
     public PopForecastSeries loadForecastSeries(String regionId, int snapId) {
         ForecastSnap snap = snapshotProvider.loadSnapshot(regionId, snapId);
-        if (snap == null) {
-            return emptyForecastSeries();
-        }
-        PopSeries24 hourly = toPopSeries24(snap);
-        PopDailySeries7 daily = toPopDailySeries7(snap);
-        return new PopForecastSeries(hourly, daily);
+        if (snap == null) return emptyForecastSeries();
+
+        return new PopForecastSeries(
+                toPopSeries24(snap),
+                toPopDailySeries7(snap)
+        );
     }
 
     /* ======================= 일반 일기예보 API용 ======================= */
@@ -84,17 +89,9 @@ public class SnapshotQueryService {
     /** 시간대별 온도+POP 예보 (현재 SNAP 기준) */
     public HourlyForecastDto getHourlyForecast(String regionId) {
         ForecastSnap snap = snapshotProvider.loadSnapshot(regionId, SNAP_CURRENT);
-        if (snap == null) {
-            return null; // 필요하면 Optional/예외로 바꿔도 됨
-        }
+        if (snap == null) return null;
 
-        List<HourlyPoint> hours =
-                snap.hourly().stream()
-                        .sorted(Comparator.comparing(
-                                HourlyPoint::validAt,
-                                Comparator.nullsLast(Comparator.naturalOrder())
-                        ))
-                        .toList();
+        List<HourlyPoint> hours = sortedHourly(snap);
 
         return new HourlyForecastDto(
                 snap.regionId(),
@@ -106,21 +103,10 @@ public class SnapshotQueryService {
     /** 일자별 am/pm 온도+POP 예보 (현재 SNAP 기준) */
     public DailyForecastDto getDailyForecast(String regionId) {
         ForecastSnap snap = snapshotProvider.loadSnapshot(regionId, SNAP_CURRENT);
-        if (snap == null) {
-            return null;
-        }
+        if (snap == null) return null;
 
-        List<DailyPoint> days =
-                snap.daily().stream()
-                        .sorted(Comparator.comparingInt(DailyPoint::dayOffset))
-                        .map(d -> new DailyPoint(
-                                d.dayOffset(),
-                                d.minTemp(),
-                                d.maxTemp(),
-                                d.amPop(),
-                                d.pmPop()
-                        ))
-                        .toList();
+        // 기존의 "동일 값 복사(map -> new DailyPoint)" 제거
+        List<DailyPoint> days = sortedDaily(snap);
 
         return new DailyForecastDto(
                 snap.regionId(),
@@ -134,35 +120,33 @@ public class SnapshotQueryService {
     private PopSeries24 toPopSeries24(ForecastSnap snap) {
         // validAt 기준 정렬 후 (validAt, pop) 포인트 26개로 생성
         List<PopSeries24.Point> points =
-                snap.hourly().stream()
-                        .sorted(Comparator.comparing(
-                                HourlyPoint::validAt,
-                                Comparator.nullsLast(Comparator.naturalOrder())
-                        ))
-                        .map(p -> new PopSeries24.Point(
-                                p.validAt(),
-                                n(p.pop())
-                        ))
+                sortedHourly(snap).stream()
+                        .map(p -> new PopSeries24.Point(p.validAt(), n(p.pop())))
                         .toList();
 
         return new PopSeries24(points);
     }
 
     private PopDailySeries7 toPopDailySeries7(ForecastSnap snap) {
-        // dayOffset 기준 정렬 후 DailyPop(AM/PM) 7개 생성
-        List<PopDailySeries7.DailyPop> days = snap.daily().stream()
-                .sorted(Comparator.comparingInt(DailyPoint::dayOffset))
-                .map(d -> new PopDailySeries7.DailyPop(
-                        n(d.amPop()),
-                        n(d.pmPop())
-                ))
-                .toList();
+        List<PopDailySeries7.DailyPop> days =
+                sortedDaily(snap).stream()
+                        .map(d -> new PopDailySeries7.DailyPop(n(d.amPop()), n(d.pmPop())))
+                        .toList();
 
         // PopDailySeries7 생성자에서 size==7 체크
         return new PopDailySeries7(days);
     }
 
-    /** Integer → int 변환 + null → 0 */
+    private List<HourlyPoint> sortedHourly(ForecastSnap snap) {
+        List<HourlyPoint> src = snap.hourly() == null ? List.of() : snap.hourly();
+        return src.stream().sorted(BY_VALID_AT).toList();
+    }
+
+    private List<DailyPoint> sortedDaily(ForecastSnap snap) {
+        List<DailyPoint> src = snap.daily() == null ? List.of() : snap.daily();
+        return src.stream().sorted(BY_DAY_OFFSET).toList();
+    }
+
     private static int n(Integer v) {
         return v == null ? 0 : v;
     }
@@ -170,9 +154,8 @@ public class SnapshotQueryService {
     /* ======================= 유틸 / 빈 값 ======================= */
 
     private int computeReportTimeGap(LocalDateTime previous, LocalDateTime current) {
-        if (previous == null || current == null) {
-            return 0;
-        }
+        if (previous == null || current == null) return 0;
+
         long minutes = Duration.between(previous, current).toMinutes();
         return (int) Math.round(minutes / 60.0);
     }

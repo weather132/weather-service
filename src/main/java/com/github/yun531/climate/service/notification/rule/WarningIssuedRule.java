@@ -128,12 +128,12 @@ public class WarningIssuedRule
     /** DTO → AlertEvent 변환 */
     private AlertEvent toAlertEvent(String regionId, WarningStateDto state, LocalDateTime now) {
         LocalDateTime occurredAt =
-                (state.getUpdatedAt() != null) ? state.getUpdatedAt() : now;
+                (state.updatedAt() != null) ? state.updatedAt() : now;
 
         Map<String, Object> payload = Map.of(
                 PAYLOAD_SRC_RULE_KEY,  PAYLOAD_SRC_RULE_NAME,
-                PAYLOAD_KIND_KEY,      state.getKind(),   // WarningKind enum
-                PAYLOAD_LEVEL_KEY,     state.getLevel()   // WarningLevel enum
+                PAYLOAD_KIND_KEY,      state.kind(),   // WarningKind enum
+                PAYLOAD_LEVEL_KEY,     state.level()   // WarningLevel enum
         );
 
         return new AlertEvent(

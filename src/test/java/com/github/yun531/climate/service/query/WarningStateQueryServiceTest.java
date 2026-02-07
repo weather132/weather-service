@@ -62,12 +62,12 @@ class WarningStateQueryServiceTest {
 
         Map<WarningKind, WarningStateDto> r1 = map.get(regionId01);
         assertThat(r1.keySet()).containsExactlyInAnyOrder(WarningKind.RAIN, WarningKind.HEAT);
-        assertThat(r1.get(WarningKind.RAIN).getLevel()).isEqualTo(WarningLevel.WARNING);   // 최신 선택
-        assertThat(r1.get(WarningKind.HEAT).getLevel()).isEqualTo(WarningLevel.ADVISORY);
+        assertThat(r1.get(WarningKind.RAIN).level()).isEqualTo(WarningLevel.WARNING);   // 최신 선택
+        assertThat(r1.get(WarningKind.HEAT).level()).isEqualTo(WarningLevel.ADVISORY);
 
         Map<WarningKind, WarningStateDto> r2 = map.get(regionId02);
         assertThat(r2.keySet()).containsExactly(WarningKind.WIND);
-        assertThat(r2.get(WarningKind.WIND).getLevel()).isEqualTo(WarningLevel.ADVISORY);
+        assertThat(r2.get(WarningKind.WIND).level()).isEqualTo(WarningLevel.ADVISORY);
     }
 
     @Test

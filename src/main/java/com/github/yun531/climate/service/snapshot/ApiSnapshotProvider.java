@@ -18,15 +18,12 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * API 기반 SnapshotProvider 구현체.
- * - CURRENT/PREV 발표시각을 정책(AnnounceTimePolicy)으로 계산
- * - hourly/daily API를 호출하여 ForecastSnap 으로 조립
- * - regionId 기준 CURRENT/PREV 캐시 + daily 재사용 캐시
- */
 @Component
 @RequiredArgsConstructor
 public class ApiSnapshotProvider implements SnapshotProvider {
+
+    private static final int CUR = SnapKindEnum.SNAP_CURRENT.getCode();
+    private static final int PRV = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
     private final SnapshotApiClient client;
     private final SnapshotCacheProperties cacheProps;
@@ -34,42 +31,38 @@ public class ApiSnapshotProvider implements SnapshotProvider {
     private final AnnounceTimePolicy policy;
     private final ForecastSnapAssembler assembler;
 
-    /** regionId 별 CURRENT/PREV 스냅샷 캐시 */
-    private final RegionCache<ForecastSnap> currentCache = new RegionCache<>();
-    private final RegionCache<ForecastSnap> previousCache = new RegionCache<>();
-
+    /** regionId + snapId 기준 스냅샷 캐시 */
+    private final RegionCache<ForecastSnap> snapCache = new RegionCache<>();
     /** daily는 announceTime 파라미터가 없으니 region 단위로 재사용 캐시 */
     private final RegionCache<List<DailyPoint>> dailyPointsCache = new RegionCache<>();
 
     @Override
     @Nullable
     public ForecastSnap loadSnapshot(String regionId, int snapId) {
+        if (snapId != CUR && snapId != PRV) return null;
+
         LocalDateTime now = TimeUtil.nowMinutes();
 
-        int cur = SnapKindEnum.SNAP_CURRENT.getCode();
-        int prv = SnapKindEnum.SNAP_PREVIOUS.getCode();
-
-        int snapTtl = cacheProps.snapTtlMinutes();
-        if (snapId == cur) {
-            return currentCache.getOrComputeSinceBased(
-                    regionId, now, snapTtl,
-                    () -> compute(regionId, now, cur)
-            ).value();
+        // since(= 기준 시각)를 "현재 시점에서 접근 가능한 최신 발표시각"으로 설정
+        // - 이 값이 바뀌는 순간(새 발표 접근 가능 시점) 캐시가 즉시 갱신
+        LocalDateTime since = policy.resolve(now, snapId);
+        if (since == null) {
+            // resolve가 null 이면 발표시각을 결정할 수 없는 상태이므로 반환
+            return null;
         }
 
-        if (snapId == prv) {
-            return previousCache.getOrComputeSinceBased(
-                    regionId, now, snapTtl,
-                    () -> compute(regionId, now, prv)
-            ).value();
-        }
+        int ttl = cacheProps.snapTtlMinutes();
+        String key = snapKey(regionId, snapId);
 
-        return null;
+        return snapCache.getOrComputeSinceBased(
+                key,
+                since,
+                ttl,
+                () -> compute(regionId, now, since)
+        ).value();
     }
 
-    private CacheEntry<ForecastSnap> compute(String regionId, LocalDateTime now, int snapId) {
-        LocalDateTime announceTime = policy.resolve(now, snapId);
-
+    private CacheEntry<ForecastSnap> compute(String regionId, LocalDateTime now, LocalDateTime announceTime) {
         if (announceTime == null || !policy.isAccessible(now, announceTime)) {
             return new CacheEntry<>(null, now);
         }
@@ -86,13 +79,17 @@ public class ApiSnapshotProvider implements SnapshotProvider {
                 () -> {
                     var daily = client.fetchDaily(regionId);
                     var points = assembler.buildDailyPoints(hourly.announceTime().toLocalDate(), daily);
-                    return new CacheEntry<>(points, now); // daily 캐시는 "지금 계산 시각" 기준 TTL
+                    return new CacheEntry<>(points, now);
                 }
         ).value();
 
         ForecastSnap snap = assembler.buildForecastSnap(regionId, hourly, dailyPoints);
 
-        // 스냅샷 캐시는 발표시각(reportTime) 기준으로 computedAt 설정
+        // computedAt은 reportTime(=발표시각)로 설정
         return new CacheEntry<>(snap, snap.reportTime());
+    }
+
+    private static String snapKey(String regionId, int snapId) {
+        return regionId + ":" + snapId;
     }
 }
