@@ -2,8 +2,8 @@ package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
-import com.github.yun531.climate.service.notification.model.PopSeries24;
-import com.github.yun531.climate.service.notification.model.PopSeriesPair;
+import com.github.yun531.climate.service.notification.model.PopView;
+import com.github.yun531.climate.service.notification.model.PopViewPair;
 import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import org.junit.jupiter.api.Test;
@@ -41,9 +41,9 @@ class RainOnsetChangeRuleTest {
 
         // A01=now+1 ... A26=now+26
         // onset을 "now+5"에서 발생시키기
-        PopSeriesPair series = seriesWithOnsetAtValidAtHourOffset(nowHour, 5, th);
+        PopViewPair pair = pairWithOnsetAtValidAtHourOffset(nowHour, 5, th);
 
-        when(snapshotQueryService.loadDefaultPopSeries(regionId)).thenReturn(series);
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
 
         // when
         NotificationRequest req = rainReq(regionId, null);
@@ -77,9 +77,9 @@ class RainOnsetChangeRuleTest {
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
         // 같은 validAt에서 이전도 이미 비(>=th), 현재도 비(>=th) -> onset 아님
-        PopSeriesPair series = seriesAlreadyRainingAtValidAtHourOffset(nowHour, 5, th);
+        PopViewPair pair = pairAlreadyRainingAtValidAtHourOffset(nowHour, 5, th);
 
-        when(snapshotQueryService.loadDefaultPopSeries(regionId)).thenReturn(series);
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
 
         NotificationRequest req = rainReq(regionId, null);
         var events = rule.evaluate(req);
@@ -94,8 +94,8 @@ class RainOnsetChangeRuleTest {
         String regionId = "11B20601";
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
-        when(snapshotQueryService.loadDefaultPopSeries(regionId))
-                .thenReturn(new PopSeriesPair(null, null, 0, nowHour));
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId))
+                .thenReturn(new PopViewPair(null, null));
 
         NotificationRequest req = rainReq(regionId, null);
         var events = rule.evaluate(req);
@@ -111,10 +111,10 @@ class RainOnsetChangeRuleTest {
         int th = RainThresholdEnum.RAIN.getThreshold();
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
-        PopSeriesPair series = seriesWithOnsetAtValidAtHourOffset(nowHour, 5, th);
+        PopViewPair pair = pairWithOnsetAtValidAtHourOffset(nowHour, 5, th);
 
-        when(snapshotQueryService.loadDefaultPopSeries(regionId))
-                .thenReturn(series); // 최초 1회만 호출되길 기대
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId))
+                .thenReturn(pair); // 최초 1회만 호출되길 기대
 
         // 1) 최초 호출 → 캐시 생성 (since == null 이므로 무조건 계산)
         NotificationRequest firstReq = rainReq(regionId, null);
@@ -123,13 +123,13 @@ class RainOnsetChangeRuleTest {
 
         // 2) 두 번째 호출(since != null, TTL 이내) → 캐시 재사용
         // NOTE: 캐시 판단은 CacheEntry.computedAt(=curReportTime)에 의존하므로 그 값을 기준으로 since 구성
-        LocalDateTime computedAt = series.curReportTime();
+        LocalDateTime computedAt = pair.current().reportTime();
         NotificationRequest secondReq = rainReq(regionId, computedAt.plusMinutes(10));
 
         var events2 = rule.evaluate(secondReq);
         assertThat(events2).hasSize(1);
 
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId);
     }
 
     @Test
@@ -140,13 +140,13 @@ class RainOnsetChangeRuleTest {
         int th = RainThresholdEnum.RAIN.getThreshold();
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
-        when(snapshotQueryService.loadDefaultPopSeries(regionId))
-                .thenReturn(seriesWithOnsetAtValidAtHourOffset(nowHour, 3, th));
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId))
+                .thenReturn(pairWithOnsetAtValidAtHourOffset(nowHour, 3, th));
 
         // 1) 최초 호출 → 계산 1회
         NotificationRequest req1 = rainReq(regionId, null);
         rule.evaluate(req1);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId);
 
         // 2) 캐시 무효화
         rule.invalidate(regionId);
@@ -154,7 +154,7 @@ class RainOnsetChangeRuleTest {
         // 3) 다음 호출 → 다시 계산
         NotificationRequest req2 = rainReq(regionId, null);
         rule.evaluate(req2);
-        verify(snapshotQueryService, times(2)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(2)).loadDefaultPopViewPair(regionId);
     }
 
     @Test
@@ -165,29 +165,29 @@ class RainOnsetChangeRuleTest {
         int th = RainThresholdEnum.RAIN.getThreshold();
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
-        PopSeriesPair series = seriesWithOnsetAtValidAtHourOffset(nowHour, 10, th);
-        when(snapshotQueryService.loadDefaultPopSeries(regionId)).thenReturn(series);
+        PopViewPair pair = pairWithOnsetAtValidAtHourOffset(nowHour, 10, th);
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
 
         // 최초 계산
         NotificationRequest firstReq = rainReq(regionId, null);
         var events1 = rule.evaluate(firstReq);
         assertThat(events1).hasSize(1);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId);
 
-        LocalDateTime baseComputedAt = series.curReportTime();
+        LocalDateTime baseComputedAt = pair.current().reportTime();
 
         // TTL - 10분 이내면 재계산 안 함
         LocalDateTime sinceNear = baseComputedAt.plusMinutes(TTL_MINUTES - 10);
         NotificationRequest nearReq = rainReq(regionId, sinceNear);
         rule.evaluate(nearReq);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId);
 
         // TTL + 10분 이후면 재계산
         LocalDateTime sinceFar = baseComputedAt.plusMinutes(TTL_MINUTES + 10);
         NotificationRequest farReq = rainReq(regionId, sinceFar);
         rule.evaluate(farReq);
 
-        verify(snapshotQueryService, times(2)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(2)).loadDefaultPopViewPair(regionId);
     }
 
     @Test
@@ -198,28 +198,28 @@ class RainOnsetChangeRuleTest {
         int th = RainThresholdEnum.RAIN.getThreshold();
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
-        PopSeriesPair series = seriesWithOnsetAtValidAtHourOffset(nowHour, 5, th);
-        when(snapshotQueryService.loadDefaultPopSeries(regionId)).thenReturn(series);
+        PopViewPair pair = pairWithOnsetAtValidAtHourOffset(nowHour, 5, th);
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
 
         // 최초 계산
         NotificationRequest firstReq = rainReq(regionId, null);
         var events1 = rule.evaluate(firstReq);
         assertThat(events1).hasSize(1);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId);
 
-        LocalDateTime baseComputedAt = series.curReportTime();
+        LocalDateTime baseComputedAt = pair.current().reportTime();
 
         // since = computedAt + (TTL - 1)분 → 재계산 안 함
         LocalDateTime sinceMinus1 = baseComputedAt.plusMinutes(TTL_MINUTES - 1);
         NotificationRequest minusReq = rainReq(regionId, sinceMinus1);
         rule.evaluate(minusReq);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId);
 
         // since = computedAt + (TTL + 1)분 → 재계산
         LocalDateTime sincePlus1 = baseComputedAt.plusMinutes(TTL_MINUTES + 1);
         NotificationRequest plusReq = rainReq(regionId, sincePlus1);
         rule.evaluate(plusReq);
-        verify(snapshotQueryService, times(2)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(2)).loadDefaultPopViewPair(regionId);
     }
 
     @Test
@@ -230,22 +230,22 @@ class RainOnsetChangeRuleTest {
         int th = RainThresholdEnum.RAIN.getThreshold();
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
-        PopSeriesPair series = seriesWithOnsetAtValidAtHourOffset(nowHour, 3, th);
-        when(snapshotQueryService.loadDefaultPopSeries(regionId)).thenReturn(series);
+        PopViewPair pair = pairWithOnsetAtValidAtHourOffset(nowHour, 3, th);
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
 
         // 최초 계산
         NotificationRequest firstReq = rainReq(regionId, null);
         var events1 = rule.evaluate(firstReq);
         assertThat(events1).hasSize(1);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId);
 
         // TTL 보다 훨씬 미래 since → 재계산
-        LocalDateTime computedAt = series.curReportTime();
+        LocalDateTime computedAt = pair.current().reportTime();
         LocalDateTime sinceFuture = computedAt.plusMinutes(TTL_MINUTES + 60);
         NotificationRequest futureReq = rainReq(regionId, sinceFuture);
         rule.evaluate(futureReq);
 
-        verify(snapshotQueryService, times(2)).loadDefaultPopSeries(regionId);
+        verify(snapshotQueryService, times(2)).loadDefaultPopViewPair(regionId);
     }
 
     @Test
@@ -257,24 +257,24 @@ class RainOnsetChangeRuleTest {
         int th = RainThresholdEnum.RAIN.getThreshold();
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
-        PopSeriesPair series01 = seriesWithOnsetAtValidAtHourOffset(nowHour, 2, th);
-        PopSeriesPair series02 = seriesWithOnsetAtValidAtHourOffset(nowHour, 6, th);
+        PopViewPair pair01 = pairWithOnsetAtValidAtHourOffset(nowHour, 2, th);
+        PopViewPair pair02 = pairWithOnsetAtValidAtHourOffset(nowHour, 6, th);
 
-        when(snapshotQueryService.loadDefaultPopSeries(regionId01)).thenReturn(series01);
-        when(snapshotQueryService.loadDefaultPopSeries(regionId02)).thenReturn(series02);
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId01)).thenReturn(pair01);
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId02)).thenReturn(pair02);
 
         // 1) 두 지역 동시에 호출 → 각 1회씩 계산
         NotificationRequest reqBoth = rainReq(List.of(regionId01, regionId02), null);
         rule.evaluate(reqBoth);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId01);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId02);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId01);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId02);
 
         // 2) r1만 다시 호출(since != null) → r1 캐시 재사용, r2는 건드리지 않음
-        LocalDateTime since = series01.curReportTime().plusMinutes(10);
+        LocalDateTime since = pair01.current().reportTime().plusMinutes(10);
         NotificationRequest reqR1 = rainReq(regionId01, since);
         rule.evaluate(reqR1);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId01);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId02);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId01);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId02);
     }
 
     @Test
@@ -286,16 +286,16 @@ class RainOnsetChangeRuleTest {
         int th = RainThresholdEnum.RAIN.getThreshold();
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
-        when(snapshotQueryService.loadDefaultPopSeries(regionId01))
-                .thenReturn(seriesWithOnsetAtValidAtHourOffset(nowHour, 1, th));
-        when(snapshotQueryService.loadDefaultPopSeries(regionId02))
-                .thenReturn(seriesWithOnsetAtValidAtHourOffset(nowHour, 4, th));
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId01))
+                .thenReturn(pairWithOnsetAtValidAtHourOffset(nowHour, 1, th));
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId02))
+                .thenReturn(pairWithOnsetAtValidAtHourOffset(nowHour, 4, th));
 
         // 최초 계산
         NotificationRequest firstReq = rainReq(List.of(regionId01, regionId02), null);
         rule.evaluate(firstReq);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId01);
-        verify(snapshotQueryService, times(1)).loadDefaultPopSeries(regionId02);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId01);
+        verify(snapshotQueryService, times(1)).loadDefaultPopViewPair(regionId02);
 
         // 전체 무효화
         rule.invalidateAll();
@@ -303,8 +303,8 @@ class RainOnsetChangeRuleTest {
         // 다시 호출 → 두 지역 모두 재계산
         NotificationRequest secondReq = rainReq(List.of(regionId01, regionId02), null);
         rule.evaluate(secondReq);
-        verify(snapshotQueryService, times(2)).loadDefaultPopSeries(regionId01);
-        verify(snapshotQueryService, times(2)).loadDefaultPopSeries(regionId02);
+        verify(snapshotQueryService, times(2)).loadDefaultPopViewPair(regionId01);
+        verify(snapshotQueryService, times(2)).loadDefaultPopViewPair(regionId02);
     }
 
     /* ===================== NotificationRequest helper ===================== */
@@ -324,49 +324,32 @@ class RainOnsetChangeRuleTest {
         );
     }
 
-    /* ===================== PopSeriesPair helper ===================== */
+    /* ===================== PopViewPair helper ===================== */
 
     /**
-     * nowHour 기준으로 A01=now+1 ... A26=now+26 validAt을 생성하고,
+     * nowHour 기준으로 H01=now+1 ... H26=now+26 validAt을 생성하고,
      * 특정 hourOffset(1..26)에서만 "이전<th, 현재>=th" 교차를 만든다.
      *
-     * curReportTime은 캐시 기준시각이므로 nowHour로 맞춰 일관성 유지.
+     * reportTime은 캐시 기준시각이므로 nowHour로 맞춰 일관성 유지.
      */
-    private static PopSeriesPair seriesWithOnsetAtValidAtHourOffset(LocalDateTime nowHour, int hourOffset, int th) {
-        List<PopSeries24.Point> cur = new ArrayList<>(PopSeries24.SIZE);
-        List<PopSeries24.Point> prv = new ArrayList<>(PopSeries24.SIZE);
+    private static PopViewPair pairWithOnsetAtValidAtHourOffset(LocalDateTime nowHour, int hourOffset, int th) {
+        PopView.HourlyPopSeries26 curHourly = hourlySeriesWithCross(nowHour, hourOffset, th, true);
+        PopView.HourlyPopSeries26 prvHourly = hourlySeriesWithCross(nowHour, hourOffset, th, false);
 
-        for (int i = 1; i <= PopSeries24.SIZE; i++) {
-            LocalDateTime at = nowHour.plusHours(i);
+        PopView cur = new PopView(curHourly, EMPTY_DAILY, nowHour);
+        PopView prv = new PopView(prvHourly, EMPTY_DAILY, nowHour);
 
-            int curPop = 0;
-            int prvPop = 0;
-
-            if (i == hourOffset) {
-                curPop = th;
-                prvPop = th - 1;
-            }
-
-            cur.add(new PopSeries24.Point(at, curPop));
-            prv.add(new PopSeries24.Point(at, prvPop));
-        }
-
-        return new PopSeriesPair(
-                new PopSeries24(cur),
-                new PopSeries24(prv),
-                0,
-                nowHour
-        );
+        return new PopViewPair(cur, prv);
     }
 
     /**
      * 특정 validAt에서 이전도 이미 비(>=th), 현재도 비(>=th) -> onset 없음
      */
-    private static PopSeriesPair seriesAlreadyRainingAtValidAtHourOffset(LocalDateTime nowHour, int hourOffset, int th) {
-        List<PopSeries24.Point> cur = new ArrayList<>(PopSeries24.SIZE);
-        List<PopSeries24.Point> prv = new ArrayList<>(PopSeries24.SIZE);
+    private static PopViewPair pairAlreadyRainingAtValidAtHourOffset(LocalDateTime nowHour, int hourOffset, int th) {
+        List<PopView.HourlyPopSeries26.Point> cur = new ArrayList<>(PopView.HOURLY_SIZE);
+        List<PopView.HourlyPopSeries26.Point> prv = new ArrayList<>(PopView.HOURLY_SIZE);
 
-        for (int i = 1; i <= PopSeries24.SIZE; i++) {
+        for (int i = 1; i <= PopView.HOURLY_SIZE; i++) {
             LocalDateTime at = nowHour.plusHours(i);
 
             int curPop = 0;
@@ -377,15 +360,51 @@ class RainOnsetChangeRuleTest {
                 prvPop = th + 1;
             }
 
-            cur.add(new PopSeries24.Point(at, curPop));
-            prv.add(new PopSeries24.Point(at, prvPop));
+            cur.add(new PopView.HourlyPopSeries26.Point(at, curPop));
+            prv.add(new PopView.HourlyPopSeries26.Point(at, prvPop));
         }
 
-        return new PopSeriesPair(
-                new PopSeries24(cur),
-                new PopSeries24(prv),
-                0,
-                nowHour
-        );
+        PopView curView = new PopView(new PopView.HourlyPopSeries26(cur), EMPTY_DAILY, nowHour);
+        PopView prvView = new PopView(new PopView.HourlyPopSeries26(prv), EMPTY_DAILY, nowHour);
+
+        return new PopViewPair(curView, prvView);
     }
+
+    /**
+     * 교차 1건 생성용 헬퍼
+     * - cur==true: 해당 offset에서 curPop=th, 아니면 0
+     * - cur==false: 해당 offset에서 prvPop=th-1, 아니면 0
+     */
+    private static PopView.HourlyPopSeries26 hourlySeriesWithCross(
+            LocalDateTime nowHour,
+            int hourOffset,
+            int th,
+            boolean cur
+    ) {
+        List<PopView.HourlyPopSeries26.Point> pts = new ArrayList<>(PopView.HOURLY_SIZE);
+
+        for (int i = 1; i <= PopView.HOURLY_SIZE; i++) {
+            LocalDateTime at = nowHour.plusHours(i);
+
+            int pop = 0;
+            if (i == hourOffset) {
+                pop = cur ? th : (th - 1);
+            }
+
+            pts.add(new PopView.HourlyPopSeries26.Point(at, pop));
+        }
+
+        return new PopView.HourlyPopSeries26(pts);
+    }
+
+    private static final PopView.DailyPopSeries7 EMPTY_DAILY =
+            new PopView.DailyPopSeries7(List.of(
+                    new PopView.DailyPopSeries7.DailyPop(0, 0),
+                    new PopView.DailyPopSeries7.DailyPop(0, 0),
+                    new PopView.DailyPopSeries7.DailyPop(0, 0),
+                    new PopView.DailyPopSeries7.DailyPop(0, 0),
+                    new PopView.DailyPopSeries7.DailyPop(0, 0),
+                    new PopView.DailyPopSeries7.DailyPop(0, 0),
+                    new PopView.DailyPopSeries7.DailyPop(0, 0)
+            ));
 }

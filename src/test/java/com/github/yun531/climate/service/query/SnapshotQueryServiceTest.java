@@ -1,11 +1,11 @@
 package com.github.yun531.climate.service.query;
 
+import com.github.yun531.climate.service.notification.model.PopViewPair;
 import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;
-import com.github.yun531.climate.service.notification.model.PopForecastSeries;
-import com.github.yun531.climate.service.notification.model.PopSeriesPair;
+import com.github.yun531.climate.service.notification.model.PopView;
 import com.github.yun531.climate.service.snapshot.SnapshotProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 /**
- * SnapshotQueryService 테스트 (validAt 기반 HourlyPoint / PopSeries24(Point) 반영)
+ * SnapshotQueryService 테스트 (PopView 단일 모델 반영)
  */
 @ExtendWith(MockitoExtension.class)
 class SnapshotQueryServiceTest {
@@ -44,19 +44,17 @@ class SnapshotQueryServiceTest {
         int curId = SnapKindEnum.SNAP_CURRENT.getCode();
         int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
 
-        // 이전 리포트 시각: 2025-01-01T08:00
         LocalDateTime prvTime = LocalDateTime.of(2025, 1, 1, 8, 0, 0);
-        // 현재 리포트 시각: 3시간 뒤
         LocalDateTime curTime = prvTime.plusHours(3);
 
-        // POP 값: current 0..25, previous 10..35 (총 26개)
+        // POP 값: current 0..25, previous 10..35
         List<Integer> curHourlyPop = rangeList(0, 26);
         List<Integer> prvHourlyPop = rangeList(10, 26);
 
         ForecastSnap cur = new ForecastSnap(
                 regionId,
                 curTime,
-                buildHourlyPoints(curTime, curHourlyPop), // temp는 null, pop만 유의미
+                buildHourlyPoints(curTime, curHourlyPop),
                 dummyDailyPoints()
         );
 
@@ -71,26 +69,32 @@ class SnapshotQueryServiceTest {
         when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(prv);
 
         // when
-        PopSeriesPair series = snapshotQueryService.loadPopSeries(regionId, curId, prvId);
+        PopViewPair series = snapshotQueryService.loadPopViewPair(regionId, curId, prvId);
 
         // then
         assertThat(series.current()).isNotNull();
         assertThat(series.previous()).isNotNull();
 
-        assertThat(series.current().size()).isEqualTo(26);
-        assertThat(series.previous().size()).isEqualTo(26);
+        assertThat(series.current().hourly().points()).hasSize(26);
+        assertThat(series.previous().hourly().points()).hasSize(26);
 
         // current: 0..25
         for (int off = 1; off <= 26; off++) {
-            assertThat(series.current().get(off)).isEqualTo(off - 1);
-        }
-        // previous: 10..35
-        for (int off = 1; off <= 26; off++) {
-            assertThat(series.previous().get(off)).isEqualTo(10 + (off - 1));
+            int pop = series.current().hourly().points().get(off - 1).pop();
+            assertThat(pop).isEqualTo(off - 1);
         }
 
-        // 리포트 시각 차이(3시간)가 reportTimeGap 으로 반영되었는지 확인
+        // previous: 10..35
+        for (int off = 1; off <= 26; off++) {
+            int pop = series.previous().hourly().points().get(off - 1).pop();
+            assertThat(pop).isEqualTo(10 + (off - 1));
+        }
+
+        // reportTimeGap = 3
         assertThat(series.reportTimeGap()).isEqualTo(3);
+
+        // current reportTime도 같이 확인(원하면)
+        assertThat(series.current().reportTime()).isEqualTo(curTime);
     }
 
     @Test
@@ -108,17 +112,16 @@ class SnapshotQueryServiceTest {
                 dummyDailyPoints()
         );
 
-        // 이전 스냅이 없는 경우 (cur 만 반환)
         when(snapshotProvider.loadSnapshot(regionId, curId)).thenReturn(cur);
         when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(null);
 
         // when
-        PopSeriesPair series = snapshotQueryService.loadPopSeries(regionId, curId, prvId);
+        snapshotQueryService.loadDefaultPopViewPair(regionId);
 
         // then
-        assertThat(series.current()).isNull();
-        assertThat(series.previous()).isNull();
-        assertThat(series.reportTimeGap()).isEqualTo(0);
+        verify(snapshotProvider, times(1)).loadSnapshot(regionId, curId);
+        verify(snapshotProvider, times(1)).loadSnapshot(regionId, prvId);
+        verifyNoMoreInteractions(snapshotProvider);
     }
 
     @Test
@@ -148,7 +151,7 @@ class SnapshotQueryServiceTest {
         when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(prv);
 
         // when
-        snapshotQueryService.loadDefaultPopSeries(regionId);
+        snapshotQueryService.loadDefaultPopViewPair(regionId);
 
         // then
         verify(snapshotProvider, times(1)).loadSnapshot(regionId, curId);
@@ -164,11 +167,9 @@ class SnapshotQueryServiceTest {
 
         LocalDateTime reportTime = nowMinutes();
 
-        // hourly POP: 0..25 (총 26개)
         List<Integer> hourlyPop = rangeList(0, 26);
         List<HourlyPoint> hourly = buildHourlyPoints(reportTime, hourlyPop);
 
-        // daily: 7일치 AM/PM POP
         List<DailyPoint> daily = List.of(
                 new DailyPoint(0, null, null, 60, 10),
                 new DailyPoint(1, null, null, 10, 70),
@@ -189,29 +190,31 @@ class SnapshotQueryServiceTest {
         when(snapshotProvider.loadSnapshot(regionId, snapId)).thenReturn(snapshot);
 
         // when
-        PopForecastSeries fs = snapshotQueryService.loadForecastSeries(regionId, snapId);
+        PopView pop = snapshotQueryService.loadPopView(regionId, snapId);
 
         // then
-        assertThat(fs.hourly()).isNotNull();
-        assertThat(fs.daily()).isNotNull();
+        assertThat(pop).isNotNull();
+        assertThat(pop.hourly()).isNotNull();
+        assertThat(pop.daily()).isNotNull();
 
         // hourly 0..25
-        assertThat(fs.hourly().size()).isEqualTo(26);
+        assertThat(pop.hourly().points()).hasSize(26);
         for (int i = 1; i <= 26; i++) {
-            assertThat(fs.hourly().get(i)).isEqualTo(i - 1);
+            int p = pop.hourly().points().get(i - 1).pop();
+            assertThat(p).isEqualTo(i - 1);
         }
 
         // daily 7일 AM/PM
-        assertThat(fs.daily().days()).hasSize(7);
-        assertThat(fs.daily().days().get(0).am()).isEqualTo(60);
-        assertThat(fs.daily().days().get(0).pm()).isEqualTo(10);
-        assertThat(fs.daily().days().get(1).pm()).isEqualTo(70);
-        assertThat(fs.daily().days().get(4).am()).isEqualTo(80);
-        assertThat(fs.daily().days().get(5).pm()).isEqualTo(80);
+        assertThat(pop.daily().days()).hasSize(7);
+        assertThat(pop.daily().days().get(0).am()).isEqualTo(60);
+        assertThat(pop.daily().days().get(0).pm()).isEqualTo(10);
+        assertThat(pop.daily().days().get(1).pm()).isEqualTo(70);
+        assertThat(pop.daily().days().get(4).am()).isEqualTo(80);
+        assertThat(pop.daily().days().get(5).pm()).isEqualTo(80);
     }
 
     @Test
-    void loadForecastSeries_snapshot없으면_null들_반환() {
+    void loadForecastSeries_snapshot없으면_null반환() {
         // given
         String regionId = "99";
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
@@ -219,27 +222,23 @@ class SnapshotQueryServiceTest {
         when(snapshotProvider.loadSnapshot(regionId, snapId)).thenReturn(null);
 
         // when
-        PopForecastSeries fs = snapshotQueryService.loadForecastSeries(regionId, snapId);
+        PopView pop = snapshotQueryService.loadPopView(regionId, snapId);
 
         // then
-        assertThat(fs.hourly()).isNull();
-        assertThat(fs.daily()).isNull();
+        assertThat(pop).isNull();
     }
 
     // ---- helpers ----
 
-    /** base부터 base+count-1 까지 int 리스트 생성 */
     private static List<Integer> rangeList(int base, int count) {
         List<Integer> out = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            out.add(base + i);
-        }
+        for (int i = 0; i < count; i++) out.add(base + i);
         return out;
     }
 
     /**
      * POP만 필요한 경우 temp=null, pop만 채운 HourlyPoint 리스트 생성
-     * - validAt은 reportTime + (1..N)시간으로 구성 (A01~A26과 동일한 의미)
+     * - validAt은 reportTime + (1..N)시간
      */
     private static List<HourlyPoint> buildHourlyPoints(LocalDateTime reportTime, List<Integer> pops) {
         List<HourlyPoint> list = new ArrayList<>(pops.size());
@@ -250,7 +249,6 @@ class SnapshotQueryServiceTest {
         return List.copyOf(list);
     }
 
-    /** 테스트에서 daily를 쓰지 않을 때 사용할 더미 7일치 DailyPoint */
     private static List<DailyPoint> dummyDailyPoints() {
         List<DailyPoint> list = new ArrayList<>(7);
         for (int day = 0; day < 7; day++) {

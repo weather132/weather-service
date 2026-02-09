@@ -46,21 +46,17 @@ public class RainForecastPartsAdjuster {
     public List<AlertEvent> adjust(List<AlertEvent> events,
                                    @Nullable LocalDateTime baseTime,
                                    LocalDateTime now) {
-        if (events == null || events.isEmpty()) {
-            return List.of();
-        }
-        if (baseTime == null) {
-            return List.copyOf(events);
-        }
+        if (events == null || events.isEmpty()) return List.of();
+        if (baseTime == null) return List.copyOf(events);
 
         TimeShiftUtil.Shift shift = TimeShiftUtil.computeShift(baseTime, now, maxShiftHours);
 
         int diffHours = Math.max(0, shift.diffHours()); // 0/1/2
-        int dayShift = Math.max(0, shift.dayShift());
+        int dayShift  = Math.max(0, shift.dayShift());
         LocalDateTime shiftedTime = shift.shiftedBaseTime();
 
-        // "24시간 영역"은 maxHourlyHours가 더 작으면 그만큼만(방어)
-        int horizonHours = Math.min(24, maxHourlyHours);
+        // 0 이하로 들어오면 결과가 전부 날아가므로 최소 1 보장
+        int horizonHours = Math.max(1, Math.min(24, maxHourlyHours));
 
         now = now.truncatedTo(HOURS);
         LocalDateTime windowStart = now.plusHours(diffHours + 1L);
@@ -76,20 +72,41 @@ public class RainForecastPartsAdjuster {
                 continue;
             }
 
+            // 입력은 String/LocalDateTime 모두 허용(캐시/이전버전 호환)
             List<List<LocalDateTime>> hourlyParts = safeRead2dDateTimeList(payload.get(hourlyPartsKey));
             List<List<Integer>> dayParts = safeRead2dIntList(payload.get(dayPartsKey));
 
-            List<List<LocalDateTime>> newHourly = clampHourlyPartsToWindow(hourlyParts, windowStart, windowEnd);
+            // 내부 계산은 LocalDateTime으로
+            List<List<LocalDateTime>> clamped = clampHourlyPartsToWindow(hourlyParts, windowStart, windowEnd);
             List<List<Integer>> newDays = (dayShift > 0) ? shiftDayParts(dayParts, dayShift) : dayParts;
 
+            // payload에는 "문자열(ISO)"로 고정해서 넣기
+            List<List<String>> newHourlyIso = toIso2d(clamped);
+
             Map<String, Object> newPayload = new HashMap<>(payload);
-            newPayload.put(hourlyPartsKey, newHourly);
+            newPayload.put(hourlyPartsKey, newHourlyIso);
             newPayload.put(dayPartsKey, newDays);
 
             out.add(new AlertEvent(e.type(), e.regionId(), shiftedTime, Map.copyOf(newPayload)));
         }
 
         return List.copyOf(out);
+    }
+
+    private List<List<String>> toIso2d(List<List<LocalDateTime>> parts) {
+        if (parts == null || parts.isEmpty()) return List.of();
+
+        List<List<String>> out = new ArrayList<>(parts.size());
+        for (List<LocalDateTime> row : parts) {
+            if (row == null || row.size() < 2) continue;
+
+            LocalDateTime a = row.get(0);
+            LocalDateTime b = row.get(1);
+            if (a == null || b == null) continue;
+
+            out.add(List.of(a.toString(), b.toString()));
+        }
+        return out.isEmpty() ? List.of() : List.copyOf(out);
     }
 
     /**
@@ -148,17 +165,15 @@ public class RainForecastPartsAdjuster {
             List<Integer> row = dayParts.get(i);
             out.add((row == null || row.size() < 2) ? List.of(0, 0) : List.of(row.get(0), row.get(1)));
         }
-        for (int i = 0; i < dayShift; i++) {
-            out.add(List.of(0, 0));
-        }
+        for (int i = 0; i < dayShift; i++) out.add(List.of(0, 0));
 
         return List.copyOf(out);
     }
 
     /**
      * payload[hourlyPartsKey]를 "2차원 LocalDateTime 리스트"로 읽기
-     * - row: [startValidAt, endValidAt]
-     * - 값은 LocalDateTime 만 허용
+     * - row: [start, end]
+     * - 각 값은 String (ISO) 또는 LocalDateTime 허용
      */
     private List<List<LocalDateTime>> safeRead2dDateTimeList(Object obj) {
         if (!(obj instanceof List<?> outer)) return List.of();
@@ -168,30 +183,32 @@ public class RainForecastPartsAdjuster {
         for (Object rowObj : outer) {
             if (!(rowObj instanceof List<?> row) || row.size() < 2) continue;
 
-            Object aObj = row.get(0);
-            Object bObj = row.get(1);
+            LocalDateTime a = toLocalDateTime(row.get(0));
+            LocalDateTime b = toLocalDateTime(row.get(1));
+            if (a == null || b == null) continue;
 
-            if (!(aObj instanceof String aStr) || !(bObj instanceof String bStr)) {
-                log.warn("hourlyParts row 타입 불일치: row={}, aType={}, aValue={}, bType={}, bValue={}",
-                        row,
-                        (aObj == null ? "null" : aObj.getClass().getName()), aObj,
-                        (bObj == null ? "null" : bObj.getClass().getName()), bObj
-                );
-                continue;
-            }
-
-            try {
-                LocalDateTime a = LocalDateTime.parse(aStr);
-                LocalDateTime b = LocalDateTime.parse(bStr);
-                out.add(List.of(a, b));
-            } catch (DateTimeParseException ex) {
-                // 포맷이 확정이라면 사실상 발생하면 데이터가 깨진 것
-                log.warn("hourlyParts datetime 파싱 실패(ISO-8601 기대): row={}, start='{}', end='{}', reason={}",
-                        row, aStr, bStr, ex.getMessage());
-            }
+            out.add(List.of(a, b));
         }
 
         return out.isEmpty() ? List.of() : List.copyOf(out);
+    }
+
+    private LocalDateTime toLocalDateTime(Object o) {
+        if (o instanceof LocalDateTime t) return t;
+        if (o instanceof String s) {
+            try {
+                return LocalDateTime.parse(s);
+            } catch (DateTimeParseException ex) {
+                log.warn("hourlyParts datetime 파싱 실패(ISO 기대): value='{}', reason={}", s, ex.getMessage());
+                return null;
+            }
+        }
+
+        // 타입 불일치 로그(원인 추적용)
+        if (o != null) {
+            log.warn("hourlyParts 값 타입 불일치: type={}, value={}", o.getClass().getName(), o);
+        }
+        return null;
     }
 
     private List<List<Integer>> safeRead2dIntList(Object obj) {

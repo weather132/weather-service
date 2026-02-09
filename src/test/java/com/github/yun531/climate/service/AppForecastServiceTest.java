@@ -42,7 +42,7 @@ class AppForecastServiceTest {
     }
 
     @Test
-    @DisplayName("hourly forecast: reportTime이 null이면 보정 없이 원본 그대로 반환한다")
+    @DisplayName("hourly forecast: reportTime이 null이면 보정 없이(정규화만) 반환한다")
     void adjustHourly_returnsBase_whenReportTimeIsNull() {
         String regionId = "11";
 
@@ -57,8 +57,9 @@ class AppForecastServiceTest {
 
         HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
 
-        // adjuster에서 reportTime null이면 그대로 반환하는 정책
-        assertSame(base, result);
+        // 리팩토링 버전: 새 DTO로 감싸서 반환할 수 있으니 "동일 객체"가 아니라 "동일 값"을 검증
+        assertNotNull(result);
+        assertEquals(base, result);
         verify(snapshotQueryService).getHourlyForecast(regionId);
     }
 
@@ -106,17 +107,16 @@ class AppForecastServiceTest {
     }
 
     @Test
-    @DisplayName("hourly forecast: 1시간 경과 시 reportTime이 +1h 보정되고, validAt > 보정 reportTime 인 항목만 남는다")
+    @DisplayName("hourly forecast: 1시간 경과 시 reportTime이 +1h 보정되고, validAt >= 보정 reportTime 인 항목만 남는다")
     void adjustHourly_shiftsByOneHour_usingValidAt() {
         String regionId = "11";
 
-        // diffHours=1을 안정적으로 만들기 위해:
-        // reportTime을 "현재 시간대(nowHour)" 바로 전 시간대 안으로 고정
-        LocalDateTime nowHour = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
-        LocalDateTime reportTime = nowHour.minusHours(1).plusMinutes(10); // bt=전시간, nw=현시간 -> diff=1
+        // 서비스는 TimeUtil.nowMinutes()를 쓰므로, 테스트도 같은 축으로 맞추는 게 안정적
+        LocalDateTime nowHour = TimeUtil.nowMinutes().truncatedTo(ChronoUnit.HOURS);
+        LocalDateTime reportTime = nowHour.minusHours(1).plusMinutes(10); // diffHours=1
 
         LocalDateTime v0 = reportTime;
-        LocalDateTime v1 = reportTime.plusHours(1); // shiftedReportTime과 "동일" -> isAfter면 제외됨
+        LocalDateTime v1 = reportTime.plusHours(1); // shiftedReportTime과 동일
         LocalDateTime v2 = reportTime.plusHours(2);
         LocalDateTime v3 = reportTime.plusHours(3);
 
@@ -139,36 +139,38 @@ class AppForecastServiceTest {
         assertNotNull(result);
         assertEquals(regionId, result.regionId());
 
-        // maxShiftHours=2, rawDiffHours=1 -> reportTime + 1h
+        // reportTime + 1h
         assertEquals(reportTime.plusHours(1), result.reportTime());
 
         List<HourlyPoint> hours = result.hours();
 
-        // 구현이 isAfter(shiftedBaseTime) 이므로:
-        // v1(== shiftedReportTime)은 제외되고 v2,v3만 남음
-        assertEquals(2, hours.size());
+        // 리팩토링 버전은 inclusive(>=) 이라 v1도 포함됨
+        assertEquals(3, hours.size());
 
-        assertEquals(v2, hours.get(0).validAt());
-        assertEquals(12, hours.get(0).temp());
-        assertEquals(40, hours.get(0).pop());
+        assertEquals(v1, hours.get(0).validAt());
+        assertEquals(11, hours.get(0).temp());
+        assertEquals(30, hours.get(0).pop());
 
-        assertEquals(v3, hours.get(1).validAt());
-        assertEquals(13, hours.get(1).temp());
-        assertEquals(50, hours.get(1).pop());
+        assertEquals(v2, hours.get(1).validAt());
+        assertEquals(12, hours.get(1).temp());
+        assertEquals(40, hours.get(1).pop());
+
+        assertEquals(v3, hours.get(2).validAt());
+        assertEquals(13, hours.get(2).temp());
+        assertEquals(50, hours.get(2).pop());
     }
 
     @Test
-    @DisplayName("hourly forecast: 3시간 이상 경과 시 최대 2시간까지만 보정하고, validAt > (reportTime+2h) 인 항목만 남는다")
+    @DisplayName("hourly forecast: 3시간 이상 경과 시 최대 2시간까지만 보정하고, validAt >= (reportTime+2h) 인 항목만 남는다")
     void adjustHourly_clampedToTwoHours_usingValidAt() {
         String regionId = "11";
 
-        // rawDiffHours를 크게 만들어도 clamp=2라 결과는 안정적
-        LocalDateTime nowHour = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
-        LocalDateTime reportTime = nowHour.minusHours(4).plusMinutes(10); // rawDiffHours>=3 보장(대부분)
+        LocalDateTime nowHour = TimeUtil.nowMinutes().truncatedTo(ChronoUnit.HOURS);
+        LocalDateTime reportTime = nowHour.minusHours(4).plusMinutes(10); // rawDiffHours 크게
 
         LocalDateTime v0 = reportTime;
         LocalDateTime v1 = reportTime.plusHours(1);
-        LocalDateTime v2 = reportTime.plusHours(2); // shiftedReportTime과 동일 -> isAfter면 제외됨
+        LocalDateTime v2 = reportTime.plusHours(2); // shiftedReportTime과 동일
         LocalDateTime v3 = reportTime.plusHours(3);
 
         HourlyForecastDto base =
@@ -189,17 +191,21 @@ class AppForecastServiceTest {
 
         assertNotNull(result);
 
-        // maxShiftHours=2 -> reportTime + 2h
+        // clamp=2 -> reportTime + 2h
         assertEquals(reportTime.plusHours(2), result.reportTime());
 
         List<HourlyPoint> hours = result.hours();
 
-        // isAfter 정책이라 v2(==shiftedReportTime)는 제외되고 v3만 남음
-        assertEquals(1, hours.size());
+        // inclusive(>=) 이라 v2도 포함되어 2개가 남음
+        assertEquals(2, hours.size());
 
-        assertEquals(v3, hours.get(0).validAt());
-        assertEquals(13, hours.get(0).temp());
-        assertEquals(50, hours.get(0).pop());
+        assertEquals(v2, hours.get(0).validAt());
+        assertEquals(12, hours.get(0).temp());
+        assertEquals(40, hours.get(0).pop());
+
+        assertEquals(v3, hours.get(1).validAt());
+        assertEquals(13, hours.get(1).temp());
+        assertEquals(50, hours.get(1).pop());
     }
 
     @Test

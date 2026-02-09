@@ -1,13 +1,13 @@
 package com.github.yun531.climate.repository.dto;
 
-import com.github.yun531.climate.service.notification.model.PopDailySeries7;
-import com.github.yun531.climate.service.notification.model.PopSeries24;
+import com.github.yun531.climate.service.notification.model.PopView;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -20,8 +20,7 @@ public class POPSnapDto {
     private String regionId;
     private LocalDateTime reportTime;
 
-    private PopSeries24 hourly;                  // ---- 시간대별 POP (1~26시) ---- //
-    private PopDailySeries7 daily;               // ---- 일자별 (0~6일) 오전/오후 POP ----
+    private PopView pop;
 
     public POPSnapDto(
             Integer snapId,
@@ -48,37 +47,46 @@ public class POPSnapDto {
             Integer popA5dAm, Integer popA5dPm,
             Integer popA6dAm, Integer popA6dPm
     ) {
-        this.snapId = snapId;
+        this.snapId = (snapId == null) ? 0 : snapId;
         this.regionId = regionId;
         this.reportTime = reportTime;
 
-        // 시간대별: (validAt, pop) 26개를 PopSeries24로 묶기
-        this.hourly = new PopSeries24(List.of(
-                new PopSeries24.Point(validAtA01, n(popA01)), new PopSeries24.Point(validAtA02, n(popA02)),
-                new PopSeries24.Point(validAtA03, n(popA03)), new PopSeries24.Point(validAtA04, n(popA04)),
-                new PopSeries24.Point(validAtA05, n(popA05)), new PopSeries24.Point(validAtA06, n(popA06)),
-                new PopSeries24.Point(validAtA07, n(popA07)), new PopSeries24.Point(validAtA08, n(popA08)),
-                new PopSeries24.Point(validAtA09, n(popA09)), new PopSeries24.Point(validAtA10, n(popA10)),
-                new PopSeries24.Point(validAtA11, n(popA11)), new PopSeries24.Point(validAtA12, n(popA12)),
-                new PopSeries24.Point(validAtA13, n(popA13)), new PopSeries24.Point(validAtA14, n(popA14)),
-                new PopSeries24.Point(validAtA15, n(popA15)), new PopSeries24.Point(validAtA16, n(popA16)),
-                new PopSeries24.Point(validAtA17, n(popA17)), new PopSeries24.Point(validAtA18, n(popA18)),
-                new PopSeries24.Point(validAtA19, n(popA19)), new PopSeries24.Point(validAtA20, n(popA20)),
-                new PopSeries24.Point(validAtA21, n(popA21)), new PopSeries24.Point(validAtA22, n(popA22)),
-                new PopSeries24.Point(validAtA23, n(popA23)), new PopSeries24.Point(validAtA24, n(popA24)),
-                new PopSeries24.Point(validAtA25, n(popA25)), new PopSeries24.Point(validAtA26, n(popA26))
-        ));
+        // 시간대별: (validAt, pop) 26개를 PopView.HourlyPopSeries26로 묶기
+        // hourly 26개
+        List<PopView.HourlyPopSeries26.Point> pts = new ArrayList<>(PopView.HOURLY_SIZE);
+        add(pts, validAtA01, popA01); add(pts, validAtA02, popA02);
+        add(pts, validAtA03, popA03); add(pts, validAtA04, popA04);
+        add(pts, validAtA05, popA05); add(pts, validAtA06, popA06);
+        add(pts, validAtA07, popA07); add(pts, validAtA08, popA08);
+        add(pts, validAtA09, popA09); add(pts, validAtA10, popA10);
+        add(pts, validAtA11, popA11); add(pts, validAtA12, popA12);
+        add(pts, validAtA13, popA13); add(pts, validAtA14, popA14);
+        add(pts, validAtA15, popA15); add(pts, validAtA16, popA16);
+        add(pts, validAtA17, popA17); add(pts, validAtA18, popA18);
+        add(pts, validAtA19, popA19); add(pts, validAtA20, popA20);
+        add(pts, validAtA21, popA21); add(pts, validAtA22, popA22);
+        add(pts, validAtA23, popA23); add(pts, validAtA24, popA24);
+        add(pts, validAtA25, popA25); add(pts, validAtA26, popA26);
+
+        PopView.HourlyPopSeries26 hourly = new PopView.HourlyPopSeries26(pts);
 
         // 일자별: AM/PM 7개는 기존대로
-        this.daily = new PopDailySeries7(List.of(
-                new PopDailySeries7.DailyPop(n(popA0dAm), n(popA0dPm)),
-                new PopDailySeries7.DailyPop(n(popA1dAm), n(popA1dPm)),
-                new PopDailySeries7.DailyPop(n(popA2dAm), n(popA2dPm)),
-                new PopDailySeries7.DailyPop(n(popA3dAm), n(popA3dPm)),
-                new PopDailySeries7.DailyPop(n(popA4dAm), n(popA4dPm)),
-                new PopDailySeries7.DailyPop(n(popA5dAm), n(popA5dPm)),
-                new PopDailySeries7.DailyPop(n(popA6dAm), n(popA6dPm))
+        // daily 7개
+        PopView.DailyPopSeries7 daily = new PopView.DailyPopSeries7(List.of(
+                new PopView.DailyPopSeries7.DailyPop(n(popA0dAm), n(popA0dPm)),
+                new PopView.DailyPopSeries7.DailyPop(n(popA1dAm), n(popA1dPm)),
+                new PopView.DailyPopSeries7.DailyPop(n(popA2dAm), n(popA2dPm)),
+                new PopView.DailyPopSeries7.DailyPop(n(popA3dAm), n(popA3dPm)),
+                new PopView.DailyPopSeries7.DailyPop(n(popA4dAm), n(popA4dPm)),
+                new PopView.DailyPopSeries7.DailyPop(n(popA5dAm), n(popA5dPm)),
+                new PopView.DailyPopSeries7.DailyPop(n(popA6dAm), n(popA6dPm))
         ));
+
+        this.pop = new PopView(hourly, daily, reportTime);
+    }
+
+    private static void add(List<PopView.HourlyPopSeries26.Point> out, LocalDateTime validAt, Integer pop) {
+        out.add(new PopView.HourlyPopSeries26.Point(validAt, n(pop)));
     }
 
     /** Integer → int 변환 + null → 0 치환 */

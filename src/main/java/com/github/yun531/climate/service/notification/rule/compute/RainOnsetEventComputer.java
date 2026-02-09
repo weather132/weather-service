@@ -2,8 +2,8 @@ package com.github.yun531.climate.service.notification.rule.compute;
 
 import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
-import com.github.yun531.climate.service.notification.model.PopSeries24;
-import com.github.yun531.climate.service.notification.model.PopSeriesPair;
+import com.github.yun531.climate.service.notification.model.PopView;
+import com.github.yun531.climate.service.notification.model.PopViewPair;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -12,10 +12,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * PopSeriesPair(현재/이전 POP) -> "비 시작" 이벤트 목록 계산만 담당
- * - validAt(절대 시각) 기준으로 prev와 비교
- */
+/** PopViewPair(현재/이전 POP) -> "비 시작" 이벤트 목록 계산만 담당
+ * - validAt(절대 시각) 기준으로 prev와 비교                         */
 public class RainOnsetEventComputer {
 
     private final int rainThreshold;
@@ -30,7 +28,7 @@ public class RainOnsetEventComputer {
                                   String srcRuleName,
                                   String validAtKey,
                                   String popKey) {
-        this(rainThreshold, srcRuleKey, srcRuleName, validAtKey, popKey, PopSeries24.SIZE);
+        this(rainThreshold, srcRuleKey, srcRuleName, validAtKey, popKey, PopView.HOURLY_SIZE);
     }
 
     public RainOnsetEventComputer(int rainThreshold,
@@ -47,25 +45,25 @@ public class RainOnsetEventComputer {
         this.maxPoints = Math.max(1, maxPoints);
     }
 
-    public List<AlertEvent> detect(String regionId, PopSeriesPair series, LocalDateTime computedAt) {
-        if (series == null) return List.of();
+    public List<AlertEvent> detect(String regionId, PopViewPair pair, LocalDateTime occurredAt) {
+        if (pair == null) return List.of();
 
-        PopSeries24 cur = series.current();
-        PopSeries24 prv = series.previous();
-        if (cur == null || prv == null) return List.of();
+        PopView curView = pair.current();
+        PopView prvView = pair.previous();
+        if (curView == null || prvView == null) return List.of();
 
         // prev: validAt -> pop
         Map<LocalDateTime, Integer> prevPopByValidAt = new HashMap<>();
-        for (PopSeries24.Point p : prv.points()) {
+        for (PopView.HourlyPopSeries26.Point p : prvView.hourly().points()) {
             if (p == null || p.validAt() == null) continue;
             prevPopByValidAt.put(p.validAt(), p.pop());
         }
 
         // current: validAt 기준 정렬 후 maxPoints만
-        List<PopSeries24.Point> curPoints =
-                cur.points().stream()
+        List<PopView.HourlyPopSeries26.Point> curPoints =
+                curView.hourly().points().stream()
                         .filter(p -> p != null && p.validAt() != null)
-                        .sorted(Comparator.comparing(PopSeries24.Point::validAt))
+                        .sorted(Comparator.comparing(PopView.HourlyPopSeries26.Point::validAt))
                         .limit(maxPoints)
                         .toList();
 
@@ -73,7 +71,7 @@ public class RainOnsetEventComputer {
 
         List<AlertEvent> events = new ArrayList<>();
 
-        for (PopSeries24.Point p : curPoints) {
+        for (PopView.HourlyPopSeries26.Point p : curPoints) {
             LocalDateTime at = p.validAt();
             int curPop = p.pop();
 
@@ -89,18 +87,18 @@ public class RainOnsetEventComputer {
 
             if (!emit) continue;
 
-            events.add(createEvent(regionId, computedAt, at, curPop));
+            events.add(createEvent(regionId, occurredAt, at, curPop));
         }
 
         return events.isEmpty() ? List.of() : List.copyOf(events);
     }
 
-    private AlertEvent createEvent(String regionId, LocalDateTime computedAt, LocalDateTime validAt, int pop) {
+    private AlertEvent createEvent(String regionId, LocalDateTime occurredAt, LocalDateTime validAt, int pop) {
         Map<String, Object> payload = Map.of(
                 srcRuleKey, srcRuleName,
                 validAtKey, validAt.toString(), // "2026-01-14T21:00:00"
                 popKey, pop
         );
-        return new AlertEvent(AlertTypeEnum.RAIN_ONSET, regionId, computedAt, payload);
+        return new AlertEvent(AlertTypeEnum.RAIN_ONSET, regionId, occurredAt, payload);
     }
 }

@@ -29,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
                 "pop_a01, pop_a02, pop_a03, pop_a04, pop_a05, pop_a06, pop_a07, pop_a08, pop_a09, pop_a10, pop_a11, pop_a12, pop_a13, pop_a14, pop_a15, pop_a16, pop_a17, pop_a18, pop_a19, pop_a20, pop_a21, pop_a22, pop_a23, pop_a24, pop_a25, pop_a26" +
                 ") VALUES " +
 
-                // snap_id=10 (CURRENT 가정)
+                // snap_id=10
                 "(10, '11B10101', '2025-11-18 08:00:00', " +
                 // valid_at_a01~a26 (report_time + 1h ~ +26h)
                 "'2025-11-18 09:00:00','2025-11-18 10:00:00','2025-11-18 11:00:00','2025-11-18 12:00:00'," +
@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
                 "50,40,50,60,60, 60,40,30,20,10, 0,0,10,20,20, 30,40,60,10,0, 20,40,70,40, 60,70" +
                 ")," +
 
-                // snap_id=1 (PREVIOUS 가정)
+                // snap_id=1
                 "(1, '11B10101', '2025-11-18 11:00:00', " +
                 "'2025-11-18 12:00:00','2025-11-18 13:00:00','2025-11-18 14:00:00','2025-11-18 15:00:00'," +
                 "'2025-11-18 16:00:00','2025-11-18 17:00:00','2025-11-18 18:00:00','2025-11-18 19:00:00','2025-11-18 20:00:00'," +
@@ -85,18 +85,31 @@ class ClimateSnapRepositoryTest {
         assertThat(s1.getReportTime()).isNotNull();
         assertThat(s10.getReportTime()).isNotNull();
 
+        // PopView 단일 필드 존재 확인
+        assertThat(s1.getPop()).isNotNull();
+        assertThat(s10.getPop()).isNotNull();
+
+        // DTO reportTime과 PopView reportTime 일치(정규화 규약 확인)
+        assertThat(s1.getPop().reportTime()).isEqualTo(s1.getReportTime());
+        assertThat(s10.getPop().reportTime()).isEqualTo(s10.getReportTime());
+
         // POP 검증 (offset 1~26)
         // snap_id=1  → POP_A01=40, POP_A24=60
-        assertThat(s1.getHourly().get(1)).isEqualTo(40);
-        assertThat(s1.getHourly().get(24)).isEqualTo(60);
+        assertThat(s1.getPop().hourly().popAt(1)).isEqualTo(40);
+        assertThat(s1.getPop().hourly().popAt(24)).isEqualTo(60);
 
         // snap_id=10 → POP_A01=50, POP_A24=40
-        assertThat(s10.getHourly().get(1)).isEqualTo(50);
-        assertThat(s10.getHourly().get(24)).isEqualTo(40);
+        assertThat(s10.getPop().hourly().popAt(1)).isEqualTo(50);
+        assertThat(s10.getPop().hourly().popAt(24)).isEqualTo(40);
 
         // validAt 검증 (Point.validAt)
-        assertThat(s1.getHourly().validAt(1)).isEqualTo(LocalDateTime.parse("2025-11-18T12:00:00"));
-        assertThat(s10.getHourly().validAt(1)).isEqualTo(LocalDateTime.parse("2025-11-18T09:00:00"));
+        assertThat(s1.getPop().hourly().validAt(1)).isEqualTo(LocalDateTime.parse("2025-11-18T12:00:00"));
+        assertThat(s10.getPop().hourly().validAt(1)).isEqualTo(LocalDateTime.parse("2025-11-18T09:00:00"));
+
+        // daily 컬럼을 INSERT에서 생략했으므로(=NULL),
+        // PopView 구성 시 n(null)=0 규칙을 쓰는 경우 아래처럼 0으로 확인 가능
+        assertThat(s1.getPop().daily().get(0).am()).isEqualTo(0);
+        assertThat(s1.getPop().daily().get(0).pm()).isEqualTo(0);
     }
 
     @Test
@@ -105,7 +118,7 @@ class ClimateSnapRepositoryTest {
         String regionId = "11B10101";
 
         // when & then
-        // DB에는 동일 region_id 레코드가 2건(snap_id=1,10)
+        // DB 에는 동일 region_id 레코드가 2건(snap_id=1,10)
         assertThat(repo.findByRegionId(regionId)).hasSize(2);
         assertThat(repo.findBySnapIdIn(List.of(1, 10))).hasSize(2);
         assertThat(repo.findBySnapIdAndRegionId(1, regionId)).isNotNull();

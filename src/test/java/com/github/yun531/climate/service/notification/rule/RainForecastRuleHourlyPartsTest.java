@@ -2,9 +2,7 @@ package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.config.snapshot.SnapshotCacheProperties;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
-import com.github.yun531.climate.service.notification.model.PopDailySeries7;
-import com.github.yun531.climate.service.notification.model.PopForecastSeries;
-import com.github.yun531.climate.service.notification.model.PopSeries24;
+import com.github.yun531.climate.service.notification.model.PopView;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
 import org.junit.jupiter.api.Test;
@@ -32,28 +30,30 @@ class RainForecastRuleHourlyPartsTest {
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
         String regionId = "11B10101";
 
-        LocalDateTime base = nowMinutes().plusHours(5);
+        LocalDateTime now = nowMinutes();
+        LocalDateTime base = now.plusHours(5);
 
-        List<PopSeries24.Point> points = new ArrayList<>(PopSeries24.SIZE);
-        for (int i = 1; i <= PopSeries24.SIZE; i++) {
+        List<PopView.HourlyPopSeries26.Point> points = new ArrayList<>(PopView.HOURLY_SIZE);
+        for (int i = 1; i <= PopView.HOURLY_SIZE; i++) {
             LocalDateTime validAt = base.plusHours(i);
             int pop = (i == 3 || i == 4 || i == 5) ? 60 : 0;
-            points.add(new PopSeries24.Point(validAt, pop));
+            points.add(new PopView.HourlyPopSeries26.Point(validAt, pop));
         }
-        PopSeries24 hourly = new PopSeries24(points);
+        PopView.HourlyPopSeries26 hourly = new PopView.HourlyPopSeries26(points);
 
-        PopDailySeries7 daily = new PopDailySeries7(List.of(
-                new PopDailySeries7.DailyPop(0, 0),
-                new PopDailySeries7.DailyPop(0, 0),
-                new PopDailySeries7.DailyPop(0, 0),
-                new PopDailySeries7.DailyPop(0, 0),
-                new PopDailySeries7.DailyPop(0, 0),
-                new PopDailySeries7.DailyPop(0, 0),
-                new PopDailySeries7.DailyPop(0, 0)
+        PopView.DailyPopSeries7 daily = new PopView.DailyPopSeries7(List.of(
+                new PopView.DailyPopSeries7.DailyPop(0, 0),
+                new PopView.DailyPopSeries7.DailyPop(0, 0),
+                new PopView.DailyPopSeries7.DailyPop(0, 0),
+                new PopView.DailyPopSeries7.DailyPop(0, 0),
+                new PopView.DailyPopSeries7.DailyPop(0, 0),
+                new PopView.DailyPopSeries7.DailyPop(0, 0),
+                new PopView.DailyPopSeries7.DailyPop(0, 0)
         ));
 
-        when(snapshotQueryService.loadForecastSeries(regionId, snapId))
-                .thenReturn(new PopForecastSeries(hourly, daily));
+        // PopView는 reportTime을 가진다고 가정(새 발표시 TTL 무관 갱신에 활용 가능)
+        when(snapshotQueryService.loadPopView(regionId, snapId))
+                .thenReturn(new PopView(hourly, daily, now));
 
         SnapshotCacheProperties cacheProps = new SnapshotCacheProperties(180, 60, 165);
         RainForecastRule rule = new RainForecastRule(snapshotQueryService, cacheProps);
@@ -61,7 +61,7 @@ class RainForecastRuleHourlyPartsTest {
         // when
         NotificationRequest request = new NotificationRequest(
                 List.of(regionId),
-                nowMinutes(),
+                now,
                 null,
                 null,
                 null
@@ -72,11 +72,11 @@ class RainForecastRuleHourlyPartsTest {
         assertThat(events).hasSize(1);
 
         @SuppressWarnings("unchecked")
-        List<List<LocalDateTime>> hourlyParts =
-                (List<List<LocalDateTime>>) events.get(0).payload().get("hourlyParts");
+        List<List<String>> hourlyParts =
+                (List<List<String>>) events.get(0).payload().get("hourlyParts");
 
         assertThat(hourlyParts).containsExactly(
-                List.of(base.plusHours(3), base.plusHours(5))
+                List.of(base.plusHours(3).toString(), base.plusHours(5).toString())
         );
     }
 }

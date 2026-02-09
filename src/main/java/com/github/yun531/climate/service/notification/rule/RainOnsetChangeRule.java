@@ -1,10 +1,7 @@
 package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
-import com.github.yun531.climate.service.notification.model.AlertEvent;
-import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
-import com.github.yun531.climate.service.notification.model.PopSeriesPair;
-import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
+import com.github.yun531.climate.service.notification.model.*;
 import com.github.yun531.climate.service.notification.rule.adjust.RainOnsetEventValidAtAdjuster;
 import com.github.yun531.climate.service.notification.rule.compute.RainOnsetEventComputer;
 import com.github.yun531.climate.service.notification.util.AlertPayloads;
@@ -19,6 +16,8 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
 
 @Component
 @RequiredArgsConstructor
@@ -38,7 +37,7 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
     private final SnapshotQueryService snapshotQueryService;
 
     // baseTime 없이 now 기준 윈도우(+1~+24)로 제한
-    private final RainOnsetEventValidAtAdjuster  windowAdjuster =
+    private final RainOnsetEventValidAtAdjuster windowAdjuster =
             new RainOnsetEventValidAtAdjuster(PAYLOAD_VALID_AT_KEY, WINDOW_HOURS);
 
     // (앞서 수정한) validAt 기반 RainOnsetEventComputer를 사용
@@ -63,16 +62,16 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
 
     @Override
     protected CacheEntry<List<AlertEvent>> computeForRegion(String regionId) {
-        PopSeriesPair series = snapshotQueryService.loadDefaultPopSeries(regionId);
-
-        if (series == null || series.current() == null || series.previous() == null) {
+        PopViewPair pair = snapshotQueryService.loadDefaultPopViewPair(regionId);
+        if (pair == null || pair.current() == null || pair.previous() == null) {
             return new CacheEntry<>(List.of(), null);
         }
 
         // 캐시 computedAt은 기존처럼 reportTime 사용(재계산 정책/로그 목적)
-        LocalDateTime computedAt = series.curReportTime();
-        List<AlertEvent> events = computer.detect(regionId, series, computedAt);
+        LocalDateTime computedAt =
+                (pair.current().reportTime() != null) ? pair.current().reportTime() : nowMinutes();
 
+        List<AlertEvent> events = computer.detect(regionId, pair, computedAt);
         return new CacheEntry<>(events, computedAt);
     }
 
@@ -96,10 +95,8 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
         return adjusted.isEmpty() ? List.of() : List.copyOf(adjusted);
     }
 
-    /**
-     * rainHourLimit: now 기준 N시간 이내만 남김
-     * - validAt <= nowHour + maxHourInclusive
-     */
+    /** rainHourLimit: now 기준 N시간 이내만 남김
+     * - validAt <= nowHour + maxHourInclusive   */
     private List<AlertEvent> filterByMaxHour(List<AlertEvent> events, int maxHourInclusive, LocalDateTime now) {
         LocalDateTime nowHour = now.truncatedTo(ChronoUnit.HOURS);
         LocalDateTime limit = nowHour.plusHours(maxHourInclusive);

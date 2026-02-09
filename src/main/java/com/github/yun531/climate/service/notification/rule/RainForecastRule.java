@@ -41,10 +41,7 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEv
     private static final int MAX_SHIFT_HOURS  = 2; // 3시간 스냅샷을 0/1/2시간 재사용
 
     private final RainForecastComputer computer =
-            new RainForecastComputer(
-                    RAIN_THRESHOLD,
-                    MAX_HOURLY_HOURS
-            );
+            new RainForecastComputer(RAIN_THRESHOLD, MAX_HOURLY_HOURS);
 
     private final RainForecastPartsAdjuster windowAdjuster =
             new RainForecastPartsAdjuster(
@@ -66,18 +63,21 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEv
 
     @Override
     protected CacheEntry<List<AlertEvent>> computeForRegion(String regionId) {
-        PopForecastSeries series = snapshotQueryService.loadForecastSeries(regionId, SNAP_CURRENT_CODE);
-        if (series == null || (series.hourly() == null && series.daily() == null)) {
+        PopView view = snapshotQueryService.loadPopView(regionId, SNAP_CURRENT_CODE);
+        if (view == null) {
             return new CacheEntry<>(List.of(), null);
         }
 
-        RainForecastParts parts = computer.compute(series);
+        RainForecastParts parts = computer.compute(view);
 
-
-        var pts = (series.hourly() == null) ? List.<PopSeries24.Point>of() : series.hourly().points();
-        long nullValidAt = pts.stream().filter(p -> p.validAt() == null).count();
+        var pts = view.hourly().points();
+        long nullValidAt = pts.stream().filter(p -> p == null || p.validAt() == null).count();
         long rainCnt24 = pts.stream()
-                .sorted(Comparator.comparing(PopSeries24.Point::validAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                .filter(p -> p != null)
+                .sorted(Comparator.comparing(
+                        PopView.HourlyPopSeries26.Point::validAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
                 .limit(24)
                 .filter(p -> p.validAt() != null && p.pop() >= RAIN_THRESHOLD)
                 .count();
@@ -107,8 +107,9 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEv
         );
         // -------------------------------------------------------
 
-        // PopForecastSeries 자체에 reportTime이 없으므로 "계산 시각"을 기준 시각으로 저장
-        LocalDateTime computedAt = nowMinutes();
+        // now 대신 reportTime 우선(새 발표 반영에 유리)
+        LocalDateTime computedAt = (view.reportTime() != null) ? view.reportTime() : nowMinutes();
+
         AlertEvent event = new AlertEvent(AlertTypeEnum.RAIN_FORECAST, regionId, computedAt, payload);
 
         return new CacheEntry<>(List.of(event), computedAt);
