@@ -5,6 +5,7 @@ import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.model.WarningKind;
 import com.github.yun531.climate.service.notification.model.WarningLevel;
+import com.github.yun531.climate.service.notification.model.payload.*;
 import com.github.yun531.climate.service.notification.rule.RainForecastRule;
 import com.github.yun531.climate.service.notification.rule.RainOnsetChangeRule;
 import com.github.yun531.climate.service.notification.rule.WarningIssuedRule;
@@ -262,15 +263,26 @@ class NotificationServiceTest {
     void forecast_payload_is_preserved() {
         LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("hourlyParts", List.of(List.of(
-                "2026-01-14T09:00:00",
-                "2026-01-14T12:00:00"
-        )));
-        payload.put("dayParts", List.of(List.of(1, 0)));
+        // given: 타입 payload 생성
+        RainForecastPayload givenPayload = new RainForecastPayload(
+                "RainForecastRule",
+                List.of(new RainInterval(
+                        LocalDateTime.parse("2026-01-14T09:00:00"),
+                        LocalDateTime.parse("2026-01-14T12:00:00")
+                )),
+                List.of(
+                        new DailyRainFlags(true, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false)
+                )
+        );
 
         when(forecastRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(
-                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, "1", t, payload)
+                new AlertEvent(AlertTypeEnum.RAIN_FORECAST, "1", t, givenPayload)
         ));
 
         var regionIds = List.of("1");
@@ -278,20 +290,31 @@ class NotificationServiceTest {
         LocalDateTime since = LocalDateTime.parse("2025-11-04T04:00:00");
         NotificationRequest request = req(regionIds, since, enabled);
 
+        // when
         List<AlertEvent> out = service.generate(request);
 
+        // then
         assertThat(out).hasSize(1);
         AlertEvent e = out.get(0);
         assertThat(e.type()).isEqualTo(AlertTypeEnum.RAIN_FORECAST);
         assertThat(e.regionId()).isEqualTo("1");
 
-        @SuppressWarnings("unchecked")
-        List<List<String>> hourly = (List<List<String>>) e.payload().get("hourlyParts");
-        @SuppressWarnings("unchecked")
-        List<List<Integer>> day = (List<List<Integer>>) e.payload().get("dayParts");
+        assertThat(e.payload()).isInstanceOf(RainForecastPayload.class);
+        RainForecastPayload payload = (RainForecastPayload) e.payload();
 
-        assertThat(hourly).containsExactly(List.of("2026-01-14T09:00:00", "2026-01-14T12:00:00"));
-        assertThat(day).containsExactly(List.of(1, 0));
+        // payload가 "그대로" 전달되는지: record면 equals로도 가능
+        assertThat(payload).isEqualTo(givenPayload);
+
+        // 필드별 추가 검증
+        assertThat(payload.hourlyParts()).containsExactly(
+                new RainInterval(
+                        LocalDateTime.parse("2026-01-14T09:00:00"),
+                        LocalDateTime.parse("2026-01-14T12:00:00")
+                )
+        );
+
+        assertThat(payload.dayParts()).hasSize(7);
+        assertThat(payload.dayParts().get(0)).isEqualTo(new DailyRainFlags(true, false));
 
         verify(rainRule, never()).evaluate(any(NotificationRequest.class));
         verify(warnRule, never()).evaluate(any(NotificationRequest.class));
@@ -302,17 +325,53 @@ class NotificationServiceTest {
     void forecast_three_regions_payload_and_regions() {
         LocalDateTime t = LocalDateTime.parse("2025-11-04T05:00:00");
 
-        Map<String, Object> p1 = new HashMap<>();
-        p1.put("hourlyParts", List.of(List.of("2026-01-14T09:00:00", "2026-01-14T12:00:00")));
-        p1.put("dayParts", List.of(List.of(1, 0)));
+        RainForecastPayload p1 = new RainForecastPayload(
+                "RainForecastRule",
+                List.of(new RainInterval(
+                        LocalDateTime.parse("2026-01-14T09:00:00"),
+                        LocalDateTime.parse("2026-01-14T12:00:00")
+                )),
+                List.of(
+                        new DailyRainFlags(true, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false)
+                )
+        );
 
-        Map<String, Object> p2 = new HashMap<>();
-        p2.put("hourlyParts", List.of(List.of("2026-01-14T15:00:00", "2026-01-14T15:00:00")));
-        p2.put("dayParts", List.of());
+        RainForecastPayload p2 = new RainForecastPayload(
+                "RainForecastRule",
+                List.of(new RainInterval(
+                        LocalDateTime.parse("2026-01-14T15:00:00"),
+                        LocalDateTime.parse("2026-01-14T15:00:00")
+                )),
+                List.of(
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false)
+                )
+        );
 
-        Map<String, Object> p3 = new HashMap<>();
-        p3.put("hourlyParts", List.of());
-        p3.put("dayParts", List.of(List.of(0, 1)));
+        RainForecastPayload p3 = new RainForecastPayload(
+                "RainForecastRule",
+                List.of(),
+                List.of(
+                        new DailyRainFlags(false, true),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false),
+                        new DailyRainFlags(false, false)
+                )
+        );
 
         when(forecastRule.evaluate(any(NotificationRequest.class))).thenReturn(List.of(
                 new AlertEvent(AlertTypeEnum.RAIN_FORECAST, "1", t, p1),
@@ -330,29 +389,13 @@ class NotificationServiceTest {
         assertThat(out).hasSize(3);
         assertThat(out).extracting(AlertEvent::regionId).containsExactly("1", "2", "3");
 
-        @SuppressWarnings("unchecked")
-        List<List<String>> hourly1 = (List<List<String>>) out.get(0).payload().get("hourlyParts");
-        @SuppressWarnings("unchecked")
-        List<List<Integer>> day1 = (List<List<Integer>>) out.get(0).payload().get("dayParts");
+        RainForecastPayload out1 = (RainForecastPayload) out.get(0).payload();
+        RainForecastPayload out2 = (RainForecastPayload) out.get(1).payload();
+        RainForecastPayload out3 = (RainForecastPayload) out.get(2).payload();
 
-        @SuppressWarnings("unchecked")
-        List<List<String>> hourly2 = (List<List<String>>) out.get(1).payload().get("hourlyParts");
-        @SuppressWarnings("unchecked")
-        List<List<Integer>> day2 = (List<List<Integer>>) out.get(1).payload().get("dayParts");
-
-        @SuppressWarnings("unchecked")
-        List<List<String>> hourly3 = (List<List<String>>) out.get(2).payload().get("hourlyParts");
-        @SuppressWarnings("unchecked")
-        List<List<Integer>> day3 = (List<List<Integer>>) out.get(2).payload().get("dayParts");
-
-        assertThat(hourly1).containsExactly(List.of("2026-01-14T09:00:00", "2026-01-14T12:00:00"));
-        assertThat(day1).containsExactly(List.of(1, 0));
-
-        assertThat(hourly2).containsExactly(List.of("2026-01-14T15:00:00", "2026-01-14T15:00:00"));
-        assertThat(day2).isEmpty();
-
-        assertThat(hourly3).isEmpty();
-        assertThat(day3).containsExactly(List.of(0, 1));
+        assertThat(out1).isEqualTo(p1);
+        assertThat(out2).isEqualTo(p2);
+        assertThat(out3).isEqualTo(p3);
 
         ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
         verify(forecastRule, times(1)).evaluate(captor.capture());
@@ -384,8 +427,15 @@ class NotificationServiceTest {
         List<AlertEvent> out = service.generate(request);
 
         assertThat(out).hasSize(1);
-        assertThat(out.get(0).type()).isEqualTo(AlertTypeEnum.WARNING_ISSUED);
-        assertThat(out.get(0).payload().get("kind")).isEqualTo(WarningKind.RAIN);
+        AlertEvent e = out.get(0);
+
+        assertThat(e.type()).isEqualTo(AlertTypeEnum.WARNING_ISSUED);
+
+        // payload 검증: 타입 캐스팅
+        assertThat(e.payload()).isInstanceOf(WarningIssuedPayload.class);
+        WarningIssuedPayload payload = (WarningIssuedPayload) e.payload();
+        assertThat(payload.kind()).isEqualTo(WarningKind.RAIN);
+        assertThat(payload.level()).isEqualTo(WarningLevel.WARNING);
 
         ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
         verify(warnRule, times(1)).evaluate(captor.capture());
@@ -433,13 +483,17 @@ class NotificationServiceTest {
 
     /* helpers: AlertEvent 생성 */
 
-    private static AlertEvent rainEvent(String regionId, LocalDateTime t, int hour, int pop) {
-        return new AlertEvent(
-                AlertTypeEnum.RAIN_ONSET,
-                regionId,
-                t,
-                Map.of("hour", hour, "pop", pop)
+    private static AlertEvent rainEvent(String regionId, LocalDateTime occurredAt, int hour, int pop) {
+        LocalDateTime base = occurredAt.truncatedTo(java.time.temporal.ChronoUnit.HOURS);
+        LocalDateTime validAt = base.plusHours(hour);
+
+        RainOnsetPayload payload = new RainOnsetPayload(
+                "RainOnsetChangeRule",
+                validAt,
+                pop
         );
+
+        return new AlertEvent(AlertTypeEnum.RAIN_ONSET, regionId, occurredAt, payload);
     }
 
     private static AlertEvent warningEvent(String regionId, LocalDateTime t, WarningKind kind, WarningLevel level) {
@@ -447,7 +501,7 @@ class NotificationServiceTest {
                 AlertTypeEnum.WARNING_ISSUED,
                 regionId,
                 t,
-                Map.of("kind", kind, "level", level)
+                new WarningIssuedPayload("WarningIssuedRule", kind, level)
         );
     }
 

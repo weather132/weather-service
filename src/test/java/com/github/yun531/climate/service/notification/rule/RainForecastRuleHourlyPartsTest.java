@@ -3,6 +3,8 @@ package com.github.yun531.climate.service.notification.rule;
 import com.github.yun531.climate.config.snapshot.SnapshotCacheProperties;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.PopView;
+import com.github.yun531.climate.service.notification.model.payload.RainForecastPayload;
+import com.github.yun531.climate.service.notification.model.payload.RainInterval;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
 import org.junit.jupiter.api.Test;
@@ -71,12 +73,11 @@ class RainForecastRuleHourlyPartsTest {
         // then
         assertThat(events).hasSize(1);
 
-        @SuppressWarnings("unchecked")
-        List<List<String>> hourlyParts =
-                (List<List<String>>) events.get(0).payload().get("hourlyParts");
+        assertThat(events.get(0).payload()).isInstanceOf(RainForecastPayload.class);
+        RainForecastPayload payload = (RainForecastPayload) events.get(0).payload();
 
-        assertThat(hourlyParts).containsExactly(
-                List.of(base.plusHours(3).toString(), base.plusHours(5).toString())
+        assertThat(payload.hourlyParts()).containsExactly(
+                new RainInterval(base.plusHours(3), base.plusHours(5))
         );
     }
 }

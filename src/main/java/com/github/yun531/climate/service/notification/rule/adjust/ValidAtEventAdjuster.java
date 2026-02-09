@@ -1,7 +1,7 @@
 package com.github.yun531.climate.service.notification.rule.adjust;
 
 import com.github.yun531.climate.service.notification.model.AlertEvent;
-import com.github.yun531.climate.service.notification.util.AlertPayloads;
+import com.github.yun531.climate.service.notification.model.payload.ValidAtPayload;
 import io.micrometer.common.lang.Nullable;
 
 import java.time.LocalDateTime;
@@ -13,18 +13,16 @@ import java.util.List;
 /**
  * baseTime 없이 now 기준으로 validAt 윈도우(1~24h)만 남기는 Adjuster
  * - now는 truncatedTo(HOURS)로 정각 기준
- * - window: [now+1, now+24]
- * - payload[validAtKey] 는 String(ISO) 또는 LocalDateTime 허용
+ * - window: [now+1, now+windowHours]
+ * - payload는 typed payload(ValidAtPayload) 기반으로 validAt을 읽음
  * - 윈도우 밖 validAt 이벤트는 제거
  * - occurredAt은 now(정각)로 통일
  */
 public class ValidAtEventAdjuster {
 
-    private final String validAtKey;
     private final int windowHours; // 보통 24
 
-    public ValidAtEventAdjuster(String validAtKey, int windowHours) {
-        this.validAtKey = validAtKey;
+    public ValidAtEventAdjuster(int windowHours) {
         this.windowHours = windowHours;
     }
 
@@ -50,13 +48,13 @@ public class ValidAtEventAdjuster {
                 continue;
             }
 
-            // occurredAt은 nowHour로 통일, payload는 그대로(직렬화된 validAt 유지)
+            // occurredAt은 nowHour로 통일, payload는 그대로 유지
             kept.add(new AlertEvent(e.type(), e.regionId(), nowHour, e.payload()));
         }
 
         if (kept.isEmpty()) return List.of();
 
-        // validAt 기준 정렬 후 최대 windowHours개 유지  중복/오염 방어)
+        // validAt 기준 정렬 후 최대 windowHours개 유지(중복/오염 방어)
         kept.sort(Comparator.comparing(this::readValidAt, Comparator.nullsLast(Comparator.naturalOrder())));
         if (kept.size() > windowHours) {
             kept = kept.subList(0, windowHours);
@@ -66,7 +64,9 @@ public class ValidAtEventAdjuster {
     }
 
     @Nullable
-    private LocalDateTime readValidAt(AlertEvent e) {
-        return AlertPayloads.readLocalDateTime(e, validAtKey);
+    private LocalDateTime readValidAt(@Nullable AlertEvent e) {
+        if (e == null || e.payload() == null) return null;
+        if (e.payload() instanceof ValidAtPayload v) return v.validAt();
+        return null;
     }
 }

@@ -1,11 +1,12 @@
 package com.github.yun531.climate.service.notification.model;
 
+import com.github.yun531.climate.service.notification.model.payload.AlertPayload;
+
 import java.time.LocalDateTime;
-import java.util.Map;
 
 public record AlertEvent(
         AlertTypeEnum type,
         String regionId,
         LocalDateTime occurredAt,
-        Map<String, Object> payload // 시간대, 단계 등 부가정보
+        AlertPayload payload  // 시간대, 경보단계 등 부가정보
 ) {}

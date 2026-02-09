@@ -1,14 +1,15 @@
 package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
-import com.github.yun531.climate.service.notification.model.*;
+import com.github.yun531.climate.service.notification.model.AlertEvent;
+import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
+import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
+import com.github.yun531.climate.service.notification.model.PopViewPair;
+import com.github.yun531.climate.service.notification.model.payload.ValidAtPayload;
 import com.github.yun531.climate.service.notification.rule.adjust.RainOnsetEventValidAtAdjuster;
 import com.github.yun531.climate.service.notification.rule.compute.RainOnsetEventComputer;
-import com.github.yun531.climate.service.notification.util.AlertPayloads;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.util.cache.CacheEntry;
-
-import io.micrometer.common.lang.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -26,29 +27,21 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
     private static final int RAIN_TH = RainThresholdEnum.RAIN.getThreshold();
     private static final int RECOMPUTE_THRESHOLD_MINUTES = 165;
 
-    private static final String PAYLOAD_SRC_RULE_KEY   = "_srcRule";
-    private static final String PAYLOAD_SRC_RULE_NAME  = "RainOnsetChangeRule";
-    private static final String PAYLOAD_VALID_AT_KEY   = "validAt";
-    private static final String PAYLOAD_POP_KEY        = "pop";
+    /** 추적용(typed payload의 srcRule에 넣을 값) */
+    private static final String SRC_RULE_NAME = "RainOnsetChangeRule";
 
-    // now 기준으로 1~24시간 윈도우만 반환
+    /** now 기준으로 1~24시간 윈도우만 반환 */
     private static final int WINDOW_HOURS = 24;
 
     private final SnapshotQueryService snapshotQueryService;
 
-    // baseTime 없이 now 기준 윈도우(+1~+24)로 제한
+    /** baseTime 없이 now 기준 윈도우(+1~+24)로 제한 */
     private final RainOnsetEventValidAtAdjuster windowAdjuster =
-            new RainOnsetEventValidAtAdjuster(PAYLOAD_VALID_AT_KEY, WINDOW_HOURS);
+            new RainOnsetEventValidAtAdjuster(WINDOW_HOURS);
 
-    // (앞서 수정한) validAt 기반 RainOnsetEventComputer를 사용
+    /** typed payload를 생성하는 컴퓨터 */
     private final RainOnsetEventComputer computer =
-            new RainOnsetEventComputer(
-                    RAIN_TH,
-                    PAYLOAD_SRC_RULE_KEY,
-                    PAYLOAD_SRC_RULE_NAME,
-                    PAYLOAD_VALID_AT_KEY,
-                    PAYLOAD_POP_KEY
-            );
+            new RainOnsetEventComputer(RAIN_TH, SRC_RULE_NAME);
 
     @Override
     public AlertTypeEnum supports() {
@@ -67,7 +60,7 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
             return new CacheEntry<>(List.of(), null);
         }
 
-        // 캐시 computedAt은 기존처럼 reportTime 사용(재계산 정책/로그 목적)
+        // 캐시 computedAt: 가능하면 "발표 시각(reportTime)"을 사용
         LocalDateTime computedAt =
                 (pair.current().reportTime() != null) ? pair.current().reportTime() : nowMinutes();
 
@@ -76,14 +69,16 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
     }
 
     @Override
-    protected List<AlertEvent> buildEvents(String regionId,
-                                           List<AlertEvent> events,
-                                           @Nullable LocalDateTime computedAt,
-                                           LocalDateTime now,
-                                           NotificationRequest request) {
+    protected List<AlertEvent> buildEvents(
+            String regionId,
+            List<AlertEvent> events,
+            LocalDateTime computedAt,
+            LocalDateTime now,
+            NotificationRequest request
+    ) {
         if (events == null || events.isEmpty()) return List.of();
 
-        // baseTime 없이 now 기준 윈도우(+1~+24)로 제한 + occurredAt을 nowHour로 통일
+        // now 기준 윈도우(+1~+24)로 제한 + occurredAt은 nowHour로 통일
         List<AlertEvent> adjusted = windowAdjuster.adjust(events, now);
         if (adjusted == null || adjusted.isEmpty()) return List.of();
 
@@ -96,7 +91,7 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
     }
 
     /** rainHourLimit: now 기준 N시간 이내만 남김
-     * - validAt <= nowHour + maxHourInclusive   */
+     * - validAt <= nowHour + maxHourInclusive  */
     private List<AlertEvent> filterByMaxHour(List<AlertEvent> events, int maxHourInclusive, LocalDateTime now) {
         LocalDateTime nowHour = now.truncatedTo(ChronoUnit.HOURS);
         LocalDateTime limit = nowHour.plusHours(maxHourInclusive);
@@ -111,8 +106,9 @@ public class RainOnsetChangeRule extends AbstractCachedRegionAlertRule<List<Aler
         return out.isEmpty() ? List.of() : List.copyOf(out);
     }
 
-    @Nullable
     private LocalDateTime extractValidAt(AlertEvent event) {
-        return AlertPayloads.readLocalDateTime(event, PAYLOAD_VALID_AT_KEY);
+        if (event == null || event.payload() == null) return null;
+        if (event.payload() instanceof ValidAtPayload v) return v.validAt();
+        return null;
     }
 }

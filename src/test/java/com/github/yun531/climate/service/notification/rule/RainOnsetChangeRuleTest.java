@@ -5,6 +5,7 @@ import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.model.PopView;
 import com.github.yun531.climate.service.notification.model.PopViewPair;
 import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
+import com.github.yun531.climate.service.notification.model.payload.RainOnsetPayload;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,12 +57,12 @@ class RainOnsetChangeRuleTest {
         assertThat(e.type()).isEqualTo(AlertTypeEnum.RAIN_ONSET);
         assertThat(e.regionId()).isEqualTo(regionId);
 
-        // payload: validAt(ISO String), pop(int)
-        Object validAtObj = e.payload().get("validAt");
-        assertThat(validAtObj).isInstanceOf(String.class);
-        assertThat((String) validAtObj).isEqualTo(nowHour.plusHours(5).toString());
+        // payload: RainOnsetPayload(validAt, pop, ...)
+        assertThat(e.payload()).isInstanceOf(RainOnsetPayload.class);
 
-        assertThat((Integer) e.payload().get("pop")).isEqualTo(th);
+        RainOnsetPayload p = (RainOnsetPayload) e.payload();
+        assertThat(p.validAt()).isEqualTo(nowHour.plusHours(5));
+        assertThat(p.pop()).isEqualTo(th);
 
         // occurredAt은 반환 시점(nowHour 등)으로 보정될 수 있으므로 "현재 시각 이전/이하"만 보장
         assertThat(e.occurredAt()).isBeforeOrEqualTo(nowMinutes());

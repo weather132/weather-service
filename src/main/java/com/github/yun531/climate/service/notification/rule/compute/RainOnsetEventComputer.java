@@ -4,6 +4,7 @@ import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.model.PopView;
 import com.github.yun531.climate.service.notification.model.PopViewPair;
+import com.github.yun531.climate.service.notification.model.payload.RainOnsetPayload;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,31 +18,16 @@ import java.util.Map;
 public class RainOnsetEventComputer {
 
     private final int rainThreshold;
-    private final String srcRuleKey;
     private final String srcRuleName;
-    private final String validAtKey;
-    private final String popKey;
     private final int maxPoints;
 
-    public RainOnsetEventComputer(int rainThreshold,
-                                  String srcRuleKey,
-                                  String srcRuleName,
-                                  String validAtKey,
-                                  String popKey) {
-        this(rainThreshold, srcRuleKey, srcRuleName, validAtKey, popKey, PopView.HOURLY_SIZE);
+    public RainOnsetEventComputer(int rainThreshold, String srcRuleName) {
+        this(rainThreshold, srcRuleName, PopView.HOURLY_SIZE);
     }
 
-    public RainOnsetEventComputer(int rainThreshold,
-                                  String srcRuleKey,
-                                  String srcRuleName,
-                                  String validAtKey,
-                                  String popKey,
-                                  int maxPoints) {
+    public RainOnsetEventComputer(int rainThreshold, String srcRuleName, int maxPoints) {
         this.rainThreshold = rainThreshold;
-        this.srcRuleKey = srcRuleKey;
         this.srcRuleName = srcRuleName;
-        this.validAtKey = validAtKey;
-        this.popKey = popKey;
         this.maxPoints = Math.max(1, maxPoints);
     }
 
@@ -94,11 +80,8 @@ public class RainOnsetEventComputer {
     }
 
     private AlertEvent createEvent(String regionId, LocalDateTime occurredAt, LocalDateTime validAt, int pop) {
-        Map<String, Object> payload = Map.of(
-                srcRuleKey, srcRuleName,
-                validAtKey, validAt.toString(), // "2026-01-14T21:00:00"
-                popKey, pop
-        );
+        // Map payload 대신 typed payload
+        RainOnsetPayload payload = new RainOnsetPayload(srcRuleName, validAt, pop);
         return new AlertEvent(AlertTypeEnum.RAIN_ONSET, regionId, occurredAt, payload);
     }
 }

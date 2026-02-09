@@ -4,6 +4,7 @@ import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.notification.model.payload.WarningIssuedPayload;
 import com.github.yun531.climate.service.query.WarningStateQueryService;
 import com.github.yun531.climate.service.query.dto.WarningStateDto;
 import com.github.yun531.climate.util.cache.CacheEntry;
@@ -29,11 +30,8 @@ public class WarningIssuedRule
     /** 캐시 TTL (분 단위) */
     private static final int CACHE_TTL_MINUTES = 45;
 
-    /** payload 키 상수 */
-    private static final String PAYLOAD_SRC_RULE_KEY  = "_srcRule";
-    private static final String PAYLOAD_SRC_RULE_NAME = "WarningIssuedRule";
-    private static final String PAYLOAD_KIND_KEY      = "kind";
-    private static final String PAYLOAD_LEVEL_KEY     = "level";
+    /** payload에 넣을 srcRule (기존 Map payload의 _srcRule / ruleName 역할) */
+    private static final String SRC_RULE = "WarningIssuedRule";
 
     @Override
     public AlertTypeEnum supports() {
@@ -73,11 +71,11 @@ public class WarningIssuedRule
      */
     @Override
     protected List<AlertEvent> buildEvents(String regionId,
-                                           Map<WarningKind, WarningStateDto> byKind,
-                                           @Nullable LocalDateTime computedAt,
-                                           LocalDateTime now,
-                                           NotificationRequest request) {
-
+                                            Map<WarningKind, WarningStateDto> byKind,
+                                            @Nullable LocalDateTime computedAt,
+                                            LocalDateTime now,
+                                            NotificationRequest request
+    ) {
         if (byKind == null || byKind.isEmpty()) return List.of();
 
         Set<WarningKind> filterKinds = request.filterWarningKinds();
@@ -108,15 +106,13 @@ public class WarningIssuedRule
     }
 
     /** 필터 kind 집합이 비어 있지 않다면, 해당 kind가 포함되는지 검사 */
-    private boolean matchesFilter(WarningKind kind,
-                                  @Nullable Set<WarningKind> filterKinds) {
+    private boolean matchesFilter(WarningKind kind, @Nullable Set<WarningKind> filterKinds) {
         if (filterKinds == null || filterKinds.isEmpty()) return true;
         return filterKinds.contains(kind);
     }
 
     /** 새로 발효된 특보인지 판단 */
-    private boolean isNewWarning(WarningStateDto state,
-                                 LocalDateTime adjustedSince) {
+    private boolean isNewWarning(@Nullable WarningStateDto state, @Nullable LocalDateTime adjustedSince) {
         if (state == null) return false;
 
         // adjustedSince가 null 이면 “전부 새로 발효된 것으로 간주”
@@ -130,10 +126,11 @@ public class WarningIssuedRule
         LocalDateTime occurredAt =
                 (state.updatedAt() != null) ? state.updatedAt() : now;
 
-        Map<String, Object> payload = Map.of(
-                PAYLOAD_SRC_RULE_KEY,  PAYLOAD_SRC_RULE_NAME,
-                PAYLOAD_KIND_KEY,      state.kind(),   // WarningKind enum
-                PAYLOAD_LEVEL_KEY,     state.level()   // WarningLevel enum
+        // Map payload 대신 typed payload
+        WarningIssuedPayload payload = new WarningIssuedPayload(
+                SRC_RULE,
+                state.kind(),         // WarningKind enum
+                state.level()         // WarningLevel enum
         );
 
         return new AlertEvent(

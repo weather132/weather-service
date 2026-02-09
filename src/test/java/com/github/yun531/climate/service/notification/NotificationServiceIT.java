@@ -5,6 +5,10 @@ import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.notification.model.payload.DailyRainFlags;
+import com.github.yun531.climate.service.notification.model.payload.RainForecastPayload;
+import com.github.yun531.climate.service.notification.model.payload.RainInterval;
+import com.github.yun531.climate.service.notification.model.payload.WarningIssuedPayload;
 import com.github.yun531.climate.service.notification.rule.RainForecastRule;
 import com.github.yun531.climate.service.notification.rule.RainOnsetChangeRule;
 import com.github.yun531.climate.service.notification.rule.WarningIssuedRule;
@@ -306,8 +310,13 @@ class NotificationServiceIT {
                 .isNotEmpty()
                 .allMatch(e -> e.type() == AlertTypeEnum.WARNING_ISSUED);
 
+        // payload가 타입이므로 캐스팅해서 검증
         assertThat(events)
-                .extracting(e -> e.payload().get("kind"))
+                .extracting(AlertEvent::payload)
+                .allMatch(p -> p instanceof WarningIssuedPayload);
+
+        assertThat(events)
+                .extracting(e -> ((WarningIssuedPayload) e.payload()).kind())
                 .containsOnly(WarningKind.RAIN);
 
         ArgumentCaptor<NotificationRequest> captor = ArgumentCaptor.forClass(NotificationRequest.class);
@@ -412,34 +421,30 @@ class NotificationServiceIT {
         assertThat(e.type()).isEqualTo(AlertTypeEnum.RAIN_FORECAST);
         assertThat(e.regionId()).isEqualTo("1");
 
-        Map<String, Object> payload = e.payload();
-        assertThat(payload).containsKeys("_srcRule", "hourlyParts", "dayParts");
+        // payload가 타입이므로 캐스팅해서 검증
+        assertThat(e.payload()).isInstanceOf(RainForecastPayload.class);
+        RainForecastPayload payload = (RainForecastPayload) e.payload();
 
-        Object hourlyObj = payload.get("hourlyParts");
-        assertThat(hourlyObj).isInstanceOf(List.class);
+        // hourlyParts 검증
+        assertThat(payload.hourlyParts()).isNotNull();
 
-        List<?> hourly = (List<?>) hourlyObj;
-        for (Object partObj : hourly) {
-            assertThat(partObj).isInstanceOf(List.class);
-            List<?> part = (List<?>) partObj;
-            assertThat(part).hasSize(2);
-
-            LocalDateTime start = toLdt(part.get(0));
-            LocalDateTime end = toLdt(part.get(1));
-
-            assertThat(start).isNotNull();
-            assertThat(end).isNotNull();
-            assertThat(start).isBeforeOrEqualTo(end);
+        for (RainInterval part : payload.hourlyParts()) {
+            assertThat(part).isNotNull();
+            assertThat(part.start()).isNotNull();
+            assertThat(part.end()).isNotNull();
+            assertThat(part.start()).isBeforeOrEqualTo(part.end());
         }
 
-        @SuppressWarnings("unchecked")
-        List<List<Integer>> day = (List<List<Integer>>) payload.get("dayParts");
+        assertThat(payload.dayParts()).isNotNull();
+        assertThat(payload.dayParts()).hasSize(7);
 
-        assertThat(day).isNotNull();
-        for (List<Integer> dp : day) {
-            assertThat(dp).hasSize(2);
-            assertThat(dp.get(0)).isIn(0, 1);
-            assertThat(dp.get(1)).isIn(0, 1);
+        for (int dayOffset = 0; dayOffset < payload.dayParts().size(); dayOffset++) {
+            DailyRainFlags flags = payload.dayParts().get(dayOffset);
+            assertThat(flags).isNotNull();
+
+            // boolean이라 null 체크 불필요, 대신 "접근 가능" 자체가 보장
+            boolean am = flags.rainAm();
+            boolean pm = flags.rainPm();
         }
     }
 

@@ -3,6 +3,7 @@ package com.github.yun531.climate.service.notification.rule;
 import com.github.yun531.climate.config.snapshot.SnapshotCacheProperties;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.PopView;
+import com.github.yun531.climate.service.notification.model.payload.RainForecastPayload;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,7 +41,6 @@ class RainForecastRuleDayPartsTest {
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
         String regionId = "11B10101";
 
-        // hourly는 의미 없으니 0으로 채움 (26개 필요)
         LocalDateTime base = nowMinutes().plusHours(5);
         PopView.HourlyPopSeries26 hourly = buildHourlySeries26(base, 0);
 
@@ -65,10 +64,15 @@ class RainForecastRuleDayPartsTest {
 
         // then
         assertThat(events).hasSize(1);
-        Map<String, Object> payload = events.get(0).payload();
 
-        @SuppressWarnings("unchecked")
-        List<List<Integer>> dayParts = (List<List<Integer>>) payload.get("dayParts");
+        // Map이 아니라 타입 payload로 받기
+        var payload = (RainForecastPayload) events.get(0).payload();
+
+        // boolean -> [1,0] 형태로 변환해서 기존 기대값 그대로 검증
+        List<List<Integer>> dayParts =
+                payload.dayParts().stream()
+                        .map(f -> List.of(f.rainAm() ? 1 : 0, f.rainPm() ? 1 : 0))
+                        .toList();
 
         assertThat(dayParts).containsExactly(
                 List.of(1, 0),
