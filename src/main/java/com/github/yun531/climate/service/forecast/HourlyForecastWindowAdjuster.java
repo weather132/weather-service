@@ -48,7 +48,8 @@ public final class HourlyForecastWindowAdjuster {
 
         TimeShiftUtil.Shift shift = TimeShiftUtil.computeShift(reportTime, now, maxShiftHours);
         if (shift.diffHours() <= 0) {
-            return new HourlyForecastDto(base.regionId(), reportTime, sorted);
+            List<HourlyPoint> capped = sorted.size() <= windowSize ? sorted : sorted.subList(0, windowSize);
+            return new HourlyForecastDto(base.regionId(), base.reportTime(), List.copyOf(capped));
         }
 
         LocalDateTime shiftedBaseTime = shift.shiftedBaseTime();

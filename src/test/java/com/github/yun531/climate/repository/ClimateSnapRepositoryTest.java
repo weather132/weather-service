@@ -16,38 +16,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Transactional
 @Sql(statements = {
         "SET FOREIGN_KEY_CHECKS = 0",
         "DELETE FROM climate_snap",
         "SET FOREIGN_KEY_CHECKS = 1",
 
-        // 필요한 컬럼만 명시해서 insert (나머지는 NULL)
         "INSERT INTO climate_snap (" +
                 "snap_id, region_id, report_time, series_start_time, " +
                 "temp_A01, temp_A26, " +
                 "POP_A01, POP_A26" +
                 ") VALUES " +
 
-                // region 11B10101: snap_id=10 (이전 스냅)
                 "(10, '11B10101', '2025-11-18 08:00:00', '2025-11-18 09:00:00', " +
                 "1, 5, " +
                 "50, 70" +
                 ")," +
 
-                // region 11B10101: snap_id=1 (현재 스냅)
                 "(1, '11B10101', '2025-11-18 11:00:00', '2025-11-18 12:00:00', " +
                 "2, 6, " +
                 "40, 80" +
                 ")," +
 
-                // 다른 region 하나 추가( snap_id=1이 여러 region에 존재할 수 있음을 검증용 )
                 "(1, '11B20201', '2025-11-18 11:00:00', '2025-11-18 12:00:00', " +
                 "11, 15, " +
                 "30, 60" +
-                ")",
-
-        "COMMIT"
+                ")"
 })
 class ClimateSnapRepositoryTest {
 
