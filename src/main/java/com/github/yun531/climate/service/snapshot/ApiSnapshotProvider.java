@@ -5,7 +5,7 @@ import com.github.yun531.climate.infra.snapshotapi.SnapshotApiClient;
 import com.github.yun531.climate.infra.snapshotapi.dto.HourlySnapshotResponse;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
-import com.github.yun531.climate.service.snapshot.mapper.ForecastSnapAssembler;
+import com.github.yun531.climate.service.snapshot.mapper.ApiForecastSnapAssembler;
 import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
 import com.github.yun531.climate.service.snapshot.policy.AnnounceTimePolicy;
 import com.github.yun531.climate.util.cache.CacheEntry;
@@ -29,7 +29,7 @@ public class ApiSnapshotProvider implements SnapshotProvider {
     private final SnapshotCacheProperties cacheProps;
 
     private final AnnounceTimePolicy policy;
-    private final ForecastSnapAssembler assembler;
+    private final ApiForecastSnapAssembler assembler;
 
     /** regionId + snapId 기준 스냅샷 캐시 */
     private final RegionCache<ForecastSnap> snapCache = new RegionCache<>();

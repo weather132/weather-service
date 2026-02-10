@@ -28,6 +28,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.jdbc.SqlMergeMode;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -57,9 +58,9 @@ import static org.mockito.Mockito.*;
         "SET @rt_cur := @now_hr",
         "SET @rt_prev := DATE_SUB(@rt_cur, INTERVAL 3 HOUR)",
 
-        // --- climate_snap 시드
+        // --- climate_snap 시드 (valid_at_* 제거, series_start_time 추가)
         "INSERT INTO climate_snap ("
-                + " snap_id, region_id, report_time,"
+                + " snap_id, region_id, report_time, series_start_time,"
 
                 + " temp_a01,temp_a02,temp_a03,temp_a04,temp_a05,temp_a06,temp_a07,temp_a08,temp_a09,"
                 + " temp_a10,temp_a11,temp_a12,temp_a13,temp_a14,temp_a15,temp_a16,temp_a17,temp_a18,temp_a19,"
@@ -73,52 +74,30 @@ import static org.mockito.Mockito.*;
                 + " pop_a20,pop_a21,pop_a22,pop_a23,pop_a24,pop_a25,pop_a26,"
 
                 + " pop_a0d_am,pop_a0d_pm,pop_a1d_am,pop_a1d_pm,pop_a2d_am,pop_a2d_pm,"
-                + " pop_a3d_am,pop_a3d_pm,pop_a4d_am,pop_a4d_pm,pop_a5d_am,pop_a5d_pm,pop_a6d_am,pop_a6d_pm,"
-
-                + " valid_at_a01,valid_at_a02,valid_at_a03,valid_at_a04,valid_at_a05,valid_at_a06,valid_at_a07,valid_at_a08,valid_at_a09,"
-                + " valid_at_a10,valid_at_a11,valid_at_a12,valid_at_a13,valid_at_a14,valid_at_a15,valid_at_a16,valid_at_a17,valid_at_a18,valid_at_a19,"
-                + " valid_at_a20,valid_at_a21,valid_at_a22,valid_at_a23,valid_at_a24,valid_at_a25,valid_at_a26"
+                + " pop_a3d_am,pop_a3d_pm,pop_a4d_am,pop_a4d_pm,pop_a5d_am,pop_a5d_pm,pop_a6d_am,pop_a6d_pm"
                 + ") VALUES "
 
                 // ---- prev (snap_id=10)
-                + "(10, '1', @rt_prev, "
+                + "(10, '1', @rt_prev, DATE_ADD(@rt_prev, INTERVAL 1 HOUR), "
                 + " 1,2,3,4,5,6,7,8,9, 10,11,12,13,12,11,10,9,8,7, 6,5,4,3,2,1,5,"
                 + " 5,5, 7,7, 8,8, 7,7, 6,6, 5,5, 6,6,"
                 + " 50,40,50,60,60, 60,40,30,20, 10,0,0,10,20,20, 30,40,60,10, 0,20,40,70,40,60,70,"
-                + " 70,40, 40,40, 30,30, 40,40, 30,60, 50,50, 40,40,"
-                + " DATE_ADD(@rt_prev, INTERVAL 1 HOUR),  DATE_ADD(@rt_prev, INTERVAL 2 HOUR),  DATE_ADD(@rt_prev, INTERVAL 3 HOUR),"
-                + " DATE_ADD(@rt_prev, INTERVAL 4 HOUR),  DATE_ADD(@rt_prev, INTERVAL 5 HOUR),  DATE_ADD(@rt_prev, INTERVAL 6 HOUR),"
-                + " DATE_ADD(@rt_prev, INTERVAL 7 HOUR),  DATE_ADD(@rt_prev, INTERVAL 8 HOUR),  DATE_ADD(@rt_prev, INTERVAL 9 HOUR),"
-                + " DATE_ADD(@rt_prev, INTERVAL 10 HOUR), DATE_ADD(@rt_prev, INTERVAL 11 HOUR), DATE_ADD(@rt_prev, INTERVAL 12 HOUR),"
-                + " DATE_ADD(@rt_prev, INTERVAL 13 HOUR), DATE_ADD(@rt_prev, INTERVAL 14 HOUR), DATE_ADD(@rt_prev, INTERVAL 15 HOUR),"
-                + " DATE_ADD(@rt_prev, INTERVAL 16 HOUR), DATE_ADD(@rt_prev, INTERVAL 17 HOUR), DATE_ADD(@rt_prev, INTERVAL 18 HOUR),"
-                + " DATE_ADD(@rt_prev, INTERVAL 19 HOUR), DATE_ADD(@rt_prev, INTERVAL 20 HOUR), DATE_ADD(@rt_prev, INTERVAL 21 HOUR),"
-                + " DATE_ADD(@rt_prev, INTERVAL 22 HOUR), DATE_ADD(@rt_prev, INTERVAL 23 HOUR), DATE_ADD(@rt_prev, INTERVAL 24 HOUR),"
-                + " DATE_ADD(@rt_prev, INTERVAL 25 HOUR), DATE_ADD(@rt_prev, INTERVAL 26 HOUR)"
+                + " 70,40, 40,40, 30,30, 40,40, 30,60, 50,50, 40,40"
                 + "),"
 
                 // ---- cur (snap_id=1)
-                + "(1, '1', @rt_cur, "
+                + "(1, '1', @rt_cur, DATE_ADD(@rt_cur, INTERVAL 1 HOUR), "
                 + " 1,2,3,4,5,6,7,8,9, 10,11,12,13,12,11,10,9,8,7, 6,5,4,3,2,1,5,"
                 + " 5,5, 7,7, 8,8, 7,7, 6,6, 5,5, 6,6,"
                 + " 40,50,60,60,60, 60,30,20,10, 0,0,10,20,20,30, 60,60,60, 0,20,40,70,40,60,70,80,"
-                + " 30,30, 40,40, 30,60, 50,50, 40,40, 20,20, 0,0,"
-                + " DATE_ADD(@rt_cur, INTERVAL 1 HOUR),  DATE_ADD(@rt_cur, INTERVAL 2 HOUR),  DATE_ADD(@rt_cur, INTERVAL 3 HOUR),"
-                + " DATE_ADD(@rt_cur, INTERVAL 4 HOUR),  DATE_ADD(@rt_cur, INTERVAL 5 HOUR),  DATE_ADD(@rt_cur, INTERVAL 6 HOUR),"
-                + " DATE_ADD(@rt_cur, INTERVAL 7 HOUR),  DATE_ADD(@rt_cur, INTERVAL 8 HOUR),  DATE_ADD(@rt_cur, INTERVAL 9 HOUR),"
-                + " DATE_ADD(@rt_cur, INTERVAL 10 HOUR), DATE_ADD(@rt_cur, INTERVAL 11 HOUR), DATE_ADD(@rt_cur, INTERVAL 12 HOUR),"
-                + " DATE_ADD(@rt_cur, INTERVAL 13 HOUR), DATE_ADD(@rt_cur, INTERVAL 14 HOUR), DATE_ADD(@rt_cur, INTERVAL 15 HOUR),"
-                + " DATE_ADD(@rt_cur, INTERVAL 16 HOUR), DATE_ADD(@rt_cur, INTERVAL 17 HOUR), DATE_ADD(@rt_cur, INTERVAL 18 HOUR),"
-                + " DATE_ADD(@rt_cur, INTERVAL 19 HOUR), DATE_ADD(@rt_cur, INTERVAL 20 HOUR), DATE_ADD(@rt_cur, INTERVAL 21 HOUR),"
-                + " DATE_ADD(@rt_cur, INTERVAL 22 HOUR), DATE_ADD(@rt_cur, INTERVAL 23 HOUR), DATE_ADD(@rt_cur, INTERVAL 24 HOUR),"
-                + " DATE_ADD(@rt_cur, INTERVAL 25 HOUR), DATE_ADD(@rt_cur, INTERVAL 26 HOUR)"
+                + " 30,30, 40,40, 30,60, 50,50, 40,40, 20,20, 0,0"
                 + ")",
 
         // --- warning_state 시드
         "INSERT INTO warning_state (region_id, kind, level, updated_at) VALUES "
-                + "(1, 'RAIN',  'ADVISORY', '2025-11-04 05:00:00'),"
-                + "(1, 'HEAT',  'WARNING',  '2025-11-04 06:30:00'),"
-                + "(2, 'WIND',  'ADVISORY', '2025-11-04 07:15:00')"
+                + "('1', 'RAIN',  'ADVISORY', '2025-11-04 05:00:00'),"
+                + "('1', 'HEAT',  'WARNING',  '2025-11-04 06:30:00'),"
+                + "('2', 'WIND',  'ADVISORY', '2025-11-04 07:15:00')"
 })
 @Import(NotificationServiceIT.SpyConfig.class)
 class NotificationServiceIT {
@@ -170,15 +149,13 @@ class NotificationServiceIT {
         NotificationRequest request = new NotificationRequest(
                 List.of(regionId01),
                 since,
-                EnumSet.of(AlertTypeEnum.RAIN_ONSET), // 명시적으로 ON
+                EnumSet.of(AlertTypeEnum.RAIN_ONSET),
                 null,
                 null
         );
 
-        // when
         List<AlertEvent> events = service.generate(request);
 
-        // then
         assertThat(events).isNotEmpty();
         assertThat(events)
                 .extracting(AlertEvent::type)
@@ -199,7 +176,7 @@ class NotificationServiceIT {
         NotificationRequest request = new NotificationRequest(
                 List.of(regionId01),
                 since,
-                null,   // 정책상 none
+                null,
                 null,
                 null
         );
@@ -257,7 +234,6 @@ class NotificationServiceIT {
 
         assertThat(events).isNotEmpty();
 
-        // 1) 같은 리스트 내에서 RAIN_ONSET 블록이 WARNING_ISSUED 블록보다 앞인지
         List<Integer> rainIdx = new ArrayList<>();
         List<Integer> warnIdx = new ArrayList<>();
         for (int i = 0; i < events.size(); i++) {
@@ -272,7 +248,6 @@ class NotificationServiceIT {
         int firstWarnIndex = Collections.min(warnIdx);
         assertThat(lastRainIndex).isLessThan(firstWarnIndex);
 
-        // 2) 같은 타입 블록 내에서는 regionId 오름차순인지(대략)
         List<AlertEvent> rainEvents = events.stream()
                 .filter(e -> e.type() == AlertTypeEnum.RAIN_ONSET)
                 .toList();
@@ -310,7 +285,6 @@ class NotificationServiceIT {
                 .isNotEmpty()
                 .allMatch(e -> e.type() == AlertTypeEnum.WARNING_ISSUED);
 
-        // payload가 타입이므로 캐스팅해서 검증
         assertThat(events)
                 .extracting(AlertEvent::payload)
                 .allMatch(p -> p instanceof WarningIssuedPayload);
@@ -421,13 +395,10 @@ class NotificationServiceIT {
         assertThat(e.type()).isEqualTo(AlertTypeEnum.RAIN_FORECAST);
         assertThat(e.regionId()).isEqualTo("1");
 
-        // payload가 타입이므로 캐스팅해서 검증
         assertThat(e.payload()).isInstanceOf(RainForecastPayload.class);
         RainForecastPayload payload = (RainForecastPayload) e.payload();
 
-        // hourlyParts 검증
         assertThat(payload.hourlyParts()).isNotNull();
-
         for (RainInterval part : payload.hourlyParts()) {
             assertThat(part).isNotNull();
             assertThat(part.start()).isNotNull();
@@ -438,20 +409,45 @@ class NotificationServiceIT {
         assertThat(payload.dayParts()).isNotNull();
         assertThat(payload.dayParts()).hasSize(7);
 
-        for (int dayOffset = 0; dayOffset < payload.dayParts().size(); dayOffset++) {
-            DailyRainFlags flags = payload.dayParts().get(dayOffset);
+        for (DailyRainFlags flags : payload.dayParts()) {
             assertThat(flags).isNotNull();
-
-            // boolean이라 null 체크 불필요, 대신 "접근 가능" 자체가 보장
             boolean am = flags.rainAm();
             boolean pm = flags.rainPm();
         }
     }
 
-    private static LocalDateTime toLdt(Object v) {
-        if (v == null) return null;
-        if (v instanceof LocalDateTime t) return t;
-        if (v instanceof String s) return LocalDateTime.parse(s);
-        return null;
+    @Test
+    @DisplayName("RAIN_FORECAST: hourlyParts는 시간 역행 없이 (start 기준) 오름차순으로 유지된다")
+    void forecast_hourly_parts_are_monotonic() {
+        var since = LocalDateTime.parse("2025-11-18T07:00:00");
+        var regionIds = List.of("1");
+
+        NotificationRequest request = new NotificationRequest(
+                regionIds,
+                since,
+                EnumSet.of(AlertTypeEnum.RAIN_FORECAST),
+                null,
+                null
+        );
+
+        List<AlertEvent> events = service.generate(request);
+        assertThat(events).hasSize(1);
+
+        RainForecastPayload payload = (RainForecastPayload) events.get(0).payload();
+        List<RainInterval> parts = payload.hourlyParts();
+
+        // empty면 규칙이 "비 없음"으로 줄 수도 있으니, monotonic 체크는 있을 때만 강하게
+        if (parts != null && parts.size() >= 2) {
+            for (int i = 1; i < parts.size(); i++) {
+                RainInterval prev = parts.get(i - 1);
+                RainInterval cur = parts.get(i);
+
+                // start 기준 오름차순
+                assertThat(cur.start()).isAfterOrEqualTo(prev.start());
+
+                // 구간이 겹치지 않도록(정책에 따라 같을 수도 있으니 OrEqual)
+                assertThat(cur.start()).isAfterOrEqualTo(prev.end());
+            }
+        }
     }
 }

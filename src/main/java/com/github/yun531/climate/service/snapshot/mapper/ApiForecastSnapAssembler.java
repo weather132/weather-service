@@ -17,7 +17,7 @@ import java.util.*;
 /** 외부 Snapshot API 응답 DTO(HourlySnapshotResponse, DailyForecastResponse)를
  *    서비스 도메인 모델(ForecastSnap, HourlyPoint, DailyPoint)로 변환/조립  */
 @Component
-public class ForecastSnapAssembler {
+public class ApiForecastSnapAssembler {
 
     /** 시간별 스냅샷 + 일별 포인트를 합쳐 도메인 모델(ForecastSnap)을 생성 */
     public ForecastSnap buildForecastSnap(
