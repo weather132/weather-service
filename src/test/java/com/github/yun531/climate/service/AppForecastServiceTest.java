@@ -3,13 +3,13 @@ package com.github.yun531.climate.service;
 import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
 import com.github.yun531.climate.service.forecast.AppForecastService;
+import com.github.yun531.climate.service.forecast.HourlyForecastWindowAdjuster;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
-import com.github.yun531.climate.util.time.TimeUtil;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,11 +23,22 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AppForecastServiceTest {
 
+    private static final int MAX_SHIFT_HOURS = 2;
+    private static final int WINDOW_SIZE = 24;
+
     @Mock
     private SnapshotQueryService snapshotQueryService;
 
-    @InjectMocks
     private AppForecastService appForecastService;
+
+    @BeforeEach
+    void setUp() {
+        // 단위테스트에서는 Spring @Bean(ForecastConfig)이 없으므로 직접 주입
+        HourlyForecastWindowAdjuster adjuster =
+                new HourlyForecastWindowAdjuster(MAX_SHIFT_HOURS, WINDOW_SIZE);
+
+        appForecastService = new AppForecastService(snapshotQueryService, adjuster);
+    }
 
     @Test
     @DisplayName("hourly forecast: SnapshotQueryService가 null을 반환하면 null을 반환한다")
@@ -35,14 +46,15 @@ class AppForecastServiceTest {
         String regionId = "11";
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(null);
 
-        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
+        LocalDateTime now = LocalDateTime.of(2026, 2, 10, 10, 0);
+        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
 
         assertNull(result);
         verify(snapshotQueryService).getHourlyForecast(regionId);
     }
 
     @Test
-    @DisplayName("hourly forecast: reportTime이 null이면 보정 없이(정규화만) 반환한다")
+    @DisplayName("hourly forecast: reportTime이 null이면 보정 없이(정렬만) 반환한다")
     void adjustHourly_returnsBase_whenReportTimeIsNull() {
         String regionId = "11";
 
@@ -55,9 +67,9 @@ class AppForecastServiceTest {
 
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
-        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
+        LocalDateTime now = LocalDateTime.of(2026, 2, 10, 10, 0);
+        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
 
-        // 리팩토링 버전: 새 DTO로 감싸서 반환할 수 있으니 "동일 객체"가 아니라 "동일 값"을 검증
         assertNotNull(result);
         assertEquals(base, result);
         verify(snapshotQueryService).getHourlyForecast(regionId);
@@ -68,15 +80,12 @@ class AppForecastServiceTest {
     void adjustHourly_returnsSorted_whenNowBeforeOrEqualReportTime() {
         String regionId = "11";
 
-        // service 내부에서 LocalDateTime.now()를 쓰지만,
-        // reportTime을 충분히 미래로 잡으면 diffHours<=0이 안정적
-        LocalDateTime now = TimeUtil.nowMinutes();
-        LocalDateTime reportTime = now.plusHours(1).plusMinutes(5);
+        LocalDateTime reportTime = LocalDateTime.of(2026, 2, 10, 11, 10);
+        LocalDateTime now = LocalDateTime.of(2026, 2, 10, 11, 0); // reportTime보다 이전 -> diffHours<=0
 
         LocalDateTime t1 = reportTime.plusHours(1);
         LocalDateTime t2 = reportTime.plusHours(2);
 
-        // 일부러 역순으로 넣음
         HourlyForecastDto base =
                 new HourlyForecastDto(
                         regionId,
@@ -89,13 +98,12 @@ class AppForecastServiceTest {
 
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
-        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
+        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
 
         assertNotNull(result);
         assertEquals(regionId, result.regionId());
         assertEquals(reportTime, result.reportTime());
 
-        // validAt 오름차순 정렬 확인
         assertEquals(2, result.hours().size());
         assertEquals(t1, result.hours().get(0).validAt());
         assertEquals(11, result.hours().get(0).temp());
@@ -111,14 +119,14 @@ class AppForecastServiceTest {
     void adjustHourly_shiftsByOneHour_usingValidAt() {
         String regionId = "11";
 
-        // 서비스는 TimeUtil.nowMinutes()를 쓰므로, 테스트도 같은 축으로 맞추는 게 안정적
-        LocalDateTime nowHour = TimeUtil.nowMinutes().truncatedTo(ChronoUnit.HOURS);
-        LocalDateTime reportTime = nowHour.minusHours(1).plusMinutes(10); // diffHours=1
+        // baseHour=10:00, nowHour=11:00 -> diffHours=1
+        LocalDateTime reportTime = LocalDateTime.of(2026, 2, 10, 10, 0);
+        LocalDateTime now        = LocalDateTime.of(2026, 2, 10, 11, 0);
 
-        LocalDateTime v0 = reportTime;
-        LocalDateTime v1 = reportTime.plusHours(1); // shiftedReportTime과 동일
-        LocalDateTime v2 = reportTime.plusHours(2);
-        LocalDateTime v3 = reportTime.plusHours(3);
+        LocalDateTime v0 = reportTime;              // 10:00 (제외)
+        LocalDateTime v1 = reportTime.plusHours(1); // 11:00 (미포함, shiftedReportTime)
+        LocalDateTime v2 = reportTime.plusHours(2); // 12:00
+        LocalDateTime v3 = reportTime.plusHours(3); // 13:00
 
         HourlyForecastDto base =
                 new HourlyForecastDto(
@@ -134,44 +142,38 @@ class AppForecastServiceTest {
 
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
-        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
+        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
 
         assertNotNull(result);
         assertEquals(regionId, result.regionId());
 
-        // reportTime + 1h
-        assertEquals(reportTime.plusHours(1), result.reportTime());
+        assertEquals(reportTime.truncatedTo(ChronoUnit.HOURS).plusHours(1), result.reportTime());
 
         List<HourlyPoint> hours = result.hours();
+        assertEquals(2, hours.size());
 
-        // 리팩토링 버전은 inclusive(>=) 이라 v1도 포함됨
-        assertEquals(3, hours.size());
+        assertEquals(v2, hours.get(0).validAt());
+        assertEquals(12, hours.get(0).temp());
+        assertEquals(40, hours.get(0).pop());
 
-        assertEquals(v1, hours.get(0).validAt());
-        assertEquals(11, hours.get(0).temp());
-        assertEquals(30, hours.get(0).pop());
-
-        assertEquals(v2, hours.get(1).validAt());
-        assertEquals(12, hours.get(1).temp());
-        assertEquals(40, hours.get(1).pop());
-
-        assertEquals(v3, hours.get(2).validAt());
-        assertEquals(13, hours.get(2).temp());
-        assertEquals(50, hours.get(2).pop());
+        assertEquals(v3, hours.get(1).validAt());
+        assertEquals(13, hours.get(1).temp());
+        assertEquals(50, hours.get(1).pop());
     }
 
     @Test
-    @DisplayName("hourly forecast: 3시간 이상 경과 시 최대 2시간까지만 보정하고, validAt >= (reportTime+2h) 인 항목만 남는다")
+    @DisplayName("hourly forecast: 3시간 이상 경과 시 최대 2시간까지만 보정하고, validAt > (reportTime+2h) 인 항목만 남는다")
     void adjustHourly_clampedToTwoHours_usingValidAt() {
         String regionId = "11";
 
-        LocalDateTime nowHour = TimeUtil.nowMinutes().truncatedTo(ChronoUnit.HOURS);
-        LocalDateTime reportTime = nowHour.minusHours(4).plusMinutes(10); // rawDiffHours 크게
+        // baseHour=10:00, nowHour=14:00 -> raw=4, clamp=2
+        LocalDateTime reportTime = LocalDateTime.of(2026, 2, 10, 10, 10);
+        LocalDateTime now        = LocalDateTime.of(2026, 2, 10, 14, 0);
 
-        LocalDateTime v0 = reportTime;
-        LocalDateTime v1 = reportTime.plusHours(1);
-        LocalDateTime v2 = reportTime.plusHours(2); // shiftedReportTime과 동일
-        LocalDateTime v3 = reportTime.plusHours(3);
+        LocalDateTime v0 = reportTime;              // 10:10
+        LocalDateTime v1 = reportTime.plusHours(1); // 11:10
+        LocalDateTime v2 = reportTime.plusHours(2); // 12:10 (포함, shiftedReportTime)
+        LocalDateTime v3 = reportTime.plusHours(3); // 13:10
 
         HourlyForecastDto base =
                 new HourlyForecastDto(
@@ -187,16 +189,13 @@ class AppForecastServiceTest {
 
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
-        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId);
+        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
 
         assertNotNull(result);
 
-        // clamp=2 -> reportTime + 2h
-        assertEquals(reportTime.plusHours(2), result.reportTime());
+        assertEquals(reportTime.truncatedTo(ChronoUnit.HOURS).plusHours(2), result.reportTime());
 
         List<HourlyPoint> hours = result.hours();
-
-        // inclusive(>=) 이라 v2도 포함되어 2개가 남음
         assertEquals(2, hours.size());
 
         assertEquals(v2, hours.get(0).validAt());
@@ -212,7 +211,7 @@ class AppForecastServiceTest {
     @DisplayName("daily forecast: SnapshotQueryService의 결과를 그대로 반환한다")
     void getDailyForecast_delegatesToSnapshotQueryService() {
         String regionId = "11";
-        LocalDateTime reportTime = TimeUtil.nowMinutes();
+        LocalDateTime reportTime = LocalDateTime.of(2026, 2, 10, 10, 0);
 
         DailyForecastDto baseDaily =
                 new DailyForecastDto(regionId, reportTime, List.of());

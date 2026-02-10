@@ -7,22 +7,26 @@ import com.github.yun531.climate.util.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class AppForecastService {
 
-    private static final int MAX_SHIFT_HOURS = 2;
-
     private final SnapshotQueryService snapshotQueryService;
-
-    // 3시간 스냅샷을 0/1/2시간 재사용
-    private final HourlyForecastWindowAdjuster windowAdjuster =
-            new HourlyForecastWindowAdjuster(MAX_SHIFT_HOURS);
+    private final HourlyForecastWindowAdjuster windowAdjuster;
 
     public HourlyForecastDto getHourlyForecast(String regionId) {
+        return computeForRegion(regionId, TimeUtil.nowMinutes());
+    }
+
+    public HourlyForecastDto computeForRegion(String regionId, LocalDateTime now) {
+        LocalDateTime normalizedNow = (now == null) ? TimeUtil.nowMinutes() : TimeUtil.truncateToMinutes(now);
+
         HourlyForecastDto base = snapshotQueryService.getHourlyForecast(regionId);
-        if (base == null) return null;
-        return windowAdjuster.adjust(base, TimeUtil.nowMinutes());
+        if (base == null) return null;   // 정책상 빈 DTO/Optional로 바꾸는 건 다음 단계에서 선택 가능
+
+        return windowAdjuster.adjust(base, normalizedNow);
     }
 
     public DailyForecastDto getDailyForecast(String regionId) {
