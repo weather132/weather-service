@@ -2,7 +2,7 @@ package com.github.yun531.climate.service.notification.rule.adjust;
 
 import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.payload.ValidAtPayload;
-import io.micrometer.common.lang.Nullable;
+import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -20,22 +20,34 @@ import java.util.List;
  */
 public class ValidAtEventAdjuster {
 
-    private final int windowHours; // 보통 24
+    private final int maxWindowHours;   // 기본 24
+    private final int startOffsetHours; // 기본 1 (now+1부터)
 
-    public ValidAtEventAdjuster(int windowHours) {
-        this.windowHours = windowHours;
+    public ValidAtEventAdjuster(int maxWindowHours) {
+        this(maxWindowHours, 1);
     }
 
-    public List<AlertEvent> adjust(List<AlertEvent> events, LocalDateTime now) {
+    public ValidAtEventAdjuster(int maxWindowHours, int startOffsetHours) {
+        this.maxWindowHours = Math.max(0, maxWindowHours);
+        this.startOffsetHours = Math.max(0, startOffsetHours);
+    }
+
+    /** @param hourLimitInclusive now 기준 N시간 이내 제한(없으면 maxWindowHours 사용) */
+    public List<AlertEvent> adjust(List<AlertEvent> events, LocalDateTime now, @Nullable Integer hourLimitInclusive) {
         if (events == null || events.isEmpty()) return List.of();
         if (now == null) return List.copyOf(events);
 
         LocalDateTime nowHour = now.truncatedTo(ChronoUnit.HOURS);
 
-        LocalDateTime windowStart = nowHour.plusHours(1L);
-        LocalDateTime windowEnd   = nowHour.plusHours(windowHours);
+        int endOffset = computeEndOffset(hourLimitInclusive);
+        if (endOffset < startOffsetHours) return List.of();
 
-        List<AlertEvent> kept = new ArrayList<>(events.size());
+        LocalDateTime windowStart = nowHour.plusHours(startOffsetHours);
+        LocalDateTime windowEnd   = nowHour.plusHours(endOffset);
+
+        int cap = endOffset - startOffsetHours + 1;
+
+        ArrayList<AlertEvent> kept = new ArrayList<>(Math.min(events.size(), cap));
 
         for (AlertEvent e : events) {
             LocalDateTime validAt = readValidAt(e);
@@ -44,9 +56,7 @@ public class ValidAtEventAdjuster {
             if (validAt == null) continue;
 
             // [start, end] 포함 범위로 취급
-            if (validAt.isBefore(windowStart) || validAt.isAfter(windowEnd)) {
-                continue;
-            }
+            if (validAt.isBefore(windowStart) || validAt.isAfter(windowEnd)) continue;
 
             // occurredAt은 nowHour로 통일, payload는 그대로 유지
             kept.add(new AlertEvent(e.type(), e.regionId(), nowHour, e.payload()));
@@ -54,13 +64,20 @@ public class ValidAtEventAdjuster {
 
         if (kept.isEmpty()) return List.of();
 
-        // validAt 기준 정렬 후 최대 windowHours개 유지(중복/오염 방어)
+        // validAt 기준 정렬 후 최대 cap개 유지(중복/오염 방어)
         kept.sort(Comparator.comparing(this::readValidAt, Comparator.nullsLast(Comparator.naturalOrder())));
-        if (kept.size() > windowHours) {
-            kept = kept.subList(0, windowHours);
+        if (kept.size() > cap) {
+            return List.copyOf(kept.subList(0, cap));
         }
-
         return List.copyOf(kept);
+    }
+
+    private int computeEndOffset(@Nullable Integer hourLimitInclusive) {
+        if (maxWindowHours == 0) return 0;
+        if (hourLimitInclusive == null) return maxWindowHours;
+
+        int limit = Math.max(0, hourLimitInclusive);
+        return Math.min(maxWindowHours, limit);
     }
 
     @Nullable
