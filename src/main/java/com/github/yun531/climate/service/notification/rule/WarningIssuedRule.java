@@ -1,37 +1,34 @@
 package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
-import com.github.yun531.climate.service.notification.model.AlertEvent;
-import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
-import com.github.yun531.climate.service.notification.model.WarningKind;
+import com.github.yun531.climate.service.notification.model.*;
 import com.github.yun531.climate.service.notification.model.payload.WarningIssuedPayload;
 import com.github.yun531.climate.service.query.WarningStateQueryService;
 import com.github.yun531.climate.service.query.dto.WarningStateDto;
 import com.github.yun531.climate.util.cache.CacheEntry;
-import io.micrometer.common.lang.Nullable;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import com.github.yun531.climate.util.time.TimeUtil;
+import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
-
-@Component
-@RequiredArgsConstructor
 public class WarningIssuedRule
         extends AbstractCachedRegionAlertRule<Map<WarningKind, WarningStateDto>> {
 
     private final WarningStateQueryService warningStateQueryService;
 
-    /** 캐시 TTL (분 단위) */
-    private static final int CACHE_TTL_MINUTES = 45;
+    private final int cacheTtlMinutes;        // 캐시 TTL (분)
+    private final int sinceAdjustMinutes;     // 특보 발효 시각과의 시차 보정을 위한 since 보정 (분)
 
-    /** payload에 넣을 srcRule (기존 Map payload의 _srcRule / ruleName 역할) */
-    private static final String SRC_RULE = "WarningIssuedRule";
+    public WarningIssuedRule(
+            WarningStateQueryService warningStateQueryService,
+            int cacheTtlMinutes,
+            int sinceAdjustMinutes
+    ) {
+        this.warningStateQueryService = warningStateQueryService;
+        this.cacheTtlMinutes = Math.max(0, cacheTtlMinutes);
+        this.sinceAdjustMinutes = Math.max(0, sinceAdjustMinutes);
+    }
 
     @Override
     public AlertTypeEnum supports() {
@@ -40,12 +37,12 @@ public class WarningIssuedRule
 
     @Override
     protected int thresholdMinutes() {
-        return CACHE_TTL_MINUTES;
+        return cacheTtlMinutes;
     }
 
     /**
-     * WarningIssuedRule은 TTL을 "지금" 기준으로 굴림 (기존 코드의 cacheSince=nowMinutes() 유지)
-     * - getOrComputeSinceBased의 since 자리에 now를 넣어 TTL 기반으로만 재계산되게 함
+     * WarningIssuedRule은 TTL을 "지금" 기준으로 굴림
+     * - sinceForCache의 since 자리에 now를 넣어 TTL 기반으로만 재계산되게 함
      */
     @Override
     protected LocalDateTime sinceForCache(NotificationRequest request, LocalDateTime now) {
@@ -54,34 +51,38 @@ public class WarningIssuedRule
 
     /** 한 지역에 대한 최신 특보 상태를 DB 에서 로드하고 CacheEntry로 래핑 */
     @Override
-    protected CacheEntry<Map<WarningKind, WarningStateDto>> computeForRegion(String regionId) {
+    protected CacheEntry<Map<WarningKind, WarningStateDto>> computeForRegion(String regionId, LocalDateTime now) {
         Map<String, Map<WarningKind, WarningStateDto>> latestByRegion =
                 warningStateQueryService.findLatestByRegionAndKind(List.of(regionId));
 
         Map<WarningKind, WarningStateDto> byKind =
-                latestByRegion.getOrDefault(regionId, Map.of());
+                (latestByRegion == null)
+                        ? Map.of()
+                        : latestByRegion.getOrDefault(regionId, Map.of());
 
-        return new CacheEntry<>(byKind, nowMinutes());
+        LocalDateTime computedAt = TimeUtil.truncateToMinutes(now);
+        return new CacheEntry<>(byKind, computedAt);
     }
 
     /**
      * 캐시값(Map<kind, state>)을 AlertEvent 리스트로 변환.
      * - filterKinds 적용
-     * - since는 특보 발효 시각 보정을 위해 90분 당겨(adjust) 판단 (기존 로직 유지)
+     * - since는 특보 발효 시각 보정을 위해 sinceAdjustMinutes 만큼 당겨(adjust) 판단
      */
     @Override
-    protected List<AlertEvent> buildEvents(String regionId,
-                                            Map<WarningKind, WarningStateDto> byKind,
-                                            @Nullable LocalDateTime computedAt,
-                                            LocalDateTime now,
-                                            NotificationRequest request
+    protected List<AlertEvent> buildEvents(
+            String regionId,
+            Map<WarningKind, WarningStateDto> byKind,
+            @Nullable LocalDateTime computedAt,
+            LocalDateTime now,
+            NotificationRequest request
     ) {
         if (byKind == null || byKind.isEmpty()) return List.of();
 
         Set<WarningKind> filterKinds = request.filterWarningKinds();
         LocalDateTime adjustedSince = adjustSince(request.since());
 
-        List<AlertEvent> out = new ArrayList<>();
+        ArrayList<AlertEvent> out = new ArrayList<>(byKind.size());
 
         for (Map.Entry<WarningKind, WarningStateDto> e : byKind.entrySet()) {
             WarningKind kind = e.getKey();
@@ -97,12 +98,12 @@ public class WarningIssuedRule
     }
 
     /**
-     * 특보 발효 시각과의 시차 보정을 위해 since를 90분 당겨서 사용
-     * 요청 시점에서부터 90분 이전까지의 특보 정보를 새로 발효된 것으로 간주
+     * 특보 발효 시각과의 시차 보정을 위해 since를 일정 분(sinceAdjustMinutes) 당겨서 사용
+     * 요청 시점에서부터 보정 분 이전까지의 특보 정보를 새로 발효된 것으로 간주
      */
-    private LocalDateTime adjustSince(LocalDateTime since) {
+    private LocalDateTime adjustSince(@Nullable LocalDateTime since) {
         if (since == null) return null;
-        return since.minusMinutes(90); // todo: 특보알림 로직 변경시 수정해야 함
+        return since.minusMinutes(sinceAdjustMinutes); // todo: 특보알림 로직 변경시 수정해야 함
     }
 
     /** 필터 kind 집합이 비어 있지 않다면, 해당 kind가 포함되는지 검사 */
@@ -123,14 +124,14 @@ public class WarningIssuedRule
 
     /** DTO → AlertEvent 변환 */
     private AlertEvent toAlertEvent(String regionId, WarningStateDto state, LocalDateTime now) {
-        LocalDateTime occurredAt =
-                (state.updatedAt() != null) ? state.updatedAt() : now;
+        LocalDateTime occurredAt = (state.updatedAt() != null) ? state.updatedAt() : now;
+        occurredAt = TimeUtil.truncateToMinutes(occurredAt);
 
         // Map payload 대신 typed payload
         WarningIssuedPayload payload = new WarningIssuedPayload(
-                SRC_RULE,
-                state.kind(),         // WarningKind enum
-                state.level()         // WarningLevel enum
+                RuleId.WARNING_ISSUED.id(),
+                state.kind(),   // WarningKind enum
+                state.level()   // WarningLevel enum
         );
 
         return new AlertEvent(
