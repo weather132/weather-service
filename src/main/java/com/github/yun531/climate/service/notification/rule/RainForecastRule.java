@@ -1,6 +1,5 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.config.snapshot.SnapshotCacheProperties;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.*;
 import com.github.yun531.climate.service.notification.model.payload.DailyRainFlags;
@@ -11,41 +10,41 @@ import com.github.yun531.climate.service.notification.rule.compute.RainForecastC
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
 import com.github.yun531.climate.util.cache.CacheEntry;
-import io.micrometer.common.lang.Nullable;
-import lombok.RequiredArgsConstructor;
+import com.github.yun531.climate.util.time.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
+import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 
-import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
-
-@Component
-@RequiredArgsConstructor
-public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEvent>> {
+public class RainForecastRule extends AbstractCachedRegionAlertRule<AlertEvent> {
 
     private static final Logger log = LoggerFactory.getLogger(RainForecastRule.class);
 
-    private final SnapshotQueryService snapshotQueryService;
-    private final SnapshotCacheProperties cacheProps;
-
     private static final int SNAP_CURRENT_CODE = SnapKindEnum.SNAP_CURRENT.getCode();
-    private static final int RAIN_THRESHOLD = RainThresholdEnum.RAIN.getThreshold();
 
-    private static final String SRC_RULE_NAME = "RainForecastRule";
+    private final SnapshotQueryService snapshotQueryService;
+    private final RainForecastComputer computer;
 
-    private static final int MAX_HOURLY_HOURS = 26;
-    private static final int MAX_SHIFT_HOURS  = 2; // 3시간 스냅샷을 0/1/2시간 재사용
+    private final RainForecastPartsAdjuster adjuster;
 
-    private final RainForecastComputer computer =
-            new RainForecastComputer(RAIN_THRESHOLD, MAX_HOURLY_HOURS);
+    private final int recomputeThresholdMinutes;
+    private final int rainThreshold;
 
-    /** Map 파싱 없이, 타입 payload(RainForecastPayload)를 직접 보정 */
-    private final RainForecastPartsAdjuster windowAdjuster =
-            new RainForecastPartsAdjuster(MAX_SHIFT_HOURS, MAX_HOURLY_HOURS);
+    public RainForecastRule(
+            SnapshotQueryService snapshotQueryService,
+            RainForecastComputer computer,
+            RainForecastPartsAdjuster adjuster,
+            int recomputeThresholdMinutes,
+            int rainThreshold
+    ) {
+        this.snapshotQueryService = snapshotQueryService;
+        this.computer = computer;
+        this.adjuster = adjuster;
+        this.recomputeThresholdMinutes = Math.max(0, recomputeThresholdMinutes);
+        this.rainThreshold = rainThreshold;
+    }
 
     @Override
     public AlertTypeEnum supports() {
@@ -54,66 +53,76 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<List<AlertEv
 
     @Override
     protected int thresholdMinutes() {
-        return cacheProps.recomputeThresholdMinutes();
+        return recomputeThresholdMinutes;
     }
 
     @Override
-    protected CacheEntry<List<AlertEvent>> computeForRegion(String regionId) {
+    protected CacheEntry<AlertEvent> computeForRegion(String regionId, LocalDateTime now) {
         PopView view = snapshotQueryService.loadPopView(regionId, SNAP_CURRENT_CODE);
         if (view == null) {
-            return new CacheEntry<>(List.of(), null);
+            return new CacheEntry<>(null, null);
         }
 
         RainForecastParts parts = computer.compute(view);
 
-        var pts = view.hourly().points();
-        long nullValidAt = pts.stream().filter(p -> p == null || p.validAt() == null).count();
-        long rainCnt24 = pts.stream()
-                .filter(p -> p != null)
-                .sorted(Comparator.comparing(
-                        PopView.HourlyPopSeries26.Point::validAt,
-                        Comparator.nullsLast(Comparator.naturalOrder())
-                ))
-                .limit(24)
-                .filter(p -> p.validAt() != null && p.pop() >= RAIN_THRESHOLD)
-                .count();
-
-        log.info("[RAIN] points={}, nullValidAt={}, rainCntInFirst24={}, parts={}",
-                pts.size(), nullValidAt, rainCnt24, parts.hourlyParts().size());
+        if (log.isInfoEnabled()) {  //todo log 확인
+            logInfo(view, parts);
+        }
 
         // ===== 타입 payload 구성 =====
-        List<RainInterval> hourlyRanges =
-                parts.hourlyParts().stream()
-                        .map(p -> new RainInterval(p.start(), p.end()))
-                        .toList();
+        List<RainInterval> hourlyRanges = parts.hourlyParts().stream()
+                .map(p -> new RainInterval(p.start(), p.end()))
+                .toList();
 
-        List<DailyRainFlags> dayFlags =
-                parts.dayParts().stream()
-                        .sorted(Comparator.comparing(RainForecastParts.DayPart::dayOffset))
-                        .map(d -> new DailyRainFlags(d.am(), d.pm()))
-                        .toList();
+        List<DailyRainFlags> dayFlags = parts.dayParts().stream()
+                .map(d -> new DailyRainFlags(d.am(), d.pm()))
+                .toList(); // dayOffset 순서가 이미 0..6으로 들어오므로 정렬 불필요
 
-        RainForecastPayload payload =
-                new RainForecastPayload(SRC_RULE_NAME, hourlyRanges, dayFlags);
+        RainForecastPayload payload = new RainForecastPayload(RuleId.RAIN_FORECAST.id(), hourlyRanges, dayFlags);
         // ===========================
 
-        // now 대신 reportTime 우선(새 발표 반영에 유리)
-        LocalDateTime computedAt = (view.reportTime() != null) ? view.reportTime() : nowMinutes();
+        // computedAt: reportTime 우선, 없으면 now(분단위)
+        LocalDateTime computedAt =
+                (view.reportTime() != null)
+                        ? TimeUtil.truncateToMinutes(view.reportTime())
+                        : TimeUtil.truncateToMinutes(now);
 
         AlertEvent event = new AlertEvent(AlertTypeEnum.RAIN_FORECAST, regionId, computedAt, payload);
-        return new CacheEntry<>(List.of(event), computedAt);
+        return new CacheEntry<>(event, computedAt);
     }
 
     @Override
-    protected List<AlertEvent> buildEvents(String regionId,
-                                           List<AlertEvent> events,
-                                           @Nullable LocalDateTime computedAt,
-                                           LocalDateTime now,
-                                           NotificationRequest request) {
-        if (events == null || events.isEmpty()) return List.of();
+    protected List<AlertEvent> buildEvents(
+            String regionId,
+            AlertEvent event,
+            @Nullable LocalDateTime computedAt,
+            LocalDateTime now,
+            NotificationRequest request
+    ) {
+        if (event == null) return List.of();
 
-        // 반환 직전에 시간축 보정 (payload를 타입으로 직접 다룸)
-        List<AlertEvent> adjusted = windowAdjuster.adjust(events, computedAt, now);
-        return (adjusted == null || adjusted.isEmpty()) ? List.of() : adjusted;
+        // 반환 직전에 시간축 보정(typed payload 직접 보정)
+        AlertEvent adjusted = adjuster.adjust(event, computedAt, now);
+        return (adjusted == null) ? List.of() : List.of(adjusted);
+    }
+
+    private void logInfo(PopView view, RainForecastParts parts) {
+        var pts = view.hourly().points();
+
+        long nullValidAt = 0;
+        long rainCntInFirst24 = 0;
+        int seenValid = 0;
+
+        for (var p : pts) {
+            if (p == null || p.validAt() == null) {
+                nullValidAt++;
+                continue;
+            }
+            if (seenValid < 24 && p.pop() >= rainThreshold) rainCntInFirst24++;
+            seenValid++;
+        }
+
+        log.info("[RAIN_FORECAST] points={}, nullValidAt={}, rainCntInFirst24={}, segments={}",
+                pts.size(), nullValidAt, rainCntInFirst24, parts.hourlyParts().size());
     }
 }
