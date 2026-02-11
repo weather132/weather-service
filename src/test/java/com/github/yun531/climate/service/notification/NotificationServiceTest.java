@@ -42,7 +42,7 @@ class NotificationServiceTest {
         lenient().when(warnRule.supports()).thenReturn(AlertTypeEnum.WARNING_ISSUED);
         lenient().when(forecastRule.supports()).thenReturn(AlertTypeEnum.RAIN_FORECAST);
 
-        service = new NotificationService(List.of(rainRule, warnRule, forecastRule));
+        service = new NotificationService(List.of(rainRule, warnRule, forecastRule), 3);
     }
 
     /**

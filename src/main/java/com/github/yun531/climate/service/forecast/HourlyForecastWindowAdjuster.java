@@ -11,11 +11,13 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * HourlyForecastDto(시간대별 예보)를 now 기준으로 재조정
- * - 스냅샷 3시간 갱신 가정: maxShiftHours=2 (0/1/2시간 재사용)
- * - reportTime(기준시각)을 now에 맞춰 shiftedBaseTime 으로 보정
- * - hourly는 validAt 기준 정렬 후,
- *   validAt > 기준시각(shiftedBaseTime 또는 reportTime) 인 포인트만 windowSize 개로 절단
+ * ForecastConfig(@Bean)에서 생성되는 서비스.
+ * HourlyForecastDto(시간대별 예보)를 now 기준으로 “윈도우” 형태로 재구성
+ * - 스냅샷이 3시간 주기로 갱신된다는 가정 하에, reportTime 기준 최대 maxShiftHours(기본 2시간)까지 재사용
+ * - reportTime과 now의 차이를 계산해 shiftedBaseTime(보정 기준시각)을 산출
+ * - hourly 포인트는 validAt 오름차순 정렬 후, validAt이 기준시각(baseTime)보다 “이후(>)”인 것만 남김
+ * - 남은 포인트를 windowSize 개로 제한하여 반환
+ * - reportTime(또는 shiftedBaseTime)을 baseTime 으로 사용해 새 HourlyForecastDto를 생성
  */
 public final class HourlyForecastWindowAdjuster {
 
