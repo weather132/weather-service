@@ -6,6 +6,8 @@ import com.github.yun531.climate.service.notification.model.PopView;
 import com.github.yun531.climate.service.notification.model.PopViewPair;
 import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
 import com.github.yun531.climate.service.notification.model.payload.RainOnsetPayload;
+import com.github.yun531.climate.service.notification.rule.adjust.RainOnsetEventValidAtAdjuster;
+import com.github.yun531.climate.service.notification.rule.compute.RainOnsetEventComputer;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,20 +21,42 @@ import java.util.List;
 
 import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RainOnsetChangeRuleTest {
 
-    /** RainOnsetChangeRule.RECOMPUTE_THRESHOLD_MINUTES 와 동일하게 유지 */
     private static final int TTL_MINUTES = 165;
 
     @Mock
     SnapshotQueryService snapshotQueryService;
 
+    @Mock
+    RainOnsetEventValidAtAdjuster windowAdjuster;
+
+    @Mock
+    RainOnsetEventComputer computer;
+
+    private RainOnsetChangeRule newRule() {
+        return new RainOnsetChangeRule(
+                snapshotQueryService,
+                windowAdjuster,
+                computer,
+                TTL_MINUTES
+        );
+    }
+
+    private void stubAdjusterPassThrough() {
+        // adjuster는 테스트에서는 "그대로 반환"만 해도 충분
+        when(windowAdjuster.adjust(anyList(), any(LocalDateTime.class), nullable(Integer.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+    }
+
     @Test
     void 이전은비아님_현재는비임_교차시각_validAt_에_AlertEvent_발생() {
-        RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
+        stubAdjusterPassThrough();
+        RainOnsetChangeRule rule = newRule();
 
         int th = RainThresholdEnum.RAIN.getThreshold(); // 60
         String regionId = "11B10101";
@@ -45,6 +69,9 @@ class RainOnsetChangeRuleTest {
         PopViewPair pair = pairWithOnsetAtValidAtHourOffset(nowHour, 5, th);
 
         when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
+        when(computer.detect(pair)).thenReturn(List.of(
+                new RainOnsetEventComputer.Hit(nowHour.plusHours(5), th)
+        ));
 
         // when
         NotificationRequest req = rainReq(regionId, null);
@@ -70,7 +97,7 @@ class RainOnsetChangeRuleTest {
 
     @Test
     void 이전부터_이미비임_교차없음_이벤트없음() {
-        RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
+        RainOnsetChangeRule rule = newRule();
 
         int th = RainThresholdEnum.RAIN.getThreshold();
         String regionId = "11B20201";
@@ -81,6 +108,7 @@ class RainOnsetChangeRuleTest {
         PopViewPair pair = pairAlreadyRainingAtValidAtHourOffset(nowHour, 5, th);
 
         when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
+        when(computer.detect(pair)).thenReturn(List.of()); // 교차 없음
 
         NotificationRequest req = rainReq(regionId, null);
         var events = rule.evaluate(req);
@@ -90,7 +118,7 @@ class RainOnsetChangeRuleTest {
 
     @Test
     void 시계열없음_null이면_스킵() {
-        RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
+        RainOnsetChangeRule rule = newRule();
 
         String regionId = "11B20601";
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
@@ -106,7 +134,8 @@ class RainOnsetChangeRuleTest {
 
     @Test
     void 캐시_재사용_since가_있으면_두번째_호출시_재계산_안함() {
-        RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
+        stubAdjusterPassThrough();
+        RainOnsetChangeRule rule = newRule();
 
         String regionId = "11B30101";
         int th = RainThresholdEnum.RAIN.getThreshold();
@@ -116,6 +145,9 @@ class RainOnsetChangeRuleTest {
 
         when(snapshotQueryService.loadDefaultPopViewPair(regionId))
                 .thenReturn(pair); // 최초 1회만 호출되길 기대
+        when(computer.detect(pair)).thenReturn(List.of(
+                new RainOnsetEventComputer.Hit(nowHour.plusHours(5), th)
+        ));
 
         // 1) 최초 호출 → 캐시 생성 (since == null 이므로 무조건 계산)
         NotificationRequest firstReq = rainReq(regionId, null);
@@ -135,14 +167,18 @@ class RainOnsetChangeRuleTest {
 
     @Test
     void invalidate_호출시_다음_호출에서_재계산() {
-        RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
+        stubAdjusterPassThrough();
+        RainOnsetChangeRule rule = newRule();
 
         String regionId = "11B40101";
         int th = RainThresholdEnum.RAIN.getThreshold();
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
-        when(snapshotQueryService.loadDefaultPopViewPair(regionId))
-                .thenReturn(pairWithOnsetAtValidAtHourOffset(nowHour, 3, th));
+        PopViewPair pair = pairWithOnsetAtValidAtHourOffset(nowHour, 3, th);
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
+        when(computer.detect(pair)).thenReturn(List.of(
+                new RainOnsetEventComputer.Hit(nowHour.plusHours(3), th)
+        ));
 
         // 1) 최초 호출 → 계산 1회
         NotificationRequest req1 = rainReq(regionId, null);
@@ -160,7 +196,8 @@ class RainOnsetChangeRuleTest {
 
     @Test
     void since가_충분히_인접하면_재계산_안함() {
-        RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
+        stubAdjusterPassThrough();
+        RainOnsetChangeRule rule = newRule();
 
         String regionId = "11B50101";
         int th = RainThresholdEnum.RAIN.getThreshold();
@@ -168,6 +205,9 @@ class RainOnsetChangeRuleTest {
 
         PopViewPair pair = pairWithOnsetAtValidAtHourOffset(nowHour, 10, th);
         when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
+        when(computer.detect(pair)).thenReturn(List.of(
+                new RainOnsetEventComputer.Hit(nowHour.plusHours(10), th)
+        ));
 
         // 최초 계산
         NotificationRequest firstReq = rainReq(regionId, null);
@@ -193,7 +233,8 @@ class RainOnsetChangeRuleTest {
 
     @Test
     void 경계값_TTL마이너스1분은_재계산안함_TTL플러스1분은_재계산() {
-        RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
+        stubAdjusterPassThrough();
+        RainOnsetChangeRule rule = newRule();
 
         String regionId = "11B60101";
         int th = RainThresholdEnum.RAIN.getThreshold();
@@ -201,6 +242,9 @@ class RainOnsetChangeRuleTest {
 
         PopViewPair pair = pairWithOnsetAtValidAtHourOffset(nowHour, 5, th);
         when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
+        when(computer.detect(pair)).thenReturn(List.of(
+                new RainOnsetEventComputer.Hit(nowHour.plusHours(5), th)
+        ));
 
         // 최초 계산
         NotificationRequest firstReq = rainReq(regionId, null);
@@ -225,7 +269,8 @@ class RainOnsetChangeRuleTest {
 
     @Test
     void since를_미래로_크게_당기면_오래된_캐시로_판단되어_재계산() {
-        RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
+        stubAdjusterPassThrough();
+        RainOnsetChangeRule rule = newRule();
 
         String regionId = "11B70101";
         int th = RainThresholdEnum.RAIN.getThreshold();
@@ -233,6 +278,9 @@ class RainOnsetChangeRuleTest {
 
         PopViewPair pair = pairWithOnsetAtValidAtHourOffset(nowHour, 3, th);
         when(snapshotQueryService.loadDefaultPopViewPair(regionId)).thenReturn(pair);
+        when(computer.detect(pair)).thenReturn(List.of(
+                new RainOnsetEventComputer.Hit(nowHour.plusHours(3), th)
+        ));
 
         // 최초 계산
         NotificationRequest firstReq = rainReq(regionId, null);
@@ -251,7 +299,8 @@ class RainOnsetChangeRuleTest {
 
     @Test
     void 지역별_캐시_키_분리_검증() {
-        RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
+        stubAdjusterPassThrough();
+        RainOnsetChangeRule rule = newRule();
 
         String regionId01 = "11B80101";
         String regionId02 = "11B80201";
@@ -263,6 +312,13 @@ class RainOnsetChangeRuleTest {
 
         when(snapshotQueryService.loadDefaultPopViewPair(regionId01)).thenReturn(pair01);
         when(snapshotQueryService.loadDefaultPopViewPair(regionId02)).thenReturn(pair02);
+
+        when(computer.detect(pair01)).thenReturn(List.of(
+                new RainOnsetEventComputer.Hit(nowHour.plusHours(2), th)
+        ));
+        when(computer.detect(pair02)).thenReturn(List.of(
+                new RainOnsetEventComputer.Hit(nowHour.plusHours(6), th)
+        ));
 
         // 1) 두 지역 동시에 호출 → 각 1회씩 계산
         NotificationRequest reqBoth = rainReq(List.of(regionId01, regionId02), null);
@@ -280,17 +336,26 @@ class RainOnsetChangeRuleTest {
 
     @Test
     void invalidateAll_호출시_모든_지역_재계산() {
-        RainOnsetChangeRule rule = new RainOnsetChangeRule(snapshotQueryService);
+        stubAdjusterPassThrough();
+        RainOnsetChangeRule rule = newRule();
 
         String regionId01 = "11B90101";
         String regionId02 = "11B90201";
         int th = RainThresholdEnum.RAIN.getThreshold();
         LocalDateTime nowHour = nowMinutes().truncatedTo(ChronoUnit.HOURS);
 
-        when(snapshotQueryService.loadDefaultPopViewPair(regionId01))
-                .thenReturn(pairWithOnsetAtValidAtHourOffset(nowHour, 1, th));
-        when(snapshotQueryService.loadDefaultPopViewPair(regionId02))
-                .thenReturn(pairWithOnsetAtValidAtHourOffset(nowHour, 4, th));
+        PopViewPair pair01 = pairWithOnsetAtValidAtHourOffset(nowHour, 1, th);
+        PopViewPair pair02 = pairWithOnsetAtValidAtHourOffset(nowHour, 4, th);
+
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId01)).thenReturn(pair01);
+        when(snapshotQueryService.loadDefaultPopViewPair(regionId02)).thenReturn(pair02);
+
+        when(computer.detect(pair01)).thenReturn(List.of(
+                new RainOnsetEventComputer.Hit(nowHour.plusHours(1), th)
+        ));
+        when(computer.detect(pair02)).thenReturn(List.of(
+                new RainOnsetEventComputer.Hit(nowHour.plusHours(4), th)
+        ));
 
         // 최초 계산
         NotificationRequest firstReq = rainReq(List.of(regionId01, regionId02), null);

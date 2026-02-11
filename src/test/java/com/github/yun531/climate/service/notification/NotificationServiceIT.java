@@ -12,6 +12,10 @@ import com.github.yun531.climate.service.notification.model.payload.WarningIssue
 import com.github.yun531.climate.service.notification.rule.RainForecastRule;
 import com.github.yun531.climate.service.notification.rule.RainOnsetChangeRule;
 import com.github.yun531.climate.service.notification.rule.WarningIssuedRule;
+import com.github.yun531.climate.service.notification.rule.adjust.RainForecastPartsAdjuster;
+import com.github.yun531.climate.service.notification.rule.adjust.RainOnsetEventValidAtAdjuster;
+import com.github.yun531.climate.service.notification.rule.compute.RainForecastComputer;
+import com.github.yun531.climate.service.notification.rule.compute.RainOnsetEventComputer;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.service.query.WarningStateQueryService;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -118,21 +123,44 @@ class NotificationServiceIT {
     static class SpyConfig {
 
         @Bean(name = "rainOnsetChangeRule")
-        RainOnsetChangeRule rainOnsetChangeRuleSpy(SnapshotQueryService snapshotQueryService) {
-            return Mockito.spy(new RainOnsetChangeRule(snapshotQueryService));
+        RainOnsetChangeRule rainOnsetChangeRuleSpy(
+                SnapshotQueryService snapshotQueryService,
+                RainOnsetEventValidAtAdjuster adjuster,
+                RainOnsetEventComputer computer,
+                @Value("${notification.recompute-threshold-minutes:165}") int recomputeThresholdMinutes
+        ) {
+            return Mockito.spy(new RainOnsetChangeRule(
+                    snapshotQueryService,
+                    adjuster,
+                    computer,
+                    recomputeThresholdMinutes
+            ));
         }
 
         @Bean(name = "warningIssuedRule")
-        WarningIssuedRule warningIssuedRuleSpy(WarningStateQueryService warningStateQueryService) {
-            return Mockito.spy(new WarningIssuedRule(warningStateQueryService));
+        WarningIssuedRule warningIssuedRuleSpy(
+                WarningStateQueryService warningStateQueryService,
+                @Value("${notification.warning.cache-ttl-minutes:45}") int ttlMinutes,
+                @Value("${notification.warning.since-adjust-minutes:90}") int sinceAdjustMinutes
+        ) {
+            return Mockito.spy(new WarningIssuedRule(warningStateQueryService, ttlMinutes, sinceAdjustMinutes));
         }
 
         @Bean(name = "rainForecastRule")
         RainForecastRule rainForecastRuleSpy(
                 SnapshotQueryService snapshotQueryService,
-                SnapshotCacheProperties cacheProps
+                RainForecastComputer computer,
+                RainForecastPartsAdjuster adjuster,
+                @Value("${notification.recompute-threshold-minutes:165}") int recomputeThresholdMinutes,
+                @Value("${notification.threshold-pop:60}") int thresholdPop
         ) {
-            return Mockito.spy(new RainForecastRule(snapshotQueryService, cacheProps));
+            return Mockito.spy(new RainForecastRule(
+                    snapshotQueryService,
+                    computer,
+                    adjuster,
+                    recomputeThresholdMinutes,
+                    thresholdPop
+            ));
         }
     }
 

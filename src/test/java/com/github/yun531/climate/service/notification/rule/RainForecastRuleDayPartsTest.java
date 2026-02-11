@@ -1,9 +1,10 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.config.snapshot.SnapshotCacheProperties;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.PopView;
 import com.github.yun531.climate.service.notification.model.payload.RainForecastPayload;
+import com.github.yun531.climate.service.notification.rule.adjust.RainForecastPartsAdjuster;
+import com.github.yun531.climate.service.notification.rule.compute.RainForecastComputer;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -27,7 +27,25 @@ class RainForecastRuleDayPartsTest {
 
     @Test
     void dayParts_ampm7x2_플래그_생성검증() {
-        // given
+        LocalDateTime now = LocalDateTime.parse("2025-11-18T08:00:00");
+
+        int thresholdPop = 60;
+        int maxPoints = 26;        // hourly 최대 포인트
+        int maxShiftHours = 2;     // 0/1/2 재사용
+        int windowHours = 24;      // horizon
+        int recomputeThresholdMinutes = 165;
+
+        RainForecastComputer computer = new RainForecastComputer(thresholdPop, maxPoints);
+        RainForecastPartsAdjuster adjuster = new RainForecastPartsAdjuster(maxShiftHours, windowHours);
+
+        RainForecastRule rule = new RainForecastRule(
+                snapshotQueryService,
+                computer,
+                adjuster,
+                recomputeThresholdMinutes,
+                thresholdPop
+        );
+
         PopView.DailyPopSeries7 daily = new PopView.DailyPopSeries7(List.of(
                 new PopView.DailyPopSeries7.DailyPop(70, 10),
                 new PopView.DailyPopSeries7.DailyPop(10, 70),
@@ -41,34 +59,31 @@ class RainForecastRuleDayPartsTest {
         int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
         String regionId = "11B10101";
 
-        LocalDateTime base = nowMinutes().plusHours(5);
+        // hourly는 이번 테스트의 핵심이 아니라 pop=0으로 채움
+        LocalDateTime base = now.plusHours(5);
         PopView.HourlyPopSeries26 hourly = buildHourlySeries26(base, 0);
 
-        PopView pop = new PopView(hourly, daily, nowMinutes());
+        // reportTime을 now로 맞춰서 shift/dayShift 영향 제거
+        PopView pop = new PopView(hourly, daily, now);
 
-        when(snapshotQueryService.loadPopView(regionId, snapId))
-                .thenReturn(pop);
+        when(snapshotQueryService.loadPopView(regionId, snapId)).thenReturn(pop);
 
-        SnapshotCacheProperties cacheProps = new SnapshotCacheProperties(180, 60, 165);
-        RainForecastRule rule = new RainForecastRule(snapshotQueryService, cacheProps);
-
-        // when
         NotificationRequest request = new NotificationRequest(
                 List.of(regionId),
-                LocalDateTime.parse("2025-11-18T08:00:00"),
-                null,
-                null,
-                null
+                now,   // since
+                null,  // enabledTypes (서비스에서 거르는 값)
+                null,  // filterWarningKinds
+                null   // rainHourLimit
         );
-        var events = rule.evaluate(request);
+
+        // when: now 주입(새 구조)
+        var events = rule.evaluate(request, now);
 
         // then
         assertThat(events).hasSize(1);
 
-        // Map이 아니라 타입 payload로 받기
         var payload = (RainForecastPayload) events.get(0).payload();
 
-        // boolean -> [1,0] 형태로 변환해서 기존 기대값 그대로 검증
         List<List<Integer>> dayParts =
                 payload.dayParts().stream()
                         .map(f -> List.of(f.rainAm() ? 1 : 0, f.rainPm() ? 1 : 0))
