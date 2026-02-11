@@ -21,7 +21,7 @@ public abstract class AbstractCachedRegionAlertRule<V> implements AlertRule {
     /**
      * 캐시 판단에 넣을 since.
      * - 기본: request.since()
-     * - WarningIssuedRule처럼 TTL을 "지금(now)" 기준으로 굴리고 싶으면 override 해서 now 반환
+     * - WarningIssuedRule 처럼 TTL을 "지금(now)" 기준으로 굴리고 싶으면 override 해서 now 반환
      */
     @Nullable
     protected LocalDateTime sinceForCache(NotificationRequest request, LocalDateTime now) {

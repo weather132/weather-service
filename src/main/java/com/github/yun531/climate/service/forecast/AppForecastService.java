@@ -17,10 +17,10 @@ public class AppForecastService {
     private final HourlyForecastWindowAdjuster windowAdjuster;
 
     public HourlyForecastDto getHourlyForecast(String regionId) {
-        return computeForRegion(regionId, TimeUtil.nowMinutes());
+        return getHourlyForecast(regionId, TimeUtil.nowMinutes());
     }
 
-    public HourlyForecastDto computeForRegion(String regionId, LocalDateTime now) {
+    public HourlyForecastDto getHourlyForecast(String regionId, LocalDateTime now) {
         LocalDateTime normalizedNow = (now == null) ? TimeUtil.nowMinutes() : TimeUtil.truncateToMinutes(now);
 
         HourlyForecastDto base = snapshotQueryService.getHourlyForecast(regionId);

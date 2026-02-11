@@ -47,7 +47,7 @@ class AppForecastServiceTest {
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(null);
 
         LocalDateTime now = LocalDateTime.of(2026, 2, 10, 10, 0);
-        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
+        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId, now);
 
         assertNull(result);
         verify(snapshotQueryService).getHourlyForecast(regionId);
@@ -68,7 +68,7 @@ class AppForecastServiceTest {
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
         LocalDateTime now = LocalDateTime.of(2026, 2, 10, 10, 0);
-        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
+        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId, now);
 
         assertNotNull(result);
         assertEquals(base, result);
@@ -98,7 +98,7 @@ class AppForecastServiceTest {
 
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
-        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
+        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId, now);
 
         assertNotNull(result);
         assertEquals(regionId, result.regionId());
@@ -142,7 +142,7 @@ class AppForecastServiceTest {
 
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
-        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
+        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId, now);
 
         assertNotNull(result);
         assertEquals(regionId, result.regionId());
@@ -189,7 +189,7 @@ class AppForecastServiceTest {
 
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
-        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
+        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId, now);
 
         assertNotNull(result);
 
@@ -248,7 +248,7 @@ class AppForecastServiceTest {
 
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
-        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
+        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId, now);
 
         assertNotNull(result);
         assertEquals(regionId, result.regionId());
@@ -291,7 +291,7 @@ class AppForecastServiceTest {
 
         when(snapshotQueryService.getHourlyForecast(regionId)).thenReturn(base);
 
-        HourlyForecastDto result = appForecastService.computeForRegion(regionId, now);
+        HourlyForecastDto result = appForecastService.getHourlyForecast(regionId, now);
 
         assertNotNull(result);
         assertEquals(regionId, result.regionId());

@@ -14,7 +14,8 @@ import java.util.Objects;
  * HourlyForecastDto(시간대별 예보)를 now 기준으로 재조정
  * - 스냅샷 3시간 갱신 가정: maxShiftHours=2 (0/1/2시간 재사용)
  * - reportTime(기준시각)을 now에 맞춰 shiftedBaseTime 으로 보정
- * - hourly는 validAt 기준 정렬 후, shiftedBaseTime 이상(>=)인 포인트 중 최대 24개로 절단
+ * - hourly는 validAt 기준 정렬 후,
+ *   validAt > 기준시각(shiftedBaseTime 또는 reportTime) 인 포인트만 windowSize 개로 절단
  */
 public final class HourlyForecastWindowAdjuster {
 
@@ -42,27 +43,21 @@ public final class HourlyForecastWindowAdjuster {
 
         LocalDateTime reportTime = base.reportTime();
         if (reportTime == null || now == null || sorted.isEmpty()) {
-            // 정렬만 보장한 형태로 반환
             return new HourlyForecastDto(base.regionId(), reportTime, sorted);
         }
 
         TimeShiftUtil.Shift shift = TimeShiftUtil.computeShift(reportTime, now, maxShiftHours);
-        if (shift.diffHours() <= 0) {
-            List<HourlyPoint> capped = sorted.size() <= windowSize ? sorted : sorted.subList(0, windowSize);
-            return new HourlyForecastDto(base.regionId(), base.reportTime(), List.copyOf(capped));
-        }
 
-        LocalDateTime shiftedBaseTime = shift.shiftedBaseTime();
+        // 기준시각(baseTime) 초과(>)만 포함 + windowSize개 절단
+        LocalDateTime baseTime = (shift.diffHours() <= 0) ? reportTime : shift.shiftedBaseTime();
+        List<HourlyPoint> window = buildWindow(sorted, baseTime);
 
-        // shiftedBaseTime 이상(>=)인 포인트만 남기고 windowSize개
-        List<HourlyPoint> window = buildWindow(sorted, shiftedBaseTime);
-
-        return new HourlyForecastDto(base.regionId(), shiftedBaseTime, window);
+        return new HourlyForecastDto(base.regionId(), baseTime, window);
     }
 
-    /** shiftedBaseTime 초과(>)인 포인트만 남기고 windowSize 개로 절단 */
-    private List<HourlyPoint> buildWindow(List<HourlyPoint> sorted, LocalDateTime shiftedBaseTime) {
-        ArrayList<HourlyPoint> out = new ArrayList<>(Math.min(windowSize, 64));
+    /** 기준시각(baseTime) 초과(>)인 포인트만 남기고 windowSize 개로 절단 */
+    private List<HourlyPoint> buildWindow(List<HourlyPoint> sorted, LocalDateTime baseTime) {
+        ArrayList<HourlyPoint> out = new ArrayList<>(windowSize);
 
         for (HourlyPoint p : sorted) {
             if (p == null) continue;
@@ -70,8 +65,8 @@ public final class HourlyForecastWindowAdjuster {
             LocalDateTime t = p.validAt();
             if (t == null) continue;
 
-            // shiftedBaseTime 초과(>)만 포함 (exclusive)
-            if (!t.isAfter(shiftedBaseTime)) continue;
+            // baseTime 초과(>)만 포함 (exclusive)
+            if (!t.isAfter(baseTime)) continue;
 
             out.add(p);
             if (out.size() == windowSize) break;
