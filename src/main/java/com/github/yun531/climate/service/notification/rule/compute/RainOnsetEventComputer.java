@@ -1,68 +1,57 @@
 package com.github.yun531.climate.service.notification.rule.compute;
 
-import com.github.yun531.climate.service.notification.model.AlertEvent;
-import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.model.PopView;
 import com.github.yun531.climate.service.notification.model.PopViewPair;
-import com.github.yun531.climate.service.notification.model.payload.RainOnsetPayload;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /** PopViewPair(현재/이전 POP) -> "비 시작" 이벤트 목록 계산만 담당
  * - validAt(절대 시각) 기준으로 prev와 비교                         */
 public class RainOnsetEventComputer {
 
+    public record Hit(LocalDateTime validAt, int pop) {}
+
     private final int rainThreshold;
-    private final String srcRuleName;
     private final int maxPoints;
 
-    public RainOnsetEventComputer(int rainThreshold, String srcRuleName) {
-        this(rainThreshold, srcRuleName, PopView.HOURLY_SIZE);
-    }
-
-    public RainOnsetEventComputer(int rainThreshold, String srcRuleName, int maxPoints) {
+    public RainOnsetEventComputer(int rainThreshold, int maxPoints) {
         this.rainThreshold = rainThreshold;
-        this.srcRuleName = srcRuleName;
         this.maxPoints = Math.max(1, maxPoints);
     }
 
-    public List<AlertEvent> detect(String regionId, PopViewPair pair, LocalDateTime occurredAt) {
-        if (pair == null) return List.of();
+    public List<Hit> detect(PopViewPair pair) {
+        if (pair == null || pair.current() == null || pair.previous() == null) return List.of();
 
         PopView curView = pair.current();
         PopView prvView = pair.previous();
-        if (curView == null || prvView == null) return List.of();
 
         // prev: validAt -> pop
-        Map<LocalDateTime, Integer> prevPopByValidAt = new HashMap<>();
+        Map<LocalDateTime, Integer> prevPopByValidAt = new HashMap<>(PopView.HOURLY_SIZE * 2);
         for (PopView.HourlyPopSeries26.Point p : prvView.hourly().points()) {
-            if (p == null || p.validAt() == null) continue;
-            prevPopByValidAt.put(p.validAt(), p.pop());
+            if (p == null) continue;
+            LocalDateTime at = p.validAt();
+            if (at == null) continue;
+            prevPopByValidAt.put(at, p.pop());
         }
 
-        // current: validAt 기준 정렬 후 maxPoints만
-        List<PopView.HourlyPopSeries26.Point> curPoints =
-                curView.hourly().points().stream()
-                        .filter(p -> p != null && p.validAt() != null)
-                        .sorted(Comparator.comparing(PopView.HourlyPopSeries26.Point::validAt))
-                        .limit(maxPoints)
-                        .toList();
+        List<Hit> out = new ArrayList<>(8);
 
-        if (curPoints.isEmpty()) return List.of();
+        // PopView.HourlyPopSeries26는 fromHourlyPoints에서 validAt 정렬+패딩이 끝남
+        List<PopView.HourlyPopSeries26.Point> points = curView.hourly().points();
 
-        List<AlertEvent> events = new ArrayList<>();
+        int seen = 0;
+        for (int i = 0; i < points.size() && seen < maxPoints; i++) {
+            PopView.HourlyPopSeries26.Point p = points.get(i);
+            if (p == null) continue;
 
-        for (PopView.HourlyPopSeries26.Point p : curPoints) {
             LocalDateTime at = p.validAt();
+            if (at == null) break; // 패딩 구간
+
             int curPop = p.pop();
+            Integer prevPop = prevPopByValidAt.get(at);
 
             boolean emit;
-            Integer prevPop = prevPopByValidAt.get(at);
             if (prevPop != null) {
                 // 비교 가능: 이전 비 아님 -> 현재 비
                 emit = prevPop < rainThreshold && curPop >= rainThreshold;
@@ -71,17 +60,10 @@ public class RainOnsetEventComputer {
                 emit = curPop >= rainThreshold;
             }
 
-            if (!emit) continue;
-
-            events.add(createEvent(regionId, occurredAt, at, curPop));
+            if (emit) out.add(new Hit(at, curPop));
+            seen++;
         }
 
-        return events.isEmpty() ? List.of() : List.copyOf(events);
-    }
-
-    private AlertEvent createEvent(String regionId, LocalDateTime occurredAt, LocalDateTime validAt, int pop) {
-        // Map payload 대신 typed payload
-        RainOnsetPayload payload = new RainOnsetPayload(srcRuleName, validAt, pop);
-        return new AlertEvent(AlertTypeEnum.RAIN_ONSET, regionId, occurredAt, payload);
+        return out.isEmpty() ? List.of() : List.copyOf(out);
     }
 }
