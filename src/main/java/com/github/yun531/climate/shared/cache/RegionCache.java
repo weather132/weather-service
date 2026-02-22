@@ -1,4 +1,4 @@
-package com.github.yun531.climate.util.cache;
+package com.github.yun531.climate.shared.cache;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -29,6 +29,8 @@ public class RegionCache<T> {
             int thresholdMinutes,
             Supplier<CacheEntry<T>> computer
     ) {
+        if (computer == null) throw new IllegalArgumentException("computer must not be null");
+
         return map.compute(regionId, (k, oldEntry) -> {
             if (oldEntry == null) return computer.get();
             if (oldEntry.needsRecomputeSinceBased(since, thresholdMinutes)) return computer.get();
@@ -40,6 +42,7 @@ public class RegionCache<T> {
     public void invalidate(String regionId) {
         map.remove(regionId);
     }
+
     public void invalidateAll() {
         map.clear();
     }

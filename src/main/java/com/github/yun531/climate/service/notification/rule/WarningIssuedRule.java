@@ -5,8 +5,8 @@ import com.github.yun531.climate.service.notification.model.*;
 import com.github.yun531.climate.service.notification.model.payload.WarningIssuedPayload;
 import com.github.yun531.climate.service.query.WarningStateQueryService;
 import com.github.yun531.climate.service.query.dto.WarningStateDto;
-import com.github.yun531.climate.util.cache.CacheEntry;
-import com.github.yun531.climate.util.time.TimeUtil;
+import com.github.yun531.climate.shared.cache.CacheEntry;
+import com.github.yun531.climate.shared.time.TimeUtil;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;

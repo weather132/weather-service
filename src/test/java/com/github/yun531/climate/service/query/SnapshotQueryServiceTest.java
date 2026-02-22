@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
+import static com.github.yun531.climate.shared.time.TimeUtil.nowMinutes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 

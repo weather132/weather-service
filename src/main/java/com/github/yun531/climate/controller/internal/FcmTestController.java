@@ -4,7 +4,7 @@ import com.github.yun531.climate.config.fcm.FcmTriggerProperties;
 import com.github.yun531.climate.controller.internal.dto.FcmTestRequest;
 import com.github.yun531.climate.controller.internal.dto.FcmTestResponse;
 import com.github.yun531.climate.infra.fcm.FcmTopicPushService;
-import com.github.yun531.climate.util.time.TimeUtil;
+import com.github.yun531.climate.shared.time.TimeUtil;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -2,15 +2,15 @@ package com.github.yun531.climate.service.notification.rule;
 
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import com.github.yun531.climate.service.notification.model.AlertEvent;
-import com.github.yun531.climate.util.cache.CacheEntry;
-import com.github.yun531.climate.util.cache.RegionCache;
-import com.github.yun531.climate.util.time.TimeUtil;
+import com.github.yun531.climate.shared.cache.CacheEntry;
+import com.github.yun531.climate.shared.cache.RegionCache;
+import com.github.yun531.climate.shared.time.TimeUtil;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
+import static com.github.yun531.climate.shared.time.TimeUtil.nowMinutes;
 
 public abstract class AbstractCachedRegionAlertRule<V> implements AlertRule {
 

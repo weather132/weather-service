@@ -9,8 +9,8 @@ import com.github.yun531.climate.service.notification.rule.adjust.RainForecastPa
 import com.github.yun531.climate.service.notification.rule.compute.RainForecastComputer;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
-import com.github.yun531.climate.util.cache.CacheEntry;
-import com.github.yun531.climate.util.time.TimeUtil;
+import com.github.yun531.climate.shared.cache.CacheEntry;
+import com.github.yun531.climate.shared.time.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;

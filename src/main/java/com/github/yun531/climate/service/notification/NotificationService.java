@@ -5,13 +5,13 @@ import com.github.yun531.climate.service.notification.model.AlertEvent;
 import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
 import com.github.yun531.climate.service.notification.model.WarningKind;
 import com.github.yun531.climate.service.notification.rule.AlertRule;
-import com.github.yun531.climate.util.time.TimeUtil;
+import com.github.yun531.climate.shared.time.TimeUtil;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
+import static com.github.yun531.climate.shared.time.TimeUtil.nowMinutes;
 
 /**
  * NotificationConfig(@Bean)에서 생성되는 서비스.

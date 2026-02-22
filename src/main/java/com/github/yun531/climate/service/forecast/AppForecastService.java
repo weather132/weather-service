@@ -3,7 +3,7 @@ package com.github.yun531.climate.service.forecast;
 import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
-import com.github.yun531.climate.util.time.TimeUtil;
+import com.github.yun531.climate.shared.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
