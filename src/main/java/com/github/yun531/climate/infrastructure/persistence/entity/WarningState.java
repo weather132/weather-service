@@ -1,4 +1,4 @@
-package com.github.yun531.climate.entity;
+package com.github.yun531.climate.infrastructure.persistence.entity;
 
 import com.github.yun531.climate.service.notification.model.WarningKind;
 import com.github.yun531.climate.service.notification.model.WarningLevel;

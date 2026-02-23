@@ -1,8 +1,8 @@
 package com.github.yun531.climate.infrastructure.snapshot.store;
 
-import com.github.yun531.climate.infrastructure.snapshot.api.SnapshotApiClient;
+import com.github.yun531.climate.infrastructure.remote.snapshotapi.api.SnapshotApiClient;
 import com.github.yun531.climate.infrastructure.snapshot.config.SnapshotCacheProperties;
-import com.github.yun531.climate.infrastructure.snapshot.dto.HourlySnapshotResponse;
+import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.HourlySnapshotResponse;
 import com.github.yun531.climate.infrastructure.snapshot.assembler.ApiForecastSnapAssembler;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;

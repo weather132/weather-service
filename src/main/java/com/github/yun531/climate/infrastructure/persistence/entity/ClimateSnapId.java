@@ -1,4 +1,4 @@
-package com.github.yun531.climate.entity;
+package com.github.yun531.climate.infrastructure.persistence.entity;
 
 import java.io.Serializable;
 import java.util.Objects;

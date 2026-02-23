@@ -1,6 +1,6 @@
 package com.github.yun531.climate.infrastructure.snapshot.assembler;
 
-import com.github.yun531.climate.entity.ClimateSnap;
+import com.github.yun531.climate.infrastructure.persistence.entity.ClimateSnap;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;

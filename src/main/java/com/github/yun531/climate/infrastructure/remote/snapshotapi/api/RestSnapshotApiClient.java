@@ -1,9 +1,9 @@
-package com.github.yun531.climate.infrastructure.snapshot.api;
+package com.github.yun531.climate.infrastructure.remote.snapshotapi.api;
 
-import com.github.yun531.climate.infrastructure.shared.util.WeatherApiUtil;
-import com.github.yun531.climate.infrastructure.snapshot.config.SnapshotApiProperties;
-import com.github.yun531.climate.infrastructure.snapshot.dto.DailyForecastResponse;
-import com.github.yun531.climate.infrastructure.snapshot.dto.HourlySnapshotResponse;
+import com.github.yun531.climate.infrastructure.remote.common.WeatherApiUtil;
+import com.github.yun531.climate.infrastructure.remote.snapshotapi.config.SnapshotApiProperties;
+import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.DailyForecastResponse;
+import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.HourlySnapshotResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;

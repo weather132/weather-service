@@ -1,7 +1,7 @@
-package com.github.yun531.climate.repository;
+package com.github.yun531.climate.infrastructure.persistence.repository;
 
-import com.github.yun531.climate.entity.ClimateSnap;
-import com.github.yun531.climate.entity.ClimateSnapId;
+import com.github.yun531.climate.infrastructure.persistence.entity.ClimateSnap;
+import com.github.yun531.climate.infrastructure.persistence.entity.ClimateSnapId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,9 +1,9 @@
 package com.github.yun531.climate.infrastructure.snapshot.store;
 
-import com.github.yun531.climate.entity.ClimateSnap;
+import com.github.yun531.climate.infrastructure.persistence.entity.ClimateSnap;
 import com.github.yun531.climate.infrastructure.snapshot.config.SnapshotCacheProperties;
 import com.github.yun531.climate.infrastructure.snapshot.assembler.JpaForecastSnapAssembler;
-import com.github.yun531.climate.repository.ClimateSnapRepository;
+import com.github.yun531.climate.infrastructure.persistence.repository.ClimateSnapRepository;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import com.github.yun531.climate.infrastructure.snapshot.policy.AnnounceTimePolicy;
 import com.github.yun531.climate.shared.cache.CacheEntry;

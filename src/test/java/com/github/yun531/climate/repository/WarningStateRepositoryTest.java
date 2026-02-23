@@ -1,8 +1,9 @@
 package com.github.yun531.climate.repository;
 
+import com.github.yun531.climate.infrastructure.persistence.repository.WarningStateRepository;
 import com.github.yun531.climate.service.notification.model.WarningKind;
 import com.github.yun531.climate.service.notification.model.WarningLevel;
-import com.github.yun531.climate.entity.WarningState;
+import com.github.yun531.climate.infrastructure.persistence.entity.WarningState;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -26,7 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 })
 class WarningStateRepositoryTest {
 
-    @Autowired WarningStateRepository repo;
+    @Autowired
+    WarningStateRepository repo;
     @Autowired JdbcTemplate jdbc;
 
     @Test

@@ -1,6 +1,6 @@
 package com.github.yun531.climate.service.query.dto;
 
-import com.github.yun531.climate.entity.WarningState;
+import com.github.yun531.climate.infrastructure.persistence.entity.WarningState;
 import com.github.yun531.climate.service.notification.model.WarningKind;
 import com.github.yun531.climate.service.notification.model.WarningLevel;
 

@@ -1,4 +1,4 @@
-package com.github.yun531.climate.infrastructure.shared.util;
+package com.github.yun531.climate.infrastructure.remote.common;
 
 import org.springframework.web.util.UriComponentsBuilder;
 

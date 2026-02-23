@@ -1,9 +1,9 @@
 package com.github.yun531.climate.infrastructure.snapshot.assembler;
 
-import com.github.yun531.climate.infrastructure.snapshot.dto.DailyForecastItem;
-import com.github.yun531.climate.infrastructure.snapshot.dto.DailyForecastResponse;
-import com.github.yun531.climate.infrastructure.snapshot.dto.GridPoint;
-import com.github.yun531.climate.infrastructure.snapshot.dto.HourlySnapshotResponse;
+import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.DailyForecastItem;
+import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.DailyForecastResponse;
+import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.GridPoint;
+import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.HourlySnapshotResponse;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;

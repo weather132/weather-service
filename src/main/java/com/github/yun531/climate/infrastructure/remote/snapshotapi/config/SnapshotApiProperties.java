@@ -1,4 +1,4 @@
-package com.github.yun531.climate.infrastructure.snapshot.config;
+package com.github.yun531.climate.infrastructure.remote.snapshotapi.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

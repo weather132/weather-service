@@ -1,6 +1,6 @@
-package com.github.yun531.climate.repository;
+package com.github.yun531.climate.infrastructure.persistence.repository;
 
-import com.github.yun531.climate.entity.WarningState;
+import com.github.yun531.climate.infrastructure.persistence.entity.WarningState;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
