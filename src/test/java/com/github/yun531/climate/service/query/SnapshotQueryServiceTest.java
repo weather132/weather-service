@@ -1,12 +1,12 @@
 package com.github.yun531.climate.service.query;
 
-import com.github.yun531.climate.service.notification.model.PopViewPair;
-import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
+import com.github.yun531.climate.infrastructure.snapshot.store.SnapshotStore;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;
 import com.github.yun531.climate.service.notification.model.PopView;
-import com.github.yun531.climate.service.snapshot.SnapshotProvider;
+import com.github.yun531.climate.service.notification.model.PopViewPair;
+import com.github.yun531.climate.shared.snapshot.SnapKind;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,21 +28,21 @@ import static org.mockito.Mockito.*;
 class SnapshotQueryServiceTest {
 
     @Mock
-    SnapshotProvider snapshotProvider;
+    SnapshotStore snapshotStore;
 
     SnapshotQueryService snapshotQueryService;
 
     @BeforeEach
     void setUp() {
-        snapshotQueryService = new SnapshotQueryService(snapshotProvider);
+        snapshotQueryService = new SnapshotQueryService(snapshotStore);
     }
 
     @Test
     void loadPopSeries_정상_현재이전_길이_gap_값검증() {
         // given
         String regionId = "100";
-        int curId = SnapKindEnum.SNAP_CURRENT.getCode();
-        int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
+        SnapKind curKind = SnapKind.CURRENT;
+        SnapKind prvKind = SnapKind.PREVIOUS;
 
         LocalDateTime prvTime = LocalDateTime.of(2025, 1, 1, 8, 0, 0);
         LocalDateTime curTime = prvTime.plusHours(3);
@@ -65,11 +65,11 @@ class SnapshotQueryServiceTest {
                 dummyDailyPoints()
         );
 
-        when(snapshotProvider.loadSnapshot(regionId, curId)).thenReturn(cur);
-        when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(prv);
+        when(snapshotStore.load(regionId, curKind)).thenReturn(cur);
+        when(snapshotStore.load(regionId, prvKind)).thenReturn(prv);
 
         // when
-        PopViewPair series = snapshotQueryService.loadPopViewPair(regionId, curId, prvId);
+        PopViewPair series = snapshotQueryService.loadPopViewPair(regionId, curKind, prvKind);
 
         // then
         assertThat(series.current()).isNotNull();
@@ -93,7 +93,7 @@ class SnapshotQueryServiceTest {
         // reportTimeGap = 3
         assertThat(series.reportTimeGap()).isEqualTo(3);
 
-        // current reportTime도 같이 확인(원하면)
+        // current reportTime도 같이 확인
         assertThat(series.current().reportTime()).isEqualTo(curTime);
     }
 
@@ -101,8 +101,8 @@ class SnapshotQueryServiceTest {
     void loadPopSeries_스냅하나라도없으면_null과_gap0반환() {
         // given
         String regionId = "200";
-        int curId = SnapKindEnum.SNAP_CURRENT.getCode();
-        int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
+        SnapKind curKind = SnapKind.CURRENT;
+        SnapKind prvKind = SnapKind.PREVIOUS;
 
         LocalDateTime baseTime = nowMinutes();
         ForecastSnap cur = new ForecastSnap(
@@ -112,24 +112,24 @@ class SnapshotQueryServiceTest {
                 dummyDailyPoints()
         );
 
-        when(snapshotProvider.loadSnapshot(regionId, curId)).thenReturn(cur);
-        when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(null);
+        when(snapshotStore.load(regionId, curKind)).thenReturn(cur);
+        when(snapshotStore.load(regionId, prvKind)).thenReturn(null);
 
         // when
         snapshotQueryService.loadDefaultPopViewPair(regionId);
 
         // then
-        verify(snapshotProvider, times(1)).loadSnapshot(regionId, curId);
-        verify(snapshotProvider, times(1)).loadSnapshot(regionId, prvId);
-        verifyNoMoreInteractions(snapshotProvider);
+        verify(snapshotStore, times(1)).load(regionId, curKind);
+        verify(snapshotStore, times(1)).load(regionId, prvKind);
+        verifyNoMoreInteractions(snapshotStore);
     }
 
     @Test
     void loadDefaultPopSeries_provider호출파라미터_검증() {
         // given
         String regionId = "7";
-        int curId = SnapKindEnum.SNAP_CURRENT.getCode();
-        int prvId = SnapKindEnum.SNAP_PREVIOUS.getCode();
+        SnapKind curKind = SnapKind.CURRENT;
+        SnapKind prvKind = SnapKind.PREVIOUS;
 
         LocalDateTime curTime = nowMinutes();
         LocalDateTime prvTime = curTime.minusHours(3);
@@ -147,23 +147,23 @@ class SnapshotQueryServiceTest {
                 dummyDailyPoints()
         );
 
-        when(snapshotProvider.loadSnapshot(regionId, curId)).thenReturn(cur);
-        when(snapshotProvider.loadSnapshot(regionId, prvId)).thenReturn(prv);
+        when(snapshotStore.load(regionId, curKind)).thenReturn(cur);
+        when(snapshotStore.load(regionId, prvKind)).thenReturn(prv);
 
         // when
         snapshotQueryService.loadDefaultPopViewPair(regionId);
 
         // then
-        verify(snapshotProvider, times(1)).loadSnapshot(regionId, curId);
-        verify(snapshotProvider, times(1)).loadSnapshot(regionId, prvId);
-        verifyNoMoreInteractions(snapshotProvider);
+        verify(snapshotStore, times(1)).load(regionId, curKind);
+        verify(snapshotStore, times(1)).load(regionId, prvKind);
+        verifyNoMoreInteractions(snapshotStore);
     }
 
     @Test
     void loadForecastSeries_hourly와_daily_매핑검증() {
         // given
         String regionId = "55";
-        int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
+        SnapKind kind = SnapKind.CURRENT;
 
         LocalDateTime reportTime = nowMinutes();
 
@@ -187,10 +187,10 @@ class SnapshotQueryServiceTest {
                 daily
         );
 
-        when(snapshotProvider.loadSnapshot(regionId, snapId)).thenReturn(snapshot);
+        when(snapshotStore.load(regionId, kind)).thenReturn(snapshot);
 
         // when
-        PopView pop = snapshotQueryService.loadPopView(regionId, snapId);
+        PopView pop = snapshotQueryService.loadPopView(regionId, kind);
 
         // then
         assertThat(pop).isNotNull();
@@ -217,12 +217,12 @@ class SnapshotQueryServiceTest {
     void loadForecastSeries_snapshot없으면_null반환() {
         // given
         String regionId = "99";
-        int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
+        SnapKind kind = SnapKind.CURRENT;
 
-        when(snapshotProvider.loadSnapshot(regionId, snapId)).thenReturn(null);
+        when(snapshotStore.load(regionId, kind)).thenReturn(null);
 
         // when
-        PopView pop = snapshotQueryService.loadPopView(regionId, snapId);
+        PopView pop = snapshotQueryService.loadPopView(regionId, kind);
 
         // then
         assertThat(pop).isNull();

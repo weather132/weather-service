@@ -7,7 +7,7 @@ import com.github.yun531.climate.service.notification.model.payload.RainInterval
 import com.github.yun531.climate.service.notification.rule.adjust.RainForecastPartsAdjuster;
 import com.github.yun531.climate.service.notification.rule.compute.RainForecastComputer;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
-import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
+import com.github.yun531.climate.shared.snapshot.SnapKind;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -31,7 +31,7 @@ class RainForecastRuleHourlyPartsTest {
         // given: 테스트 결정성을 위해 now 고정
         LocalDateTime now = LocalDateTime.parse("2025-11-18T08:00:00");
 
-        int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
+        SnapKind curKind = SnapKind.CURRENT;
         String regionId = "11B10101";
 
         int thresholdPop = 60;
@@ -72,7 +72,7 @@ class RainForecastRuleHourlyPartsTest {
         ));
 
         // reportTime=now로 두면 shift/dayShift 영향이 없어서 테스트가 단순해짐
-        when(snapshotQueryService.loadPopView(regionId, snapId))
+        when(snapshotQueryService.loadPopView(regionId, curKind))
                 .thenReturn(new PopView(hourly, daily, now));
 
         NotificationRequest request = new NotificationRequest(
