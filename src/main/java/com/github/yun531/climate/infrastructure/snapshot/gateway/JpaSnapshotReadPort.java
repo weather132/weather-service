@@ -1,4 +1,4 @@
-package com.github.yun531.climate.infrastructure.snapshot.store;
+package com.github.yun531.climate.infrastructure.snapshot.gateway;
 
 import com.github.yun531.climate.infrastructure.persistence.entity.ClimateSnap;
 import com.github.yun531.climate.infrastructure.snapshot.config.SnapshotCacheProperties;
@@ -9,6 +9,7 @@ import com.github.yun531.climate.infrastructure.snapshot.policy.AnnounceTimePoli
 import com.github.yun531.climate.shared.cache.CacheEntry;
 import com.github.yun531.climate.shared.cache.RegionCache;
 import com.github.yun531.climate.shared.snapshot.SnapKind;
+import com.github.yun531.climate.shared.snapshot.port.SnapshotReadPort;
 import com.github.yun531.climate.shared.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
@@ -20,7 +21,7 @@ import java.time.LocalDateTime;
 @Component
 @Primary    //todo  로컬 DB 사용해서 JPA 사용중
 @RequiredArgsConstructor
-public class JpaSnapshotStore implements SnapshotStore {
+public class JpaSnapshotReadPort implements SnapshotReadPort {
 
     private final ClimateSnapRepository climateSnapRepository;
     private final SnapshotCacheProperties cacheProps;
@@ -51,18 +52,6 @@ public class JpaSnapshotStore implements SnapshotStore {
                 threshold,
                 () -> computeEntry(regionId, snapId, now)
         ).value();
-    }
-
-    @Override
-    @Nullable
-    public ForecastSnap loadBySnapId(String regionId, int snapId) {
-        // CURRENT/PREVIOUS는 의미 단위로 정규화
-        SnapKind kind = SnapKindCodec.fromCode(snapId);
-        if (kind != null) return load(regionId, kind);
-
-        // 그 외 snapId는 캐시 없이 직접 조회(기존 동작 유지)
-        ClimateSnap snap = climateSnapRepository.findBySnapIdAndRegionId(snapId, regionId);
-        return (snap == null) ? null : mapper.toSnapshot(snap);
     }
 
     /**

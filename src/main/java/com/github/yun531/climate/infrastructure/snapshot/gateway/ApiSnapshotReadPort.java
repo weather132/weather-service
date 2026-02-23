@@ -1,4 +1,4 @@
-package com.github.yun531.climate.infrastructure.snapshot.store;
+package com.github.yun531.climate.infrastructure.snapshot.gateway;
 
 import com.github.yun531.climate.infrastructure.remote.snapshotapi.api.SnapshotApiClient;
 import com.github.yun531.climate.infrastructure.snapshot.config.SnapshotCacheProperties;
@@ -10,6 +10,7 @@ import com.github.yun531.climate.infrastructure.snapshot.policy.AnnounceTimePoli
 import com.github.yun531.climate.shared.cache.CacheEntry;
 import com.github.yun531.climate.shared.cache.RegionCache;
 import com.github.yun531.climate.shared.snapshot.SnapKind;
+import com.github.yun531.climate.shared.snapshot.port.SnapshotReadPort;
 import com.github.yun531.climate.shared.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.Nullable;
@@ -20,7 +21,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class ApiSnapshotStore implements SnapshotStore {
+public class ApiSnapshotReadPort implements SnapshotReadPort {
 
     private final SnapshotApiClient client;
     private final SnapshotCacheProperties cacheProps;
@@ -51,13 +52,6 @@ public class ApiSnapshotStore implements SnapshotStore {
                 threshold,
                 () -> computeEntry(regionId, now, since)
         ).value();
-    }
-
-    @Override
-    public ForecastSnap loadBySnapId(String regionId, int snapId) {
-        // API 기반 스토어는 CURRENT/PREVIOUS만 지원
-        SnapKind kind = SnapKindCodec.fromCode(snapId);
-        return (kind == null) ? null : load(regionId, kind);
     }
 
     private CacheEntry<ForecastSnap> computeEntry(

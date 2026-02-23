@@ -1,6 +1,6 @@
 package com.github.yun531.climate.service.query;
 
-import com.github.yun531.climate.infrastructure.snapshot.store.SnapshotStore;
+import com.github.yun531.climate.shared.snapshot.port.SnapshotReadPort;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;
@@ -28,13 +28,13 @@ import static org.mockito.Mockito.*;
 class SnapshotQueryServiceTest {
 
     @Mock
-    SnapshotStore snapshotStore;
+    SnapshotReadPort snapshotReadPort;
 
     SnapshotQueryService snapshotQueryService;
 
     @BeforeEach
     void setUp() {
-        snapshotQueryService = new SnapshotQueryService(snapshotStore);
+        snapshotQueryService = new SnapshotQueryService(snapshotReadPort);
     }
 
     @Test
@@ -65,8 +65,8 @@ class SnapshotQueryServiceTest {
                 dummyDailyPoints()
         );
 
-        when(snapshotStore.load(regionId, curKind)).thenReturn(cur);
-        when(snapshotStore.load(regionId, prvKind)).thenReturn(prv);
+        when(snapshotReadPort.load(regionId, curKind)).thenReturn(cur);
+        when(snapshotReadPort.load(regionId, prvKind)).thenReturn(prv);
 
         // when
         PopViewPair series = snapshotQueryService.loadPopViewPair(regionId, curKind, prvKind);
@@ -112,16 +112,16 @@ class SnapshotQueryServiceTest {
                 dummyDailyPoints()
         );
 
-        when(snapshotStore.load(regionId, curKind)).thenReturn(cur);
-        when(snapshotStore.load(regionId, prvKind)).thenReturn(null);
+        when(snapshotReadPort.load(regionId, curKind)).thenReturn(cur);
+        when(snapshotReadPort.load(regionId, prvKind)).thenReturn(null);
 
         // when
         snapshotQueryService.loadDefaultPopViewPair(regionId);
 
         // then
-        verify(snapshotStore, times(1)).load(regionId, curKind);
-        verify(snapshotStore, times(1)).load(regionId, prvKind);
-        verifyNoMoreInteractions(snapshotStore);
+        verify(snapshotReadPort, times(1)).load(regionId, curKind);
+        verify(snapshotReadPort, times(1)).load(regionId, prvKind);
+        verifyNoMoreInteractions(snapshotReadPort);
     }
 
     @Test
@@ -147,16 +147,16 @@ class SnapshotQueryServiceTest {
                 dummyDailyPoints()
         );
 
-        when(snapshotStore.load(regionId, curKind)).thenReturn(cur);
-        when(snapshotStore.load(regionId, prvKind)).thenReturn(prv);
+        when(snapshotReadPort.load(regionId, curKind)).thenReturn(cur);
+        when(snapshotReadPort.load(regionId, prvKind)).thenReturn(prv);
 
         // when
         snapshotQueryService.loadDefaultPopViewPair(regionId);
 
         // then
-        verify(snapshotStore, times(1)).load(regionId, curKind);
-        verify(snapshotStore, times(1)).load(regionId, prvKind);
-        verifyNoMoreInteractions(snapshotStore);
+        verify(snapshotReadPort, times(1)).load(regionId, curKind);
+        verify(snapshotReadPort, times(1)).load(regionId, prvKind);
+        verifyNoMoreInteractions(snapshotReadPort);
     }
 
     @Test
@@ -187,7 +187,7 @@ class SnapshotQueryServiceTest {
                 daily
         );
 
-        when(snapshotStore.load(regionId, kind)).thenReturn(snapshot);
+        when(snapshotReadPort.load(regionId, kind)).thenReturn(snapshot);
 
         // when
         PopView pop = snapshotQueryService.loadPopView(regionId, kind);
@@ -219,7 +219,7 @@ class SnapshotQueryServiceTest {
         String regionId = "99";
         SnapKind kind = SnapKind.CURRENT;
 
-        when(snapshotStore.load(regionId, kind)).thenReturn(null);
+        when(snapshotReadPort.load(regionId, kind)).thenReturn(null);
 
         // when
         PopView pop = snapshotQueryService.loadPopView(regionId, kind);
