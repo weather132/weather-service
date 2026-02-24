@@ -2,7 +2,7 @@ package com.github.yun531.climate.service.forecast;
 
 import com.github.yun531.climate.dto.HourlyForecastDto;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;
-import com.github.yun531.climate.shared.time.TimeShiftUtil;
+import com.github.yun531.climate.util.time.TimeShiftUtil;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

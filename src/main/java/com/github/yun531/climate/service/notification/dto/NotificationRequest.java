@@ -1,7 +1,7 @@
 package com.github.yun531.climate.service.notification.dto;
 
-import com.github.yun531.climate.service.notification.model.WarningKind;
-import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
+import com.github.yun531.climate.notification.domain.model.WarningKind;
+import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
@@ -17,7 +17,7 @@ import java.util.Set;
  * - filterWarningKinds      : WARNING_ISSUED 에서 필터링할 WarningKind 셋 (옵션)
  * - rainHourLimit    : RAIN_ONSET 에서 hour <= 이 값인 이벤트까지만 포함 (1~24, null 이면 전체)
  */
-public record NotificationRequest(
+public record NotificationRequest(  //todo: test 클래스들 정리후 정리
         List<String> regionIds,
         @Nullable LocalDateTime since,
         Set<AlertTypeEnum> enabledTypes,

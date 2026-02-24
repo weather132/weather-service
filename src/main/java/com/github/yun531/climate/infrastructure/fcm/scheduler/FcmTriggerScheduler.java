@@ -1,7 +1,7 @@
 package com.github.yun531.climate.infrastructure.fcm.scheduler;
 
 import com.github.yun531.climate.infrastructure.fcm.service.FcmTopicPushService;
-import com.github.yun531.climate.shared.time.TimeUtil;
+import com.github.yun531.climate.util.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

@@ -1,6 +1,6 @@
 package com.github.yun531.climate.infrastructure.remote.snapshotapi.api;
 
-import com.github.yun531.climate.infrastructure.remote.common.WeatherApiUtil;
+import com.github.yun531.climate.util.http.UrlQueryUtil;
 import com.github.yun531.climate.infrastructure.remote.snapshotapi.config.SnapshotApiProperties;
 import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.DailyForecastResponse;
 import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.HourlySnapshotResponse;
@@ -40,11 +40,11 @@ public class RestSnapshotApiClient implements SnapshotApiClient {
     @Override
     public HourlySnapshotResponse fetchHourly(String regionCode, LocalDateTime announceTime) {
         try {
-            String uri = WeatherApiUtil.buildUri(
+            String uri = UrlQueryUtil.buildUri(
                     "/hourly/snapshot",
                     Map.of(
                             "regionCode", regionCode,
-                            "announceTime", WeatherApiUtil.formatIso(announceTime)
+                            "announceTime", UrlQueryUtil.formatIso(announceTime)
                     )
             );
             return rest().getForObject(uri, HourlySnapshotResponse.class);
@@ -56,7 +56,7 @@ public class RestSnapshotApiClient implements SnapshotApiClient {
     @Override
     public DailyForecastResponse fetchDaily(String regionCode) {
         try {
-            String uri = WeatherApiUtil.buildUri(
+            String uri = UrlQueryUtil.buildUri(
                     "/daily/forecast",
                     Map.of("regionCode", regionCode)
             );
