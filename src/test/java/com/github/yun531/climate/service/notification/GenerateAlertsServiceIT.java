@@ -1,20 +1,21 @@
 package com.github.yun531.climate.service.notification;
 
+import com.github.yun531.climate.notification.application.GenerateAlertsService;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
-import com.github.yun531.climate.service.notification.model.AlertEvent;
-import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
-import com.github.yun531.climate.service.notification.model.WarningKind;
-import com.github.yun531.climate.service.notification.model.payload.DailyRainFlags;
-import com.github.yun531.climate.service.notification.model.payload.RainForecastPayload;
-import com.github.yun531.climate.service.notification.model.payload.RainInterval;
-import com.github.yun531.climate.service.notification.model.payload.WarningIssuedPayload;
-import com.github.yun531.climate.service.notification.rule.RainForecastRule;
-import com.github.yun531.climate.service.notification.rule.RainOnsetChangeRule;
-import com.github.yun531.climate.service.notification.rule.WarningIssuedRule;
-import com.github.yun531.climate.service.notification.rule.adjust.RainForecastPartsAdjuster;
-import com.github.yun531.climate.service.notification.rule.adjust.RainOnsetEventValidAtAdjuster;
-import com.github.yun531.climate.service.notification.rule.compute.RainForecastComputer;
-import com.github.yun531.climate.service.notification.rule.compute.RainOnsetEventComputer;
+import com.github.yun531.climate.notification.domain.model.AlertEvent;
+import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
+import com.github.yun531.climate.notification.domain.model.WarningKind;
+import com.github.yun531.climate.notification.domain.payload.DailyRainFlags;
+import com.github.yun531.climate.notification.domain.payload.RainForecastPayload;
+import com.github.yun531.climate.notification.domain.payload.RainInterval;
+import com.github.yun531.climate.notification.domain.payload.WarningIssuedPayload;
+import com.github.yun531.climate.notification.domain.rule.RainForecastRule;
+import com.github.yun531.climate.notification.domain.rule.RainOnsetChangeRule;
+import com.github.yun531.climate.notification.domain.rule.WarningIssuedRule;
+import com.github.yun531.climate.notification.domain.rule.adjust.RainForecastPartsAdjuster;
+import com.github.yun531.climate.notification.domain.rule.adjust.RainOnsetEventValidAtAdjuster;
+import com.github.yun531.climate.notification.domain.rule.compute.RainForecastComputer;
+import com.github.yun531.climate.notification.domain.rule.compute.RainOnsetEventComputer;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import com.github.yun531.climate.service.query.WarningStateQueryService;
 import org.junit.jupiter.api.DisplayName;
@@ -102,11 +103,11 @@ import static org.mockito.Mockito.*;
                 + "('1', 'HEAT',  'WARNING',  '2025-11-04 06:30:00'),"
                 + "('2', 'WIND',  'ADVISORY', '2025-11-04 07:15:00')"
 })
-@Import(NotificationServiceIT.SpyConfig.class)
-class NotificationServiceIT {
+@Import(GenerateAlertsServiceIT.SpyConfig.class)
+class GenerateAlertsServiceIT {
 
     @Autowired
-    private NotificationService service;
+    private GenerateAlertsService service;
 
     @Autowired
     private RainOnsetChangeRule rainRule;

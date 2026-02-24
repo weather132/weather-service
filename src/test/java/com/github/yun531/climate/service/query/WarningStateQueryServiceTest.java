@@ -1,11 +1,11 @@
 package com.github.yun531.climate.service.query;
 
 
-import com.github.yun531.climate.service.notification.model.WarningKind;
-import com.github.yun531.climate.service.notification.model.WarningLevel;
+import com.github.yun531.climate.notification.domain.model.WarningKind;
+import com.github.yun531.climate.notification.domain.model.WarningLevel;
 import com.github.yun531.climate.service.query.dto.WarningStateDto;
-import com.github.yun531.climate.infrastructure.persistence.entity.WarningState;
-import com.github.yun531.climate.infrastructure.persistence.repository.WarningStateRepository;
+import com.github.yun531.climate.notification.infra.persistence.entity.WarningState;
+import com.github.yun531.climate.notification.infra.persistence.repository.WarningStateRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.yun531.climate.shared.time.TimeUtil.nowMinutes;
+import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest

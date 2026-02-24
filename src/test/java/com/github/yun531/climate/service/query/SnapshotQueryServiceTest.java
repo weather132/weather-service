@@ -1,12 +1,12 @@
 package com.github.yun531.climate.service.query;
 
-import com.github.yun531.climate.shared.snapshot.port.SnapshotReadPort;
+import com.github.yun531.climate.kernel.snapshot.port.SnapshotReadPort;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.ForecastSnap;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;
-import com.github.yun531.climate.service.notification.model.PopView;
-import com.github.yun531.climate.service.notification.model.PopViewPair;
-import com.github.yun531.climate.shared.snapshot.SnapKind;
+import com.github.yun531.climate.notification.domain.readmodel.PopView;
+import com.github.yun531.climate.notification.domain.readmodel.PopViewPair;
+import com.github.yun531.climate.kernel.snapshot.SnapKind;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.github.yun531.climate.shared.time.TimeUtil.nowMinutes;
+import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -91,7 +91,7 @@ class SnapshotQueryServiceTest {
         }
 
         // reportTimeGap = 3
-        assertThat(series.reportTimeGap()).isEqualTo(3);
+        assertThat(series.reportTimeGapHoursRounded()).isEqualTo(3);
 
         // current reportTime도 같이 확인
         assertThat(series.current().reportTime()).isEqualTo(curTime);

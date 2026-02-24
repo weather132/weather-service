@@ -1,10 +1,11 @@
 package com.github.yun531.climate.service.notification.rule;
 
-import com.github.yun531.climate.service.notification.model.WarningKind;
-import com.github.yun531.climate.service.notification.model.WarningLevel;
-import com.github.yun531.climate.service.notification.model.payload.WarningIssuedPayload;
+import com.github.yun531.climate.notification.domain.model.WarningKind;
+import com.github.yun531.climate.notification.domain.model.WarningLevel;
+import com.github.yun531.climate.notification.domain.payload.WarningIssuedPayload;
+import com.github.yun531.climate.notification.domain.rule.WarningIssuedRule;
 import com.github.yun531.climate.service.query.dto.WarningStateDto;
-import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
+import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 import com.github.yun531.climate.service.query.WarningStateQueryService;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
 import org.junit.jupiter.api.Test;

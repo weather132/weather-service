@@ -1,14 +1,15 @@
 package com.github.yun531.climate.service.notification;
 
+import com.github.yun531.climate.notification.application.GenerateAlertsService;
+import com.github.yun531.climate.notification.domain.payload.*;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
-import com.github.yun531.climate.service.notification.model.AlertEvent;
-import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
-import com.github.yun531.climate.service.notification.model.WarningKind;
-import com.github.yun531.climate.service.notification.model.WarningLevel;
-import com.github.yun531.climate.service.notification.model.payload.*;
-import com.github.yun531.climate.service.notification.rule.RainForecastRule;
-import com.github.yun531.climate.service.notification.rule.RainOnsetChangeRule;
-import com.github.yun531.climate.service.notification.rule.WarningIssuedRule;
+import com.github.yun531.climate.notification.domain.model.AlertEvent;
+import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
+import com.github.yun531.climate.notification.domain.model.WarningKind;
+import com.github.yun531.climate.notification.domain.model.WarningLevel;
+import com.github.yun531.climate.notification.domain.rule.RainForecastRule;
+import com.github.yun531.climate.notification.domain.rule.RainOnsetChangeRule;
+import com.github.yun531.climate.notification.domain.rule.WarningIssuedRule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class NotificationServiceTest {
+class GenerateAlertsServiceTest {
 
     @Mock
     private RainOnsetChangeRule rainRule;      // supports() -> RAIN_ONSET
@@ -34,7 +35,7 @@ class NotificationServiceTest {
     @Mock
     private RainForecastRule forecastRule;     // supports() -> RAIN_FORECAST
 
-    private NotificationService service;
+    private GenerateAlertsService service;
 
     @BeforeEach
     void setUp() {
@@ -42,7 +43,7 @@ class NotificationServiceTest {
         lenient().when(warnRule.supports()).thenReturn(AlertTypeEnum.WARNING_ISSUED);
         lenient().when(forecastRule.supports()).thenReturn(AlertTypeEnum.RAIN_FORECAST);
 
-        service = new NotificationService(List.of(rainRule, warnRule, forecastRule), 3);
+        service = new GenerateAlertsService(List.of(rainRule, warnRule, forecastRule), 3);
     }
 
     /**

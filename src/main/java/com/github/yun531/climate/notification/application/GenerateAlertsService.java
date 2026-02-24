@@ -7,7 +7,6 @@ import com.github.yun531.climate.notification.domain.rule.AlertRule;
 import com.github.yun531.climate.notification.application.command.GenerateAlertsCommand;
 import com.github.yun531.climate.util.time.TimeUtil;
 import org.springframework.lang.Nullable;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -19,7 +18,6 @@ import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
  * - 설정값(maxRegionCount)은 Config/Properties 등에서 주입받아 생성자 파라미터로 전달받음
  * - payload는 AlertPayload(다형성)로 고정되어 있으므로, 중복 제거는 AlertEvent(record) equals/hashCode로 처리
  */
-@Service
 public class GenerateAlertsService {
 
     /** 룰 목록(대개 @Component로 등록된 구현체들이 주입/전달됨) */

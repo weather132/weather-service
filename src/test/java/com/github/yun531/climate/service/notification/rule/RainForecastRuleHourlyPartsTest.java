@@ -1,13 +1,14 @@
 package com.github.yun531.climate.service.notification.rule;
 
+import com.github.yun531.climate.notification.domain.rule.RainForecastRule;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
-import com.github.yun531.climate.service.notification.model.PopView;
-import com.github.yun531.climate.service.notification.model.payload.RainForecastPayload;
-import com.github.yun531.climate.service.notification.model.payload.RainInterval;
-import com.github.yun531.climate.service.notification.rule.adjust.RainForecastPartsAdjuster;
-import com.github.yun531.climate.service.notification.rule.compute.RainForecastComputer;
+import com.github.yun531.climate.notification.domain.readmodel.PopView;
+import com.github.yun531.climate.notification.domain.payload.RainForecastPayload;
+import com.github.yun531.climate.notification.domain.payload.RainInterval;
+import com.github.yun531.climate.notification.domain.rule.adjust.RainForecastPartsAdjuster;
+import com.github.yun531.climate.notification.domain.rule.compute.RainForecastComputer;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
-import com.github.yun531.climate.shared.snapshot.SnapKind;
+import com.github.yun531.climate.kernel.snapshot.SnapKind;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
