@@ -1,9 +1,9 @@
 package com.github.yun531.climate.infrastructure.snapshot.assembler;
 
 import com.github.yun531.climate.infrastructure.persistence.entity.ClimateSnap;
-import com.github.yun531.climate.service.forecast.model.DailyPoint;
-import com.github.yun531.climate.service.forecast.model.ForecastSnap;
-import com.github.yun531.climate.service.forecast.model.HourlyPoint;
+import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotDailyPoint;
+import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotForecast;
+import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotHourlyPoint;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -63,8 +63,8 @@ public class JpaForecastSnapAssembler {
             ClimateSnap::getPopA6dPm
     );
 
-    public ForecastSnap toSnapshot(ClimateSnap c) {
-        return new ForecastSnap(
+    public SnapshotForecast toSnapshot(ClimateSnap c) {
+        return new SnapshotForecast(
                 c.getRegionId(),
                 c.getReportTime(),
                 buildHourlyPoints(c),
@@ -72,26 +72,26 @@ public class JpaForecastSnapAssembler {
         );
     }
 
-    private List<HourlyPoint> buildHourlyPoints(ClimateSnap c) {
+    private List<SnapshotHourlyPoint> buildHourlyPoints(ClimateSnap c) {
         // series_start_time 기반으로 재구성
         LocalDateTime base = (c.getSeriesStartTime() != null)
                 ? c.getSeriesStartTime()
                 : c.getReportTime().plusHours(1);
 
-        List<HourlyPoint> list = new ArrayList<>(HOURLY_SIZE);
+        List<SnapshotHourlyPoint> list = new ArrayList<>(HOURLY_SIZE);
         for (int i = 0; i < HOURLY_SIZE; i++) {
             LocalDateTime effectiveTime = base.plusHours(i);
             Integer temp = TEMPS.get(i).apply(c);
             Integer pop = POPS.get(i).apply(c);
-            list.add(new HourlyPoint(effectiveTime, temp, pop));
+            list.add(new SnapshotHourlyPoint(effectiveTime, temp, pop));
         }
         return List.copyOf(list);
     }
 
-    private List<DailyPoint> buildDailyPoints(ClimateSnap c) {
-        List<DailyPoint> list = new ArrayList<>(DAILY_SIZE);
+    private List<SnapshotDailyPoint> buildDailyPoints(ClimateSnap c) {
+        List<SnapshotDailyPoint> list = new ArrayList<>(DAILY_SIZE);
         for (int d = 0; d < DAILY_SIZE; d++) {
-            list.add(new DailyPoint(
+            list.add(new SnapshotDailyPoint(
                     d,
                     D_MIN.get(d).apply(c),
                     D_MAX.get(d).apply(c),
