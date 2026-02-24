@@ -1,4 +1,4 @@
-package com.github.yun531.climate.infrastructure.remote.common;
+package com.github.yun531.climate.util.http;
 
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
-public final class WeatherApiUtil {
+public final class UrlQueryUtil {
 
-    private WeatherApiUtil() {}
+    private UrlQueryUtil() {}
 
     private static final DateTimeFormatter ISO_LOCAL = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 

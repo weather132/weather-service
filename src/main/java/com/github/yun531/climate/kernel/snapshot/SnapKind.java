@@ -1,4 +1,4 @@
-package com.github.yun531.climate.shared.snapshot;
+package com.github.yun531.climate.kernel.snapshot;
 
 public enum SnapKind {
     CURRENT,

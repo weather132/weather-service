@@ -1,6 +1,6 @@
 package com.github.yun531.climate.infrastructure.snapshot.gateway;
 
-import com.github.yun531.climate.shared.snapshot.SnapKind;
+import com.github.yun531.climate.kernel.snapshot.SnapKind;
 
 public final class SnapKindCodec {
     private SnapKindCodec() {}

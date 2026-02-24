@@ -1,4 +1,4 @@
-package com.github.yun531.climate.shared.time;
+package com.github.yun531.climate.util.time;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
