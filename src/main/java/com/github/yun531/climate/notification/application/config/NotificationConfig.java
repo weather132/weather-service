@@ -2,7 +2,6 @@ package com.github.yun531.climate.notification.application.config;
 
 import com.github.yun531.climate.notification.application.GenerateAlertsService;
 import com.github.yun531.climate.notification.domain.port.PopViewReadPort;
-import com.github.yun531.climate.notification.domain.port.WarningStateReadPort;
 import com.github.yun531.climate.notification.domain.rule.AlertRule;
 import com.github.yun531.climate.notification.domain.rule.RainForecastRule;
 import com.github.yun531.climate.notification.domain.rule.RainOnsetChangeRule;
@@ -11,6 +10,8 @@ import com.github.yun531.climate.notification.domain.rule.adjust.RainForecastPar
 import com.github.yun531.climate.notification.domain.rule.adjust.RainOnsetEventValidAtAdjuster;
 import com.github.yun531.climate.notification.domain.rule.compute.RainForecastComputer;
 import com.github.yun531.climate.notification.domain.rule.compute.RainOnsetEventComputer;
+import com.github.yun531.climate.kernel.warning.port.WarningStateReadPort;
+import com.github.yun531.climate.kernel.warning.port.WarningIssuedJudgePort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -94,13 +95,12 @@ public class NotificationConfig {
     @Bean
     public AlertRule warningIssuedRule(
             WarningStateReadPort warningStateReadPort,
+            WarningIssuedJudgePort warningIssuedJudgePort,
             @Value("${notification.warning.cache-ttl-minutes:45}") int cacheTtlMinutes,
             @Value("${notification.warning.since-adjust-minutes:90}") int sinceAdjustMinutes
     ) {
         return new WarningIssuedRule(
-                warningStateReadPort,
-                cacheTtlMinutes,
-                sinceAdjustMinutes
+                warningStateReadPort, warningIssuedJudgePort, cacheTtlMinutes, sinceAdjustMinutes
         );
     }
 }

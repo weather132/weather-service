@@ -1,6 +1,6 @@
 package com.github.yun531.climate.service.notification.dto;
 
-import com.github.yun531.climate.notification.domain.model.WarningKind;
+import com.github.yun531.climate.kernel.warning.model.WarningKind;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 import org.springframework.lang.Nullable;
 

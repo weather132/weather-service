@@ -2,16 +2,16 @@ package com.github.yun531.climate.notification.application;
 
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
-import com.github.yun531.climate.notification.domain.model.WarningKind;
+import com.github.yun531.climate.kernel.warning.model.WarningKind;
 import com.github.yun531.climate.notification.domain.rule.AlertRule;
 import com.github.yun531.climate.notification.application.command.GenerateAlertsCommand;
-import com.github.yun531.climate.util.time.TimeUtil;
+import com.github.yun531.climate.shared.time.TimeUtil;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static com.github.yun531.climate.util.time.TimeUtil.nowMinutes;
+import static com.github.yun531.climate.shared.time.TimeUtil.nowMinutes;
 
 /**
  * 스프링 빈(@Service)으로 생성되는 서비스.

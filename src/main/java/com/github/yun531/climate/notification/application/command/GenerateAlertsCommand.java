@@ -1,7 +1,7 @@
 package com.github.yun531.climate.notification.application.command;
 
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
-import com.github.yun531.climate.notification.domain.model.WarningKind;
+import com.github.yun531.climate.kernel.warning.model.WarningKind;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;

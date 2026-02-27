@@ -1,8 +1,8 @@
 package com.github.yun531.climate.service.query.dto;
 
-import com.github.yun531.climate.notification.infra.persistence.entity.WarningState;
-import com.github.yun531.climate.notification.domain.model.WarningKind;
-import com.github.yun531.climate.notification.domain.model.WarningLevel;
+import com.github.yun531.climate.warning.infra.persistence.entity.WarningState;
+import com.github.yun531.climate.kernel.warning.model.WarningKind;
+import com.github.yun531.climate.kernel.warning.model.WarningLevel;
 
 import java.time.LocalDateTime;
 
