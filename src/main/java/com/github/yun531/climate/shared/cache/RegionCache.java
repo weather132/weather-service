@@ -1,4 +1,4 @@
-package com.github.yun531.climate.util.cache;
+package com.github.yun531.climate.shared.cache;
 
 import java.time.LocalDateTime;
 import java.util.Map;

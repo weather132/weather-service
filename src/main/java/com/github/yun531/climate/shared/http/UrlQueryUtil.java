@@ -1,4 +1,4 @@
-package com.github.yun531.climate.util.http;
+package com.github.yun531.climate.shared.http;
 
 import org.springframework.web.util.UriComponentsBuilder;
 
