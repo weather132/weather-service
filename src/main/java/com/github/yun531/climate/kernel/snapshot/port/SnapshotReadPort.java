@@ -1,6 +1,6 @@
 package com.github.yun531.climate.kernel.snapshot.port;
 
-import com.github.yun531.climate.kernel.snapshot.SnapKind;
+import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
 import com.github.yun531.climate.kernel.snapshot.readmodel.Snapshot;
 import org.springframework.lang.Nullable;
 

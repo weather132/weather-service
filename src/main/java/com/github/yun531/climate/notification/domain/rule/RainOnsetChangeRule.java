@@ -9,8 +9,8 @@ import com.github.yun531.climate.notification.domain.readmodel.PopViewPair;
 import com.github.yun531.climate.notification.domain.rule.adjust.RainOnsetEventValidAtAdjuster;
 import com.github.yun531.climate.notification.domain.rule.compute.RainOnsetEventComputer;
 import com.github.yun531.climate.notification.application.command.GenerateAlertsCommand;
-import com.github.yun531.climate.util.cache.CacheEntry;
-import com.github.yun531.climate.util.time.TimeUtil;
+import com.github.yun531.climate.shared.cache.CacheEntry;
+import com.github.yun531.climate.shared.time.TimeUtil;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

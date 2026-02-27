@@ -4,7 +4,7 @@ import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.payload.DailyRainFlags;
 import com.github.yun531.climate.notification.domain.payload.RainForecastPayload;
 import com.github.yun531.climate.notification.domain.payload.RainInterval;
-import com.github.yun531.climate.util.time.TimeShiftUtil;
+import com.github.yun531.climate.shared.time.TimeShiftUtil;
 import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;

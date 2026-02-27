@@ -4,7 +4,7 @@ import com.github.yun531.climate.notification.domain.port.PopViewReadPort;
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
 import com.github.yun531.climate.notification.domain.readmodel.PopViewPair;
 import com.github.yun531.climate.notification.infra.mapper.SnapshotToPopViewMapper;
-import com.github.yun531.climate.kernel.snapshot.SnapKind;
+import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
 import com.github.yun531.climate.kernel.snapshot.port.SnapshotReadPort;
 import com.github.yun531.climate.kernel.snapshot.readmodel.Snapshot;
 import lombok.RequiredArgsConstructor;

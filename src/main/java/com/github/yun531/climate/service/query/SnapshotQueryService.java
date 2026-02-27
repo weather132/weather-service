@@ -4,7 +4,7 @@ import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
 import com.github.yun531.climate.service.forecast.model.DailyPoint;
 import com.github.yun531.climate.service.forecast.model.HourlyPoint;
-import com.github.yun531.climate.kernel.snapshot.SnapKind;
+import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
 import com.github.yun531.climate.kernel.snapshot.port.SnapshotReadPort;
 import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotDailyPoint;
 import com.github.yun531.climate.kernel.snapshot.readmodel.Snapshot;
