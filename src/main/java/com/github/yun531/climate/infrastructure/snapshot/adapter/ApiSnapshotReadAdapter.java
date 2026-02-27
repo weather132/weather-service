@@ -1,8 +1,8 @@
-package com.github.yun531.climate.infrastructure.snapshot.gateway;
+package com.github.yun531.climate.infrastructure.snapshot.adapter;
 
 import com.github.yun531.climate.infrastructure.remote.snapshotapi.api.SnapshotApiClient;
 import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.HourlySnapshotResponse;
-import com.github.yun531.climate.infrastructure.snapshot.assembler.ApiForecastSnapAssembler;
+import com.github.yun531.climate.infrastructure.snapshot.mapper.ApiSnapshotMapper;
 import com.github.yun531.climate.infrastructure.snapshot.config.SnapshotCacheProperties;
 import com.github.yun531.climate.infrastructure.snapshot.policy.AnnounceTimePolicy;
 import com.github.yun531.climate.util.cache.CacheEntry;
@@ -10,7 +10,7 @@ import com.github.yun531.climate.util.cache.RegionCache;
 import com.github.yun531.climate.kernel.snapshot.SnapKind;
 import com.github.yun531.climate.kernel.snapshot.port.SnapshotReadPort;
 import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotDailyPoint;
-import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotForecast;
+import com.github.yun531.climate.kernel.snapshot.readmodel.Snapshot;
 import com.github.yun531.climate.util.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.Nullable;
@@ -21,21 +21,21 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class ApiSnapshotGateway implements SnapshotReadPort {
+public class ApiSnapshotReadAdapter implements SnapshotReadPort {
 
     private final SnapshotApiClient client;
     private final SnapshotCacheProperties cacheProps;
     private final AnnounceTimePolicy policy;
-    private final ApiForecastSnapAssembler assembler;
+    private final ApiSnapshotMapper assembler;
 
     /** regionId + kind 기준 스냅샷 캐시 */
-    private final RegionCache<SnapshotForecast> snapCache = new RegionCache<>();
+    private final RegionCache<Snapshot> snapCache = new RegionCache<>();
     /** daily는 announceTime 파라미터가 없으니 region 단위로 재사용 캐시 */
     private final RegionCache<List<SnapshotDailyPoint>> dailyPointsCache = new RegionCache<>();
 
     @Override
     @Nullable
-    public SnapshotForecast load(String regionId, SnapKind kind) {
+    public Snapshot load(String regionId, SnapKind kind) {
         if (regionId == null || regionId.isBlank() || kind == null) return null;
 
         LocalDateTime now = TimeUtil.nowMinutes();
@@ -54,7 +54,7 @@ public class ApiSnapshotGateway implements SnapshotReadPort {
         ).value();
     }
 
-    private CacheEntry<SnapshotForecast> computeEntry(
+    private CacheEntry<Snapshot> computeEntry(
             String regionId,
             LocalDateTime now,
             LocalDateTime announceTime
@@ -81,7 +81,7 @@ public class ApiSnapshotGateway implements SnapshotReadPort {
                 }
         ).value();
 
-        SnapshotForecast snap = assembler.buildForecastSnap(regionId, hourly, dailyPoints);
+        Snapshot snap = assembler.buildForecastSnap(regionId, hourly, dailyPoints);
 
         // computedAt은 reportTime(=발표시각)로 설정
         return new CacheEntry<>(snap, snap.reportTime());

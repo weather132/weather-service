@@ -1,9 +1,9 @@
-package com.github.yun531.climate.notification.infra.assembler;
+package com.github.yun531.climate.notification.infra.mapper;
 
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
 import com.github.yun531.climate.notification.domain.readmodel.PopViewPair;
 import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotDailyPoint;
-import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotForecast;
+import com.github.yun531.climate.kernel.snapshot.readmodel.Snapshot;
 import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotHourlyPoint;
 import org.springframework.stereotype.Component;
 
@@ -17,9 +17,9 @@ import java.util.*;
  *   - daily : 0~6 offset을 기준으로 없으면 (am=0, pm=0)
  */
 @Component
-public class PopViewAssembler {
+public class SnapshotToPopViewMapper {
 
-    public PopView toPopView(SnapshotForecast snap) {
+    public PopView toPopView(Snapshot snap) {
         if (snap == null) return null;
 
         PopView.HourlyPopSeries26 hourly = toHourly(snap.hourly());
@@ -28,7 +28,7 @@ public class PopViewAssembler {
         return new PopView(hourly, daily, snap.reportTime());
     }
 
-    public PopViewPair toPair(SnapshotForecast cur, SnapshotForecast prev) {
+    public PopViewPair toPair(Snapshot cur, Snapshot prev) {
         if (cur == null || prev == null) return null;
 
         PopView a = toPopView(cur);

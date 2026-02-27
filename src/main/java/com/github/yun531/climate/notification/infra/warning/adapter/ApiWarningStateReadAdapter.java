@@ -1,4 +1,4 @@
-package com.github.yun531.climate.notification.infra.warning.gateway;
+package com.github.yun531.climate.notification.infra.warning.adapter;
 
 import com.github.yun531.climate.notification.domain.port.WarningStateReadPort;
 import com.github.yun531.climate.notification.domain.readmodel.WarningStateView;
@@ -15,7 +15,7 @@ import java.util.Map;
  */
 @Component
 @RequiredArgsConstructor
-public class ApiWarningStateGateway implements WarningStateReadPort {
+public class ApiWarningStateReadAdapter implements WarningStateReadPort {
 
     private final WarningApiClient client; // 지금은 사용하지 않지만, 전환 준비용으로 주입 유지
 

@@ -1,8 +1,8 @@
-package com.github.yun531.climate.infrastructure.snapshot.assembler;
+package com.github.yun531.climate.infrastructure.snapshot.mapper;
 
 import com.github.yun531.climate.infrastructure.persistence.entity.ClimateSnap;
 import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotDailyPoint;
-import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotForecast;
+import com.github.yun531.climate.kernel.snapshot.readmodel.Snapshot;
 import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotHourlyPoint;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.function.Function;
 
 @Component
-public class JpaForecastSnapAssembler {
+public class JpaSnapshotMapper {
 
     private static final int HOURLY_SIZE = 26;
     private static final int DAILY_SIZE = 7;
@@ -63,8 +63,8 @@ public class JpaForecastSnapAssembler {
             ClimateSnap::getPopA6dPm
     );
 
-    public SnapshotForecast toSnapshot(ClimateSnap c) {
-        return new SnapshotForecast(
+    public Snapshot toSnapshot(ClimateSnap c) {
+        return new Snapshot(
                 c.getRegionId(),
                 c.getReportTime(),
                 buildHourlyPoints(c),

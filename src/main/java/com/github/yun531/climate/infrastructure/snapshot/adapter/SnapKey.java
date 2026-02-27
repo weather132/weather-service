@@ -1,4 +1,4 @@
-package com.github.yun531.climate.infrastructure.snapshot.gateway;
+package com.github.yun531.climate.infrastructure.snapshot.adapter;
 
 import com.github.yun531.climate.kernel.snapshot.SnapKind;
 

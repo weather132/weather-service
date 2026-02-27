@@ -1,4 +1,4 @@
-package com.github.yun531.climate.notification.infra.warning.assembler;
+package com.github.yun531.climate.notification.infra.warning.mapper;
 
 import com.github.yun531.climate.notification.domain.model.WarningKind;
 import com.github.yun531.climate.notification.domain.readmodel.WarningStateView;
@@ -9,9 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class WarningStateViewAssembler {
+public final class WarningStateViewMapper {
 
-    private WarningStateViewAssembler() {}
+    private WarningStateViewMapper() {}
 
     public static Map<WarningKind, WarningStateView> pickLatestByKind(String regionId, List<WarningState> rows) {
         if (regionId == null || regionId.isBlank() || rows == null || rows.isEmpty()) return Map.of();
@@ -25,7 +25,7 @@ public final class WarningStateViewAssembler {
             WarningKind kind = ws.getKind();
             if (kind == null) continue;
 
-            picked.merge(kind, ws, WarningStateViewAssembler::newer);
+            picked.merge(kind, ws, WarningStateViewMapper::newer);
         }
 
         if (picked.isEmpty()) return Map.of();

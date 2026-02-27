@@ -1,15 +1,15 @@
-package com.github.yun531.climate.infrastructure.snapshot.gateway;
+package com.github.yun531.climate.infrastructure.snapshot.adapter;
 
 import com.github.yun531.climate.infrastructure.persistence.entity.ClimateSnap;
 import com.github.yun531.climate.infrastructure.persistence.repository.ClimateSnapRepository;
-import com.github.yun531.climate.infrastructure.snapshot.assembler.JpaForecastSnapAssembler;
+import com.github.yun531.climate.infrastructure.snapshot.mapper.JpaSnapshotMapper;
 import com.github.yun531.climate.infrastructure.snapshot.config.SnapshotCacheProperties;
 import com.github.yun531.climate.infrastructure.snapshot.policy.AnnounceTimePolicy;
 import com.github.yun531.climate.util.cache.CacheEntry;
 import com.github.yun531.climate.util.cache.RegionCache;
 import com.github.yun531.climate.kernel.snapshot.SnapKind;
 import com.github.yun531.climate.kernel.snapshot.port.SnapshotReadPort;
-import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotForecast;
+import com.github.yun531.climate.kernel.snapshot.readmodel.Snapshot;
 import com.github.yun531.climate.util.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
@@ -21,19 +21,19 @@ import java.time.LocalDateTime;
 @Component
 @Primary    //todo  로컬 DB 사용해서 JPA 사용중
 @RequiredArgsConstructor
-public class JpaSnapshotGateway implements SnapshotReadPort {
+public class JpaSnapshotReadAdapter implements SnapshotReadPort {
 
     private final ClimateSnapRepository climateSnapRepository;
     private final SnapshotCacheProperties cacheProps;
     private final AnnounceTimePolicy policy;
-    private final JpaForecastSnapAssembler mapper;
+    private final JpaSnapshotMapper mapper;
 
     /** regionId + kind 기준 스냅샷 캐시 */
-    private final RegionCache<SnapshotForecast> snapCache = new RegionCache<>();
+    private final RegionCache<Snapshot> snapCache = new RegionCache<>();
 
     @Override
     @Nullable
-    public SnapshotForecast load(String regionId, SnapKind kind) {
+    public Snapshot load(String regionId, SnapKind kind) {
         if (regionId == null || regionId.isBlank() || kind == null) return null;
 
         LocalDateTime now = TimeUtil.nowMinutes();
@@ -58,11 +58,11 @@ public class JpaSnapshotGateway implements SnapshotReadPort {
      * computedAt은 reportTime(발표시각)로 둔다.
      * - since가 새 발표시각으로 점프하면 즉시 stale 판정이 나도록 맞춘다.
      */
-    private CacheEntry<SnapshotForecast> computeEntry(String regionId, int snapId, LocalDateTime now) {
+    private CacheEntry<Snapshot> computeEntry(String regionId, int snapId, LocalDateTime now) {
         ClimateSnap snap = climateSnapRepository.findBySnapIdAndRegionId(snapId, regionId);
         if (snap == null) return new CacheEntry<>(null, now);
 
-        SnapshotForecast snapshot = mapper.toSnapshot(snap);
+        Snapshot snapshot = mapper.toSnapshot(snap);
         return new CacheEntry<>(snapshot, snapshot.reportTime());
     }
 }

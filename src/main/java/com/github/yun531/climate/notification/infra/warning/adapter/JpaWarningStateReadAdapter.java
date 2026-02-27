@@ -1,10 +1,10 @@
-package com.github.yun531.climate.notification.infra.warning.gateway;
+package com.github.yun531.climate.notification.infra.warning.adapter;
 
 import com.github.yun531.climate.notification.domain.model.WarningKind;
 import com.github.yun531.climate.notification.domain.port.WarningStateReadPort;
 import com.github.yun531.climate.notification.domain.readmodel.WarningStateView;
 import com.github.yun531.climate.notification.infra.persistence.repository.WarningStateRepository;
-import com.github.yun531.climate.notification.infra.warning.assembler.WarningStateViewAssembler;
+import com.github.yun531.climate.notification.infra.warning.mapper.WarningStateViewMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -15,7 +15,7 @@ import java.util.Map;
 @Component
 @Primary      //todo 현재 기본은 JPA, warningapi 전환 시 ApiWarningStateGateway로 @Primary 이동
 @RequiredArgsConstructor
-public class JpaWarningStateGateway implements WarningStateReadPort {
+public class JpaWarningStateReadAdapter implements WarningStateReadPort {
 
     private final WarningStateRepository repo;
 
@@ -24,6 +24,6 @@ public class JpaWarningStateGateway implements WarningStateReadPort {
         if (regionId == null || regionId.isBlank()) return Map.of();
 
         var rows = repo.findByRegionIdIn(List.of(regionId));
-        return WarningStateViewAssembler.pickLatestByKind(regionId, rows);
+        return WarningStateViewMapper.pickLatestByKind(regionId, rows);
     }
 }

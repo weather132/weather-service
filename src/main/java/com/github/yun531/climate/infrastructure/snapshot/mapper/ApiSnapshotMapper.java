@@ -1,11 +1,11 @@
-package com.github.yun531.climate.infrastructure.snapshot.assembler;
+package com.github.yun531.climate.infrastructure.snapshot.mapper;
 
 import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.DailyForecastItem;
 import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.DailyForecastResponse;
 import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.GridPoint;
 import com.github.yun531.climate.infrastructure.remote.snapshotapi.dto.HourlySnapshotResponse;
 import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotDailyPoint;
-import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotForecast;
+import com.github.yun531.climate.kernel.snapshot.readmodel.Snapshot;
 import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotHourlyPoint;
 import org.springframework.stereotype.Component;
 
@@ -17,16 +17,16 @@ import java.util.*;
 /** 외부 Snapshot API 응답 DTO(HourlySnapshotResponse, DailyForecastResponse)를
  *    readmodel(SnapshotForecast, SnapshotHourlyPoint, SnapshotDailyPoint)로 변환/조립  */
 @Component
-public class ApiForecastSnapAssembler {
+public class ApiSnapshotMapper {
 
     /** 시간별 스냅샷 + 일별 포인트를 합쳐 readmodel(SnapshotForecast)을 생성 */
-    public SnapshotForecast buildForecastSnap(
+    public Snapshot buildForecastSnap(
             String regionId,
             HourlySnapshotResponse hourly,
             List<SnapshotDailyPoint> dailyPoints
     ) {
         List<SnapshotHourlyPoint> hourlyPoints = buildHourlyPoints(hourly);
-        return new SnapshotForecast(regionId, hourly.announceTime(), hourlyPoints, dailyPoints);
+        return new Snapshot(regionId, hourly.announceTime(), hourlyPoints, dailyPoints);
     }
 
     /** HourlySnapshotResponse 에서 SnapshotHourlyPoint 리스트(최대 26개)를 생성
