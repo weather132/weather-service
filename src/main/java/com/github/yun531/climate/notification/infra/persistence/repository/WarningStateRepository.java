@@ -5,11 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 public interface WarningStateRepository extends JpaRepository<WarningState, Integer> {
 
     List<WarningState> findByRegionIdIn(Collection<String> regionIds);
-
-    Optional<WarningState> findTopByRegionIdOrderByUpdatedAtDesc(String regionId);
 }
