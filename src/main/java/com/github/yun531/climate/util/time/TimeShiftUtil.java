@@ -9,7 +9,7 @@ import java.time.temporal.ChronoUnit;
  * - diffHours는 base/now를 시간 단위로 내림(truncatedTo(HOURS))해서 계산
  * - diffHours = clamp(hoursBetween(baseHour, nowHour), 0..maxShiftHours)
  * - shiftedBaseTime은 "시간 단위 윈도우 기준"이므로 baseHour + diffHours (시간 경계 정렬)
- * - dayShift는 날짜 경계 이동(일자 파트 보정용)
+ * - dayShift는 날짜 경계 이동 (일자 파트 보정용)
  */
 public final class TimeShiftUtil {
 

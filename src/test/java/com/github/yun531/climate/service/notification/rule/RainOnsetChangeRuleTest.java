@@ -1,13 +1,14 @@
 package com.github.yun531.climate.service.notification.rule;
 
+import com.github.yun531.climate.notification.domain.rule.RainOnsetChangeRule;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
-import com.github.yun531.climate.service.notification.model.AlertTypeEnum;
-import com.github.yun531.climate.service.notification.model.PopView;
-import com.github.yun531.climate.service.notification.model.PopViewPair;
-import com.github.yun531.climate.service.notification.model.RainThresholdEnum;
-import com.github.yun531.climate.service.notification.model.payload.RainOnsetPayload;
-import com.github.yun531.climate.service.notification.rule.adjust.RainOnsetEventValidAtAdjuster;
-import com.github.yun531.climate.service.notification.rule.compute.RainOnsetEventComputer;
+import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
+import com.github.yun531.climate.notification.domain.readmodel.PopView;
+import com.github.yun531.climate.notification.domain.readmodel.PopViewPair;
+import com.github.yun531.climate.notification.domain.model.RainThresholdEnum;
+import com.github.yun531.climate.notification.domain.payload.RainOnsetPayload;
+import com.github.yun531.climate.notification.domain.rule.adjust.RainOnsetEventValidAtAdjuster;
+import com.github.yun531.climate.notification.domain.rule.compute.RainOnsetEventComputer;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

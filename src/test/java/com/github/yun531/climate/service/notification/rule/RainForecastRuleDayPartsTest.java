@@ -1,12 +1,13 @@
 package com.github.yun531.climate.service.notification.rule;
 
+import com.github.yun531.climate.notification.domain.rule.RainForecastRule;
 import com.github.yun531.climate.service.notification.dto.NotificationRequest;
-import com.github.yun531.climate.service.notification.model.PopView;
-import com.github.yun531.climate.service.notification.model.payload.RainForecastPayload;
-import com.github.yun531.climate.service.notification.rule.adjust.RainForecastPartsAdjuster;
-import com.github.yun531.climate.service.notification.rule.compute.RainForecastComputer;
+import com.github.yun531.climate.notification.domain.readmodel.PopView;
+import com.github.yun531.climate.notification.domain.payload.RainForecastPayload;
+import com.github.yun531.climate.notification.domain.rule.adjust.RainForecastPartsAdjuster;
+import com.github.yun531.climate.notification.domain.rule.compute.RainForecastComputer;
 import com.github.yun531.climate.service.query.SnapshotQueryService;
-import com.github.yun531.climate.service.snapshot.model.SnapKindEnum;
+import com.github.yun531.climate.kernel.snapshot.SnapKind;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -56,7 +57,7 @@ class RainForecastRuleDayPartsTest {
                 new PopView.DailyPopSeries7.DailyPop(0, 0)
         ));
 
-        int snapId = SnapKindEnum.SNAP_CURRENT.getCode();
+        SnapKind curKind = SnapKind.CURRENT;
         String regionId = "11B10101";
 
         // hourly는 이번 테스트의 핵심이 아니라 pop=0으로 채움
@@ -66,7 +67,7 @@ class RainForecastRuleDayPartsTest {
         // reportTime을 now로 맞춰서 shift/dayShift 영향 제거
         PopView pop = new PopView(hourly, daily, now);
 
-        when(snapshotQueryService.loadPopView(regionId, snapId)).thenReturn(pop);
+        when(snapshotQueryService.loadPopView(regionId, curKind)).thenReturn(pop);
 
         NotificationRequest request = new NotificationRequest(
                 List.of(regionId),
