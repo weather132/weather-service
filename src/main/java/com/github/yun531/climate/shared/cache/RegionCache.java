@@ -20,30 +20,36 @@ public class RegionCache<T> {
 
     /**
      *  - since == null 이면 무조건 재계산
-     *  - 아니면 since - thresholdMinutes 보다 computedAt 가 이전이면 재계산
+     *  - now - computedAt >= ttlMinutes 이면 재계산
      *  - compute()를 사용해 원자적으로 갱신한다(동시성 중복 계산 감소)
      */
     public CacheEntry<T> getOrComputeSinceBased(
             String regionId,
             LocalDateTime since,
-            int thresholdMinutes,
+            int ttlMinutes,
             Supplier<CacheEntry<T>> computer
     ) {
         if (computer == null) throw new IllegalArgumentException("computer must not be null");
 
         return map.compute(regionId, (k, oldEntry) -> {
             if (oldEntry == null) return computer.get();
-            if (oldEntry.needsRecomputeSinceBased(since, thresholdMinutes)) return computer.get();
+            if (oldEntry.needsRecomputeSinceBased(since, ttlMinutes)) return computer.get();
             return oldEntry;
         });
     }
 
-    /** 캐시 무효화 */
-    public void invalidate(String regionId) {
-        map.remove(regionId);
-    }
-
-    public void invalidateAll() {
-        map.clear();
+    /**
+     * TTL 기반 캐시
+     * - now - computedAt >= ttlMinutes 이면 재계산
+     * - since 기반 트릭(since=now)을 외부에서 숨겨서 의미를 명확히 한다.
+     */
+    public CacheEntry<T> getOrComputeTtlBased(
+            String regionId,
+            LocalDateTime now,
+            int ttlMinutes,
+            Supplier<CacheEntry<T>> computer
+    ) {
+        if (now == null) throw new IllegalArgumentException("now must not be null");
+        return getOrComputeSinceBased(regionId, now, ttlMinutes, computer);
     }
 }
