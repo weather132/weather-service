@@ -8,17 +8,15 @@ import com.github.yun531.climate.notification.domain.port.PopViewReadPort;
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
 import com.github.yun531.climate.notification.domain.rule.adjust.RainForecastPartsAdjuster;
 import com.github.yun531.climate.notification.domain.rule.compute.RainForecastComputer;
-import com.github.yun531.climate.notification.application.command.GenerateAlertsCommand;
-import com.github.yun531.climate.shared.cache.CacheEntry;
+import com.github.yun531.climate.notification.domain.rule.criteria.AlertCriteria;
 import com.github.yun531.climate.shared.time.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public class RainForecastRule extends AbstractCachedRegionAlertRule<AlertEvent> {
+public class RainForecastRule implements AlertRule {
 
     private static final Logger log = LoggerFactory.getLogger(RainForecastRule.class);
 
@@ -26,20 +24,17 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<AlertEvent> 
     private final RainForecastComputer computer;
     private final RainForecastPartsAdjuster adjuster;
 
-    private final int recomputeThresholdMinutes;
     private final int rainThreshold;
 
     public RainForecastRule(
             PopViewReadPort popViewReadPort,
             RainForecastComputer computer,
             RainForecastPartsAdjuster adjuster,
-            int recomputeThresholdMinutes,
             int rainThreshold
     ) {
         this.popViewReadPort = popViewReadPort;
         this.computer = computer;
         this.adjuster = adjuster;
-        this.recomputeThresholdMinutes = Math.max(0, recomputeThresholdMinutes);
         this.rainThreshold = rainThreshold;
     }
 
@@ -49,16 +44,15 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<AlertEvent> 
     }
 
     @Override
-    protected int thresholdMinutes() {
-        return recomputeThresholdMinutes;
-    }
+    public List<AlertEvent> evaluate(String regionId, AlertCriteria criteria, LocalDateTime now) {
+        if (regionId == null || regionId.isBlank()) return List.of();
 
-    @Override
-    protected CacheEntry<AlertEvent> computeForRegion(String regionId, LocalDateTime now) {
+        LocalDateTime effectiveNow = (now == null)
+                ? TimeUtil.nowMinutes()
+                : TimeUtil.truncateToMinutes(now);
+
         PopView view = popViewReadPort.loadCurrent(regionId);
-        if (view == null) {
-            return new CacheEntry<>(null, TimeUtil.truncateToMinutes(now));
-        }
+        if (view == null) return List.of();
 
         RainForecastParts parts = computer.compute(view);
 
@@ -81,22 +75,11 @@ public class RainForecastRule extends AbstractCachedRegionAlertRule<AlertEvent> 
         LocalDateTime computedAt =
                 (view.reportTime() != null)
                         ? TimeUtil.truncateToMinutes(view.reportTime())
-                        : TimeUtil.truncateToMinutes(now);
+                        : effectiveNow;
 
-        AlertEvent event = new AlertEvent(AlertTypeEnum.RAIN_FORECAST, regionId, computedAt, payload);
-        return new CacheEntry<>(event, computedAt);
-    }
+        AlertEvent raw = new AlertEvent(AlertTypeEnum.RAIN_FORECAST, regionId, computedAt, payload);
 
-    @Override
-    protected List<AlertEvent> buildEvents(
-            String regionId,
-            AlertEvent event,
-            @Nullable LocalDateTime computedAt,
-            LocalDateTime now,
-            GenerateAlertsCommand command
-    ) {
-        if (event == null) return List.of();
-        AlertEvent adjusted = adjuster.adjust(event, computedAt, now);
+        AlertEvent adjusted = adjuster.adjust(raw, computedAt, effectiveNow);
         return (adjusted == null) ? List.of() : List.of(adjusted);
     }
 
