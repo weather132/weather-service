@@ -5,7 +5,7 @@ import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 import com.github.yun531.climate.notification.domain.rule.criteria.AlertCriteria;
 import com.github.yun531.climate.notification.domain.rule.AlertRule;
 import com.github.yun531.climate.shared.cache.CacheEntry;
-import com.github.yun531.climate.shared.cache.RegionCache;
+import com.github.yun531.climate.shared.cache.KeyCache;
 import com.github.yun531.climate.shared.time.TimeUtil;
 
 import java.time.LocalDateTime;
@@ -16,7 +16,7 @@ public class CachedAlertRuleDecorator implements AlertRule {
     private final AlertRule delegate;
     private final CachePolicy policy;
 
-    private final RegionCache<List<AlertEvent>> cache = new RegionCache<>();
+    private final KeyCache<List<AlertEvent>> cache = new KeyCache<>();
 
     public CachedAlertRuleDecorator(AlertRule delegate, CachePolicy policy) {
         this.delegate = delegate;
@@ -33,15 +33,15 @@ public class CachedAlertRuleDecorator implements AlertRule {
         if (regionId == null || regionId.isBlank()) return List.of();
 
         LocalDateTime effectiveNow = (now == null)
-                ? TimeUtil.nowMinutes()
+                ? TimeUtil.nowTruncatedToMinute()
                 : TimeUtil.truncateToMinutes(now);
 
-        LocalDateTime since = policy.sinceForCache(criteria, effectiveNow);
-        since = (since == null) ? null : TimeUtil.truncateToMinutes(since);
+        LocalDateTime referenceTime  = policy.referenceTimeForCache(criteria, effectiveNow);
+        referenceTime  = (referenceTime  == null) ? null : TimeUtil.truncateToMinutes(referenceTime );
 
-        CacheEntry<List<AlertEvent>> entry = cache.getOrComputeSinceBased(
+        CacheEntry<List<AlertEvent>> entry = cache.getOrComputeByReferenceTime(
                 regionId,
-                since,
+                referenceTime ,
                 policy.thresholdMinutes(),
                 () -> {
                     List<AlertEvent> computed = delegate.evaluate(regionId, criteria, effectiveNow);

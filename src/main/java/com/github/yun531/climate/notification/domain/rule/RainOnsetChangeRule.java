@@ -41,7 +41,7 @@ public class RainOnsetChangeRule implements AlertRule {
         if (regionId == null || regionId.isBlank()) return List.of();
 
         LocalDateTime effectiveNow = (now == null)
-                ? TimeUtil.nowMinutes()
+                ? TimeUtil.nowTruncatedToMinute()
                 : TimeUtil.truncateToMinutes(now);
 
         PopViewPair pair = popViewReadPort.loadCurrentPreviousPair(regionId);

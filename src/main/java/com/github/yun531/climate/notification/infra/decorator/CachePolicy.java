@@ -14,6 +14,6 @@ import java.util.List;
  */
 public interface CachePolicy {
     int thresholdMinutes();
-    LocalDateTime sinceForCache(AlertCriteria criteria, LocalDateTime now);
+    LocalDateTime referenceTimeForCache(AlertCriteria criteria, LocalDateTime now);
     LocalDateTime computedAt(List<AlertEvent> events, LocalDateTime now);
 }

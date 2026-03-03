@@ -12,7 +12,7 @@ import org.springframework.lang.Nullable;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static com.github.yun531.climate.shared.time.TimeUtil.nowMinutes;
+import static com.github.yun531.climate.shared.time.TimeUtil.nowTruncatedToMinute;
 
 /**
  *
@@ -47,7 +47,7 @@ public class GenerateAlertsService {
 
     /** GenerateAlertsCommand 기반 공용 엔트리 (내부에서 now 생성) */
     public List<AlertEvent> generate(GenerateAlertsCommand command) {
-        return generate(command, nowMinutes());
+        return generate(command, nowTruncatedToMinute());
     }
 
     /** 결정적 엔트리: now를 외부에서 주입 */
@@ -139,7 +139,7 @@ public class GenerateAlertsService {
     }
 
     private LocalDateTime normalizeNow(@Nullable LocalDateTime now) {
-        return (now == null) ? nowMinutes() : TimeUtil.truncateToMinutes(now);
+        return (now == null) ? nowTruncatedToMinute() : TimeUtil.truncateToMinutes(now);
     }
 
     /** since 가 null 이면 현재(now) 시각을 사용 (분 단위 고정) */

@@ -13,7 +13,7 @@ import com.github.yun531.climate.notification.domain.rule.compute.RainForecastCo
 import com.github.yun531.climate.notification.domain.rule.compute.RainOnsetEventComputer;
 import com.github.yun531.climate.notification.infra.decorator.CachedAlertRuleDecorator;
 import com.github.yun531.climate.notification.infra.decorator.CachedWarningStateReadPort;
-import com.github.yun531.climate.notification.infra.decorator.SinceBasedCachePolicy;
+import com.github.yun531.climate.notification.infra.decorator.ReferenceTimeCachePolicy;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -66,7 +66,7 @@ public class NotificationInfraConfig {
             @Value("${notification.threshold-pop:60}") int thresholdPop
     ) {
         AlertRule core = new RainForecastRule(popViewReadPort, computer, adjuster, thresholdPop);
-        return new CachedAlertRuleDecorator(core, new SinceBasedCachePolicy(recomputeThresholdMinutes));
+        return new CachedAlertRuleDecorator(core, new ReferenceTimeCachePolicy(recomputeThresholdMinutes));
     }
 
     @Bean
@@ -77,7 +77,7 @@ public class NotificationInfraConfig {
             @Value("${notification.recompute-threshold-minutes:165}") int recomputeThresholdMinutes
     ) {
         AlertRule core = new RainOnsetChangeRule(popViewReadPort, windowAdjuster, computer);
-        return new CachedAlertRuleDecorator(core, new SinceBasedCachePolicy(recomputeThresholdMinutes));
+        return new CachedAlertRuleDecorator(core, new ReferenceTimeCachePolicy(recomputeThresholdMinutes));
     }
 
     @Bean

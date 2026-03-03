@@ -7,7 +7,7 @@ public final class TimeUtil {
 
     private TimeUtil() { }
 
-    public static LocalDateTime nowMinutes() {
+    public static LocalDateTime nowTruncatedToMinute() {
         return LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
     }
 

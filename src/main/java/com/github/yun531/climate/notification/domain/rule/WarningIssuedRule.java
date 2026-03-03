@@ -46,7 +46,7 @@ public class WarningIssuedRule implements AlertRule {
 
         // 기준 시각(분 단위 고정)
         LocalDateTime effectiveNow = (now == null)
-                ? TimeUtil.nowMinutes()
+                ? TimeUtil.nowTruncatedToMinute()
                 : TimeUtil.truncateToMinutes(now);
 
         // criteria 정규화

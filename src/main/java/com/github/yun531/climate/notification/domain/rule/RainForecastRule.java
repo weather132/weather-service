@@ -48,7 +48,7 @@ public class RainForecastRule implements AlertRule {
         if (regionId == null || regionId.isBlank()) return List.of();
 
         LocalDateTime effectiveNow = (now == null)
-                ? TimeUtil.nowMinutes()
+                ? TimeUtil.nowTruncatedToMinute()
                 : TimeUtil.truncateToMinutes(now);
 
         PopView view = popViewReadPort.loadCurrent(regionId);

@@ -17,11 +17,11 @@ public class AppForecastService {
     private final HourlyForecastWindowAdjuster windowAdjuster;
 
     public HourlyForecastDto getHourlyForecast(String regionId) {
-        return getHourlyForecast(regionId, TimeUtil.nowMinutes());
+        return getHourlyForecast(regionId, TimeUtil.nowTruncatedToMinute());
     }
 
     public HourlyForecastDto getHourlyForecast(String regionId, LocalDateTime now) {
-        LocalDateTime normalizedNow = (now == null) ? TimeUtil.nowMinutes() : TimeUtil.truncateToMinutes(now);
+        LocalDateTime normalizedNow = (now == null) ? TimeUtil.nowTruncatedToMinute() : TimeUtil.truncateToMinutes(now);
 
         HourlyForecastDto base = snapshotQueryService.getHourlyForecast(regionId);
         if (base == null) return null;   // 정책상 빈 DTO/Optional로 바꾸는 건 다음 단계에서 선택 가능

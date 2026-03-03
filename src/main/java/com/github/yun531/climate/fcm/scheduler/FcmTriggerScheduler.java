@@ -20,7 +20,7 @@ public class FcmTriggerScheduler {
     // 08~23시(3시간 간격)의 5분에만 hourly 전송
     @Scheduled(cron = "0 5 8-23/3 * * *")
     public void triggerHourly() {
-        var now = TimeUtil.nowMinutes();
+        var now = TimeUtil.nowTruncatedToMinute();
         int hour = now.getHour();
 
         run("hourly", hour, () -> fcm.sendHourlyTrigger(now, hour, DRY_RUN));
@@ -29,7 +29,7 @@ public class FcmTriggerScheduler {
     // 매 시간(00~23) + 5분 마다 daily 전송
     @Scheduled(cron = "0 5 * * * *")
     public void triggerDaily() {
-        var now = TimeUtil.nowMinutes();
+        var now = TimeUtil.nowTruncatedToMinute();
         int hour = now.getHour();
 
         run("daily", hour, () -> fcm.sendDailyTrigger(now, hour, DRY_RUN));

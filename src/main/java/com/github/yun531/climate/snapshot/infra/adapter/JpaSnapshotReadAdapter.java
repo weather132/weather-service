@@ -9,7 +9,7 @@ import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
 import com.github.yun531.climate.kernel.snapshot.port.SnapshotReadPort;
 import com.github.yun531.climate.kernel.snapshot.readmodel.Snapshot;
 import com.github.yun531.climate.shared.cache.CacheEntry;
-import com.github.yun531.climate.shared.cache.RegionCache;
+import com.github.yun531.climate.shared.cache.KeyCache;
 import com.github.yun531.climate.shared.time.TimeUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
@@ -29,26 +29,26 @@ public class JpaSnapshotReadAdapter implements SnapshotReadPort {
     private final JpaSnapshotMapper mapper;
 
     /** regionId + kind 기준 스냅샷 캐시 */
-    private final RegionCache<Snapshot> snapCache = new RegionCache<>();
+    private final KeyCache<Snapshot> snapCache = new KeyCache<>();
 
     @Override
     @Nullable
     public Snapshot load(String regionId, SnapKind kind) {
         if (regionId == null || regionId.isBlank() || kind == null) return null;
 
-        LocalDateTime now = TimeUtil.nowMinutes();
+        LocalDateTime now = TimeUtil.nowTruncatedToMinute();
 
-        // since(=접근 가능한 최신 발표시각)  <-- 여기만 kind로 호출
-        LocalDateTime since = policy.resolve(now, kind);
-        if (since == null) since = now;
+        // announceTime(=접근 가능한 최신 발표시각)  <-- 여기만 kind로 호출
+        LocalDateTime announceTime = policy.resolve(now, kind);
+        if (announceTime == null) announceTime = now;
 
         int threshold = cacheProps.recomputeThresholdMinutes();
         String key = SnapKey.of(regionId, kind).asCacheKey();
 
-        int snapId = SnapKindCodec.toCode(kind);
-        return snapCache.getOrComputeSinceBased(
+        int snapId = SnapKey.of(regionId, kind).asSnapId();
+        return snapCache.getOrComputeByReferenceTime(
                 key,
-                since,
+                announceTime,
                 threshold,
                 () -> computeEntry(regionId, snapId, now)
         ).value();
@@ -56,7 +56,7 @@ public class JpaSnapshotReadAdapter implements SnapshotReadPort {
 
     /**
      * computedAt은 reportTime(발표시각)로 둔다.
-     * - since가 새 발표시각으로 점프하면 즉시 stale 판정이 나도록 맞춘다.
+     * - announceTime 새 발표시각으로 점프하면 즉시 stale 판정이 나도록 맞춘다.
      */
     private CacheEntry<Snapshot> computeEntry(String regionId, int snapId, LocalDateTime now) {
         ClimateSnap snap = climateSnapRepository.findBySnapIdAndRegionId(snapId, regionId);

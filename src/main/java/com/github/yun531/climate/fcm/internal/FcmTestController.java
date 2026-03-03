@@ -34,7 +34,7 @@ public class FcmTestController {
 
     @PostMapping("/hourly")
     public ResponseEntity<FcmTestResponse> hourly(@RequestParam(defaultValue = "true") boolean dryRun) {
-        var now = TimeUtil.nowMinutes();
+        var now = TimeUtil.nowTruncatedToMinute();
         int hour = now.getHour();
 
         String topic = props.hourlyTopic();
@@ -64,7 +64,7 @@ public class FcmTestController {
                     .body(FcmTestResponse.fail(topic, dryRun, "hour must be 0..23"));
         }
 
-        var now = TimeUtil.nowMinutes();
+        var now = TimeUtil.nowTruncatedToMinute();
         int nowHour = now.getHour(); // 로그용(서버 현재시각 기준)
 
         String topic = props.dailyTopicPrefix() + String.format("%02d", hour);
@@ -141,7 +141,7 @@ public class FcmTestController {
      */
     private String normalizeTriggerAtLocal(String triggerAt) {
         if (triggerAt == null || triggerAt.isBlank()) {
-            LocalDateTime now = TimeUtil.nowMinutes();
+            LocalDateTime now = TimeUtil.nowTruncatedToMinute();
             return now.format(ISO_LOCAL);
         }
 

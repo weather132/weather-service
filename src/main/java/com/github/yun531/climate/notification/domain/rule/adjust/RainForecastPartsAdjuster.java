@@ -41,11 +41,11 @@ public class RainForecastPartsAdjuster {
         if (event == null) return null;
         if (baseTime == null || now == null) return event;
 
-        TimeShiftUtil.Shift shift = TimeShiftUtil.computeShift(baseTime, now, maxShiftHours);
+        TimeShiftUtil.ShiftResult shiftResult = TimeShiftUtil.shiftHourly(baseTime, now, maxShiftHours);
 
-        int diffHours = Math.max(0, shift.diffHours());
-        int dayShift  = Math.max(0, shift.dayShift());
-        LocalDateTime shiftedTime = shift.shiftedBaseTime();
+        int diffHours = Math.max(0, shiftResult.shiftHours());
+        int dayShift  = Math.max(0, shiftResult.dayShift());
+        LocalDateTime shiftedTime = shiftResult.shiftedBaseTime();
 
         LocalDateTime nowHour = now.truncatedTo(HOURS);
         LocalDateTime windowStart = nowHour.plusHours(diffHours + (long) startOffsetHours);

@@ -48,10 +48,10 @@ public final class HourlyForecastWindowAdjuster {
             return new HourlyForecastDto(base.regionId(), reportTime, sorted);
         }
 
-        TimeShiftUtil.Shift shift = TimeShiftUtil.computeShift(reportTime, now, maxShiftHours);
+        TimeShiftUtil.ShiftResult shiftResult = TimeShiftUtil.shiftHourly(reportTime, now, maxShiftHours);
 
         // 기준시각(baseTime) 초과(>)만 포함 + windowSize개 절단
-        LocalDateTime baseTime = (shift.diffHours() <= 0) ? reportTime : shift.shiftedBaseTime();
+        LocalDateTime baseTime = (shiftResult.shiftHours() <= 0) ? reportTime : shiftResult.shiftedBaseTime();
         List<HourlyPoint> window = buildWindow(sorted, baseTime);
 
         return new HourlyForecastDto(base.regionId(), baseTime, window);

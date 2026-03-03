@@ -4,7 +4,7 @@ import com.github.yun531.climate.kernel.warning.model.WarningKind;
 import com.github.yun531.climate.kernel.warning.port.WarningStateReadPort;
 import com.github.yun531.climate.kernel.warning.readmodel.WarningStateView;
 import com.github.yun531.climate.shared.cache.CacheEntry;
-import com.github.yun531.climate.shared.cache.RegionCache;
+import com.github.yun531.climate.shared.cache.KeyCache;
 import com.github.yun531.climate.shared.time.TimeUtil;
 
 import java.time.LocalDateTime;
@@ -18,7 +18,7 @@ public class CachedWarningStateReadPort implements WarningStateReadPort {
     private final WarningStateReadPort delegate;
     private final int ttlMinutes;
 
-    private final RegionCache<Map<WarningKind, WarningStateView>> cache = new RegionCache<>();
+    private final KeyCache<Map<WarningKind, WarningStateView>> cache = new KeyCache<>();
 
     public CachedWarningStateReadPort(WarningStateReadPort delegate, int ttlMinutes) {
         this.delegate = delegate;
@@ -29,9 +29,9 @@ public class CachedWarningStateReadPort implements WarningStateReadPort {
     public Map<WarningKind, WarningStateView> loadLatestByKind(String regionId) {
         if (regionId == null || regionId.isBlank()) return Map.of();
 
-        LocalDateTime now = TimeUtil.nowMinutes();
+        LocalDateTime now = TimeUtil.nowTruncatedToMinute();
 
-        CacheEntry<Map<WarningKind, WarningStateView>> entry = cache.getOrComputeTtlBased(
+        CacheEntry<Map<WarningKind, WarningStateView>> entry = cache.getOrComputeByTtl(
                 regionId,
                 now,
                 ttlMinutes,
