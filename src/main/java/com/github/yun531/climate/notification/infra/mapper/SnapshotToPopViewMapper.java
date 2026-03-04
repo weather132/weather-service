@@ -1,10 +1,10 @@
 package com.github.yun531.climate.notification.infra.mapper;
 
+import com.github.yun531.climate.kernel.snapshot.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
 import com.github.yun531.climate.notification.domain.readmodel.PopViewPair;
-import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotDailyPoint;
-import com.github.yun531.climate.kernel.snapshot.readmodel.Snapshot;
-import com.github.yun531.climate.kernel.snapshot.readmodel.SnapshotHourlyPoint;
+import com.github.yun531.climate.kernel.snapshot.readmodel.DailyPoint;
+import com.github.yun531.climate.kernel.snapshot.readmodel.HourlyPoint;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -19,7 +19,7 @@ import java.util.*;
 @Component
 public class SnapshotToPopViewMapper {
 
-    public PopView toPopView(Snapshot snap) {
+    public PopView toPopView(WeatherSnapshot snap) {
         if (snap == null) return null;
 
         PopView.HourlyPopSeries26 hourly = toHourly(snap.hourly());
@@ -28,7 +28,7 @@ public class SnapshotToPopViewMapper {
         return new PopView(hourly, daily, snap.reportTime());
     }
 
-    public PopViewPair toPair(Snapshot cur, Snapshot prev) {
+    public PopViewPair toPair(WeatherSnapshot cur, WeatherSnapshot prev) {
         if (cur == null || prev == null) return null;
 
         PopView a = toPopView(cur);
@@ -38,14 +38,14 @@ public class SnapshotToPopViewMapper {
         return new PopViewPair(a, b);
     }
 
-    private PopView.HourlyPopSeries26 toHourly(List<SnapshotHourlyPoint> hourly) {
-        List<SnapshotHourlyPoint> src = (hourly == null) ? List.of() : hourly;
+    private PopView.HourlyPopSeries26 toHourly(List<HourlyPoint> hourly) {
+        List<HourlyPoint> src = (hourly == null) ? List.of() : hourly;
 
         // validAt 기준 정렬(없으면 뒤로)
-        List<SnapshotHourlyPoint> sorted = src.stream()
+        List<HourlyPoint> sorted = src.stream()
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(
-                        SnapshotHourlyPoint::validAt,
+                        HourlyPoint::validAt,
                         Comparator.nullsLast(Comparator.naturalOrder())
                 ))
                 .toList();
@@ -54,7 +54,7 @@ public class SnapshotToPopViewMapper {
 
         // 최대 26개까지 채우기
         for (int i = 0; i < sorted.size() && out.size() < PopView.HOURLY_SIZE; i++) {
-            SnapshotHourlyPoint p = sorted.get(i);
+            HourlyPoint p = sorted.get(i);
             out.add(new PopView.HourlyPopSeries26.Point(p.validAt(), n(p.pop())));
         }
 
@@ -66,8 +66,8 @@ public class SnapshotToPopViewMapper {
         return new PopView.HourlyPopSeries26(out);
     }
 
-    private PopView.DailyPopSeries7 toDaily(List<SnapshotDailyPoint> daily) {
-        List<SnapshotDailyPoint> src = (daily == null) ? List.of() : daily;
+    private PopView.DailyPopSeries7 toDaily(List<DailyPoint> daily) {
+        List<DailyPoint> src = (daily == null) ? List.of() : daily;
 
         // dayOffset 기반으로 0..6 고정 채움
         PopView.DailyPopSeries7.DailyPop[] arr = new PopView.DailyPopSeries7.DailyPop[PopView.DAILY_SIZE];
@@ -75,7 +75,7 @@ public class SnapshotToPopViewMapper {
             arr[i] = new PopView.DailyPopSeries7.DailyPop(0, 0);
         }
 
-        for (SnapshotDailyPoint d : src) {
+        for (DailyPoint d : src) {
             if (d == null) continue;
 
             int off = d.dayOffset();

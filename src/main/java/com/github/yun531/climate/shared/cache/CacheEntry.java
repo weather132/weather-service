@@ -2,23 +2,26 @@ package com.github.yun531.climate.shared.cache;
 
 import java.time.LocalDateTime;
 
-/** 캐시 값 + 계산 시각 */
+/** 캐시 값 + 기준 시각(anchor)
+ *   anchor는 용도에 따라 의미가 달라진다:
+ *     TTL 캐시            → 실제 계산 시각(now)
+ *     Reference-time 캐시 → 데이터 발표시각(reportTime) 등 외부 기준 시각
+ */
 public record CacheEntry<T>(
         T value,
-        LocalDateTime computedAt
+        LocalDateTime anchor
 ) {
     /**
-     * referenceTime 기준으로 캐시가 재계산이 필요한지 판단한다.
-     * - referenceTime == null 이면 항상 재계산
-     * - computedAt == null 이면 재계산
-     * - computedAt < (referenceTime - ttlMinutes) 이면 재계산
+     * 캐시 엔트리가 낡았는지(stale) 판단한다.
+     *
+     * @param referenceTime    비교 기준 시각 (null 이면 항상 stale)
+     * @param toleranceMinutes anchor 로부터 허용하는 유효 시간(분).
+     *                         referenceTime이 anchor + toleranceMinutes를 넘으면 stale
      */
-    public boolean needsRecompute(LocalDateTime referenceTime, int ttlMinutes) {
-        if (referenceTime == null) return true;
-        if (computedAt == null) return true;
+    public boolean isStale(LocalDateTime referenceTime, int toleranceMinutes) {
+        if (referenceTime == null || anchor == null) return true;
 
-        int w = Math.max(0, ttlMinutes);
-        LocalDateTime cutoff = referenceTime.minusMinutes(w);
-        return computedAt.isBefore(cutoff);
+        LocalDateTime expiresAt = anchor.plusMinutes(Math.max(0, toleranceMinutes));
+        return referenceTime.isAfter(expiresAt);
     }
 }

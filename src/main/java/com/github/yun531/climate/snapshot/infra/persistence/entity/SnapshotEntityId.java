@@ -9,14 +9,14 @@ import java.util.Objects;
  *   JPA 에서도 동일한 키 구조를 표현해야 한다.
  * - 이 클래스는 @IdClass(ClimateSnapId.class) 와 함께 사용
  */
-public class ClimateSnapId implements Serializable {
+public class SnapshotEntityId implements Serializable {
     private Integer snapId;
     private String regionId;
 
-    public ClimateSnapId() {}
+    public SnapshotEntityId() {}
 
     /** 코드에서 명시적으로 복합키를 만들 때 사용하는 생성자 */
-    public ClimateSnapId(Integer snapId, String regionId) {
+    public SnapshotEntityId(Integer snapId, String regionId) {
         this.snapId = snapId;
         this.regionId = regionId;
     }
@@ -24,7 +24,7 @@ public class ClimateSnapId implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof ClimateSnapId other)) return false;
+        if (!(o instanceof SnapshotEntityId other)) return false;
         return Objects.equals(snapId, other.snapId) &&
                 Objects.equals(regionId, other.regionId);
     }

@@ -36,21 +36,21 @@ public class CachedAlertRuleDecorator implements AlertRule {
                 ? TimeUtil.nowTruncatedToMinute()
                 : TimeUtil.truncateToMinutes(now);
 
-        LocalDateTime referenceTime  = policy.referenceTimeForCache(criteria, effectiveNow);
-        referenceTime  = (referenceTime  == null) ? null : TimeUtil.truncateToMinutes(referenceTime );
+        LocalDateTime referenceTime = policy.referenceTimeForCache(criteria, effectiveNow);
+        if (referenceTime != null) referenceTime = TimeUtil.truncateToMinutes(referenceTime);
 
-        CacheEntry<List<AlertEvent>> entry = cache.getOrComputeByReferenceTime(
+        CacheEntry<List<AlertEvent>> entry = cache.getOrCompute(
                 regionId,
-                referenceTime ,
+                referenceTime,
                 policy.thresholdMinutes(),
                 () -> {
                     List<AlertEvent> computed = delegate.evaluate(regionId, criteria, effectiveNow);
                     List<AlertEvent> safe = (computed == null) ? List.of() : List.copyOf(computed);
 
-                    LocalDateTime computedAt = policy.computedAt(safe, effectiveNow);
-                    computedAt = (computedAt == null) ? effectiveNow : TimeUtil.truncateToMinutes(computedAt);
+                    LocalDateTime anchor = policy.computedAt(safe, effectiveNow);
+                    anchor = (anchor == null) ? effectiveNow : TimeUtil.truncateToMinutes(anchor);
 
-                    return new CacheEntry<>(safe, computedAt);
+                    return new CacheEntry<>(safe, anchor);
                 }
         );
 

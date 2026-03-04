@@ -14,9 +14,9 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA 필수
 @Entity
-@IdClass(ClimateSnapId.class)
+@IdClass(SnapshotEntityId.class)
 @Table(name = "climate_snap")
-public class ClimateSnap {
+public class SnapshotEntity {
 
     @Id
     @Column(name = "snap_id")

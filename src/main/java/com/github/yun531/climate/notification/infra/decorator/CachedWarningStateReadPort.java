@@ -31,9 +31,9 @@ public class CachedWarningStateReadPort implements WarningStateReadPort {
 
         LocalDateTime now = TimeUtil.nowTruncatedToMinute();
 
-        CacheEntry<Map<WarningKind, WarningStateView>> entry = cache.getOrComputeByTtl(
+        CacheEntry<Map<WarningKind, WarningStateView>> entry = cache.getOrCompute(
                 regionId,
-                now,
+                now,          // referenceTime = now >> 캐시된 시점으로부터 ttlMinutes가 지났는지 판단
                 ttlMinutes,
                 () -> {
                     Map<WarningKind, WarningStateView> loaded = delegate.loadLatestByKind(regionId);

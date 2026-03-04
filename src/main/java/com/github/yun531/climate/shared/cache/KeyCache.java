@@ -8,43 +8,31 @@ import java.util.function.Supplier;
 /** String key 기반 In-memory 캐시 유틸 */
 public class KeyCache<T> {
 
-    private final Map<String, CacheEntry<T>> cacheEntries = new ConcurrentHashMap<>();
+    private final Map<String, CacheEntry<T>> entries = new ConcurrentHashMap<>();
 
     public CacheEntry<T> get(String key) {
-        return cacheEntries.get(key);
+        return entries.get(key);
     }
 
     /**
-     * TTL 기반 캐시
-     * - now - computedAt >= ttlMinutes 이면 재계산
+     * referenceTime 기준 캐시 조회.
+     * - referenceTime이 null 이면 무조건 재계산
+     * - getOrCompute = now 인 경우, anchor + toleranceMinutes < now 이면 재계산
+     * - anchor + toleranceMinutes < referenceTime 이면 재계산
      */
-    public CacheEntry<T> getOrComputeByTtl(
-            String key,
-            LocalDateTime now,
-            int ttlMinutes,
-            Supplier<CacheEntry<T>> entryLoader
-    ) {
-        if (now == null) throw new IllegalArgumentException("now must not be null");
-        return getOrComputeByReferenceTime(key, now, ttlMinutes, entryLoader);
-    }
-
-    /**
-     *  - referenceTime == null 이면 무조건 재계산
-     *  - referenceTime - computedAt >= ttlMinutes 이면 재계산
-     *  - compute()를 사용해 원자적으로 갱신한다(동시성 중복 계산 감소)
-     */
-    public CacheEntry<T> getOrComputeByReferenceTime(
+    public CacheEntry<T> getOrCompute(
             String key,
             LocalDateTime referenceTime,
-            int ttlMinutes,
-            Supplier<CacheEntry<T>> entryLoader
+            int toleranceMinutes,
+            Supplier<CacheEntry<T>> loader
     ) {
-        if (entryLoader == null) throw new IllegalArgumentException("loader must not be null");
+        if (loader == null) throw new IllegalArgumentException("loader must not be null");
 
-        return cacheEntries.compute(key, (k, oldEntry) -> {
-            if (oldEntry == null) return entryLoader.get();
-            if (oldEntry.needsRecompute(referenceTime, ttlMinutes)) return entryLoader.get();
-            return oldEntry;
+        return entries.compute(key, (k, old) -> {
+            if (old == null || old.isStale(referenceTime, toleranceMinutes)) {
+                return loader.get();
+            }
+            return old;
         });
     }
 }
