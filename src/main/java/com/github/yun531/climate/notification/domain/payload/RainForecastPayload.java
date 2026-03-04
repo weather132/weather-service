@@ -2,33 +2,41 @@ package com.github.yun531.climate.notification.domain.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RainForecastPayload(
         String srcRule,
-        List<RainInterval> hourlyParts,   // 비 구간(절대시각)
-        List<DailyRainFlags> dayParts        // size 7 고정 (index = dayOffset)
+        List<RainInterval> hourlyParts,
+        List<DailyRainFlags> dayParts
 ) implements AlertPayload {
+
+    /** 비 시간 구간 (절대 시각) */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record RainInterval(LocalDateTime start, LocalDateTime end) {
+
+        public RainInterval {
+            if (start != null && end != null && start.isAfter(end)) {
+                LocalDateTime tmp = start;
+                start = end;
+                end = tmp;
+            }
+        }
+    }
+
+    /** 일별 오전/오후 비 플래그 */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record DailyRainFlags(boolean rainAm, boolean rainPm) {}
 
     public RainForecastPayload {
         hourlyParts = (hourlyParts == null) ? List.of() : List.copyOf(hourlyParts);
-
-        // dayParts는 항상 7개로 정규화(부족하면 false 패딩, 초과하면 절단)
-        List<DailyRainFlags> src = (dayParts == null) ? List.of() : dayParts;
-        List<DailyRainFlags> fixed = new ArrayList<>(7);
-        for (int i = 0; i < 7; i++) {
-            DailyRainFlags v = (i < src.size()) ? src.get(i) : null;
-            fixed.add(v == null ? new DailyRainFlags(false, false) : v);
-        }
-        dayParts = List.copyOf(fixed);
+        dayParts = (dayParts == null) ? List.of() : List.copyOf(dayParts);
     }
 
     @Override
     public Map<String, String> toFcmData() {
-        // 구조가 커서 FCM에는 요약만 싣는 기본값
         return Map.of(
                 "_srcRule", srcRule == null ? "" : srcRule,
                 "hourlyPartsCount", String.valueOf(hourlyParts == null ? 0 : hourlyParts.size())

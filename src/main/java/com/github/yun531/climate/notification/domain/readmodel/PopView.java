@@ -21,6 +21,9 @@ public record PopView(
         daily  = (daily  == null) ? DailyPopSeries7.empty7() : daily;
     }
 
+    /** ======================= Pair ======================= */
+    public record Pair(PopView current, PopView previous) {}
+
     /** ======================= Hourly ======================= */
     public record HourlyPopSeries26(List<Point> points) {
         public record Point(LocalDateTime validAt, int pop) {}
@@ -28,7 +31,8 @@ public record PopView(
         public HourlyPopSeries26 {
             points = (points == null) ? List.of() : List.copyOf(points);
             if (points.size() != HOURLY_SIZE) {
-                throw new IllegalArgumentException("HourlyPopSeries26 must have " + HOURLY_SIZE + " points");
+                throw new IllegalArgumentException(
+                        "HourlyPopSeries26 must have " + HOURLY_SIZE + " points");
             }
         }
 
@@ -36,16 +40,6 @@ public record PopView(
             List<Point> out = new ArrayList<>(HOURLY_SIZE);
             for (int i = 0; i < HOURLY_SIZE; i++) out.add(new Point(null, 0));
             return new HourlyPopSeries26(out);
-        }
-
-        /** 1..26 */
-        public int popAt(int offsetHour1to26) {
-            return points.get(offsetHour1to26 - 1).pop();
-        }
-
-        /** 1..26 */
-        public LocalDateTime validAt(int offsetHour1to26) {
-            return points.get(offsetHour1to26 - 1).validAt();
         }
     }
 
@@ -56,7 +50,8 @@ public record PopView(
         public DailyPopSeries7 {
             days = (days == null) ? List.of() : List.copyOf(days);
             if (days.size() != DAILY_SIZE) {
-                throw new IllegalArgumentException("DailyPopSeries7 must have " + DAILY_SIZE + " days");
+                throw new IllegalArgumentException(
+                        "DailyPopSeries7 must have " + DAILY_SIZE + " days");
             }
         }
 

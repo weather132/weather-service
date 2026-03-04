@@ -1,7 +1,7 @@
 package com.github.yun531.climate.notification.presentation;
 
 import com.github.yun531.climate.notification.application.GenerateAlertsService;
-import com.github.yun531.climate.notification.application.command.GenerateAlertsCommand;
+import com.github.yun531.climate.notification.application.GenerateAlertsCommand;
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 import com.github.yun531.climate.kernel.warning.model.WarningKind;
@@ -28,22 +28,13 @@ public class AlertController {
     )
     public ResponseEntity<List<AlertEvent>> get3HourIntervalForecast(
             @RequestParam List<String> regionIds,
-            @RequestParam(value = "maxHour", required = false) Integer maxHour // 1~24
+            @RequestParam(value = "maxHour", required = false) Integer maxHour
     ) {
-        // 간단 유효성 체크 >> 이상한 값이면 24 사용
-        if (maxHour != null && (maxHour < 1 || maxHour > 24)) {
-            maxHour = 24;
-        }
-        Set<AlertTypeEnum> types = EnumSet.of(AlertTypeEnum.RAIN_ONSET);
+        if (maxHour != null && (maxHour < 1 || maxHour > 24)) maxHour = 24;
 
-        GenerateAlertsCommand cmd = new GenerateAlertsCommand(
-                regionIds,
-                null,   // since -> 서비스에서 now 로 보정
-                types,   // enabledTypes
-                null,    // filterWarningKinds
-                maxHour  // rainHourLimit
+        var cmd = new GenerateAlertsCommand(
+                regionIds, null, EnumSet.of(AlertTypeEnum.RAIN_ONSET), null, maxHour
         );
-
         return ResponseEntity.ok(service.generate(cmd));
     }
 
@@ -55,39 +46,26 @@ public class AlertController {
     public ResponseEntity<List<AlertEvent>> getDayForecast(
             @RequestParam List<String> regionIds
     ) {
-        Set<AlertTypeEnum> types = EnumSet.of(AlertTypeEnum.RAIN_FORECAST);
-
-        GenerateAlertsCommand cmd = new GenerateAlertsCommand(
-                regionIds,
-                null,
-                types,
-                null,
-                null
+        var cmd = new GenerateAlertsCommand(
+                regionIds, null, EnumSet.of(AlertTypeEnum.RAIN_FORECAST), null, null
         );
-
         return ResponseEntity.ok(service.generate(cmd));
     }
 
     @GetMapping("/warning")
     @Operation(
             summary = "기상특보 변동사항 알림",
-            description = "1시간마다 발표되는 기상특보의 변동사항에 대한 알림"
+            description = "1시간마다 발표되는 기상특보의 변동사항에 대한 알림. sinceHours: 최근 N시간 이내 발령 특보만 조회 (기본값 서버 설정)"
     )
     public ResponseEntity<List<AlertEvent>> getWarning(
             @RequestParam List<String> regionIds,
+            @RequestParam(value = "sinceHours", required = false) Integer sinceHours,
             @RequestParam(value = "warningKinds", required = false) List<WarningKind> warningKinds
     ) {
-        Set<AlertTypeEnum> types = EnumSet.of(AlertTypeEnum.WARNING_ISSUED);
-        Set<WarningKind> filterKinds = toFilterKinds(warningKinds);
-
-        GenerateAlertsCommand cmd = new GenerateAlertsCommand(
-                regionIds,
-                null,
-                types,
-                filterKinds,
-                null
+        var cmd = new GenerateAlertsCommand(
+                regionIds, sinceHours, EnumSet.of(AlertTypeEnum.WARNING_ISSUED),
+                toEnumSet(warningKinds), null
         );
-
         return ResponseEntity.ok(service.generate(cmd));
     }
 
@@ -98,27 +76,18 @@ public class AlertController {
     )
     public ResponseEntity<List<AlertEvent>> getSummary(
             @RequestParam List<String> regionIds,
+            @RequestParam(value = "sinceHours", required = false) Integer sinceHours,
             @RequestParam(value = "warningKinds", required = false) List<WarningKind> warningKinds
     ) {
-        Set<AlertTypeEnum> types = EnumSet.of(
-                AlertTypeEnum.RAIN_ONSET,
-                AlertTypeEnum.WARNING_ISSUED
+        var cmd = new GenerateAlertsCommand(
+                regionIds, sinceHours,
+                EnumSet.of(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED),
+                toEnumSet(warningKinds), null
         );
-
-        Set<WarningKind> filterKinds = toFilterKinds(warningKinds);
-
-        GenerateAlertsCommand cmd = new GenerateAlertsCommand(
-                regionIds,
-                null,
-                types,
-                filterKinds,
-                null
-        );
-
         return ResponseEntity.ok(service.generate(cmd));
     }
 
-    private static Set<WarningKind> toFilterKinds(List<WarningKind> kinds) {
+    private static Set<WarningKind> toEnumSet(List<WarningKind> kinds) {
         if (kinds == null || kinds.isEmpty()) return null;
         return EnumSet.copyOf(kinds);
     }

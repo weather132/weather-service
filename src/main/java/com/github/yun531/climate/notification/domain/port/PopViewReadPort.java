@@ -1,7 +1,6 @@
 package com.github.yun531.climate.notification.domain.port;
 
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
-import com.github.yun531.climate.notification.domain.readmodel.PopViewPair;
 
 public interface PopViewReadPort {
 
@@ -9,10 +8,10 @@ public interface PopViewReadPort {
 
     PopView loadPrevious(String regionId);
 
-    default PopViewPair loadCurrentPreviousPair(String regionId) {
+    default PopView.Pair loadCurrentPreviousPair(String regionId) {
         PopView cur = loadCurrent(regionId);
         PopView prv = loadPrevious(regionId);
         if (cur == null || prv == null) return null;
-        return new PopViewPair(cur, prv);
+        return new PopView.Pair(cur, prv);
     }
 }

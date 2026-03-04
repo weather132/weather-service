@@ -5,12 +5,17 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * 강수 이벤트 페이로드.
+ * - validAt: 비가 예보된 절대 시각
+ * - pop: 해당 시각의 강수확률
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RainOnsetPayload(
         String srcRule,
         LocalDateTime validAt,
         int pop
-) implements AlertPayload, ValidAtPayload {
+) implements AlertPayload {
 
     @Override
     public Map<String, String> toFcmData() {
