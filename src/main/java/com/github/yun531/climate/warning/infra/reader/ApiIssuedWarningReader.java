@@ -2,7 +2,7 @@ package com.github.yun531.climate.warning.infra.reader;
 
 import com.github.yun531.climate.warning.infra.remote.warningapi.api.WarningApiClient;
 import com.github.yun531.climate.warning.domain.reader.WarningStateReader;
-import com.github.yun531.climate.warning.domain.readmodel.WarningStateView;
+import com.github.yun531.climate.warning.domain.readmodel.IssuedWarning;
 import com.github.yun531.climate.warning.domain.model.WarningKind;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,12 +15,12 @@ import java.util.Map;
  */
 @Component
 @RequiredArgsConstructor
-public class ApiWarningStateReader implements WarningStateReader {
+public class ApiIssuedWarningReader implements WarningStateReader {
 
     private final WarningApiClient client; // 지금은 사용하지 않지만, 전환 준비용으로 주입 유지
 
     @Override
-    public Map<WarningKind, WarningStateView> loadLatestByKind(String regionId) {
+    public Map<WarningKind, IssuedWarning> loadLatestByKind(String regionId) {
         // TODO warningapi 구현 후:
         // - client.fetchLatest(regionId)
         // - items -> kind별 최신 1개 선택

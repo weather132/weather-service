@@ -1,7 +1,7 @@
 package com.github.yun531.climate.notification.domain.evaluator;
 
 import com.github.yun531.climate.warning.domain.model.WarningKind;
-import com.github.yun531.climate.warning.domain.readmodel.WarningStateView;
+import com.github.yun531.climate.warning.domain.readmodel.IssuedWarning;
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 import com.github.yun531.climate.notification.domain.payload.WarningIssuedPayload;
@@ -24,7 +24,7 @@ public class WarningIssuedEvaluator {
 
     public List<AlertEvent> compute(
             String regionId,
-            Map<WarningKind, WarningStateView> byKind,     // kind별 최신 특보 상태 (Port 에서 이미 로드된 데이터)
+            Map<WarningKind, IssuedWarning> byKind,     // kind별 최신 특보 상태 (Port 에서 이미 로드된 데이터)
             LocalDateTime since,                           // 기준 시각
             Set<WarningKind> warningKinds,                 // 조회할 특보 종류 (null/empty면 전체)
             LocalDateTime now
@@ -33,10 +33,10 @@ public class WarningIssuedEvaluator {
         if (byKind == null || byKind.isEmpty()) return List.of();
         if (now == null) return List.of();
 
-        Iterable<WarningStateView> candidates = selectCandidates(byKind, warningKinds);
+        Iterable<IssuedWarning> candidates = selectCandidates(byKind, warningKinds);
 
         ArrayList<AlertEvent> out = new ArrayList<>(8);
-        for (WarningStateView warning : candidates) {
+        for (IssuedWarning warning : candidates) {
             if (isIssuedAfter(warning, since)) {
                 out.add(toAlertEvent(regionId, warning, now));
             }
@@ -47,15 +47,15 @@ public class WarningIssuedEvaluator {
 
     // -- 후보 선택: warningKinds가 있으면 해당 kind만, 없으면 전체 --
 
-    private Iterable<WarningStateView> selectCandidates(
-            Map<WarningKind, WarningStateView> byKind, Set<WarningKind> warningKinds
+    private Iterable<IssuedWarning> selectCandidates(
+            Map<WarningKind, IssuedWarning> byKind, Set<WarningKind> warningKinds
     ) {
         if (warningKinds == null || warningKinds.isEmpty()) return byKind.values();
 
-        ArrayList<WarningStateView> filtered = new ArrayList<>(warningKinds.size());
+        ArrayList<IssuedWarning> filtered = new ArrayList<>(warningKinds.size());
         for (WarningKind kind : warningKinds) {
             if (kind == null) continue;
-            WarningStateView warning = byKind.get(kind);
+            IssuedWarning warning = byKind.get(kind);
             if (warning != null) filtered.add(warning);
         }
         return filtered;
@@ -63,7 +63,7 @@ public class WarningIssuedEvaluator {
 
     // -- 판정: since 이후에 발령/갱신된 특보인지 --
 
-    private boolean isIssuedAfter(WarningStateView warning, LocalDateTime since) {
+    private boolean isIssuedAfter(IssuedWarning warning, LocalDateTime since) {
         if (warning == null || warning.updatedAt() == null) return false;
         if (since == null) return true;
         return warning.updatedAt().isAfter(since);
@@ -71,7 +71,7 @@ public class WarningIssuedEvaluator {
 
     // -- AlertEvent 조립 --
 
-    private AlertEvent toAlertEvent(String regionId, WarningStateView warning, LocalDateTime now) {
+    private AlertEvent toAlertEvent(String regionId, IssuedWarning warning, LocalDateTime now) {
         LocalDateTime occurredAt = (warning.updatedAt() != null) ? warning.updatedAt() : now;
         occurredAt = TimeUtil.truncateToMinutes(occurredAt);
 

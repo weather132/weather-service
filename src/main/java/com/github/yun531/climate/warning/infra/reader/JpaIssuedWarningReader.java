@@ -2,46 +2,54 @@ package com.github.yun531.climate.warning.infra.reader;
 
 import com.github.yun531.climate.warning.domain.model.WarningKind;
 import com.github.yun531.climate.warning.domain.reader.WarningStateReader;
-import com.github.yun531.climate.warning.domain.readmodel.WarningStateView;
+import com.github.yun531.climate.warning.domain.readmodel.IssuedWarning;
 import com.github.yun531.climate.shared.cache.CacheEntry;
 import com.github.yun531.climate.shared.cache.KeyCache;
-import com.github.yun531.climate.shared.time.TimeUtil;
-import com.github.yun531.climate.warning.infra.persistence.mapper.WarningStateViewMapper;
+import com.github.yun531.climate.warning.infra.persistence.mapper.IssuedWarningMapper;
 import com.github.yun531.climate.warning.infra.persistence.repository.WarningStateRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
 @Component
 @Primary
-@RequiredArgsConstructor
-public class JpaWarningStateReader implements WarningStateReader {
+public class JpaIssuedWarningReader implements WarningStateReader {
 
     private final WarningStateRepository repo;
+    private final Clock clock;
+    private final int ttlMinutes;
 
-    @Value("${notification.warning.cache-ttl-minutes:45}")
-    private int ttlMinutes;
+    private final KeyCache<Map<WarningKind, IssuedWarning>> cache = new KeyCache<>();
 
-    private final KeyCache<Map<WarningKind, WarningStateView>> cache = new KeyCache<>();
+    public JpaIssuedWarningReader(
+            WarningStateRepository repo,
+            Clock clock,
+            @Value("${notification.warning.cache-ttl-minutes:45}") int ttlMinutes
+    ) {
+        this.repo = repo;
+        this.clock = clock;
+        this.ttlMinutes = ttlMinutes;
+    }
 
     @Override
-    public Map<WarningKind, WarningStateView> loadLatestByKind(String regionId) {
+    public Map<WarningKind, IssuedWarning> loadLatestByKind(String regionId) {
         if (regionId == null || regionId.isBlank()) return Map.of();
 
-        LocalDateTime now = TimeUtil.nowTruncatedToMinute();
+        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
 
-        CacheEntry<Map<WarningKind, WarningStateView>> entry = cache.getOrCompute(
+        CacheEntry<Map<WarningKind, IssuedWarning>> entry = cache.getOrCompute(
                 regionId,
                 now,
                 ttlMinutes,
                 () -> {
                     var rows = repo.findByRegionIdIn(List.of(regionId));
-                    var map = WarningStateViewMapper.pickLatestByKind(regionId, rows);
+                    var map = IssuedWarningMapper.pickLatestByKind(regionId, rows);
                     return new CacheEntry<>(map, now);
                 }
         );

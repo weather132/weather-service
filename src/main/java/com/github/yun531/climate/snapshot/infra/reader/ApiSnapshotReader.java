@@ -1,71 +1,50 @@
 package com.github.yun531.climate.snapshot.infra.reader;
 
-import com.github.yun531.climate.snapshot.domain.model.SnapKind;
-import com.github.yun531.climate.snapshot.domain.reader.SnapshotReader;
-import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.shared.cache.CacheEntry;
-import com.github.yun531.climate.shared.cache.KeyCache;
-import com.github.yun531.climate.shared.time.TimeUtil;
 import com.github.yun531.climate.snapshot.domain.policy.PublishSchedulePolicy;
+import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.snapshot.infra.config.SnapshotCacheProperties;
-import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.mapper.SnapshotApiResponseMapper;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.api.SnapshotApiClient;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.DailyForecastResponse;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.HourlySnapshotResponse;
-import lombok.RequiredArgsConstructor;
+import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.mapper.SnapshotApiResponseMapper;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Component
-@RequiredArgsConstructor
-public class ApiSnapshotReader implements SnapshotReader {
+public class ApiSnapshotReader extends CachingSnapshotReader {
 
     private final SnapshotApiClient client;
-    private final SnapshotCacheProperties cacheProps;
     private final PublishSchedulePolicy publishSchedule;
     private final SnapshotApiResponseMapper mapper;
 
-    private final KeyCache<WeatherSnapshot> snapshotCache = new KeyCache<>();
-
-    @Override
-    @Nullable
-    public WeatherSnapshot loadCurrent(String regionId) {
-        return load(regionId, SnapKind.CURRENT);
-    }
-
-    @Override
-    @Nullable
-    public WeatherSnapshot loadPrevious(String regionId) {
-        return load(regionId, SnapKind.PREVIOUS);
-    }
-
-    private WeatherSnapshot load(String regionId, SnapKind snapKind) {
-        if (regionId == null || regionId.isBlank() || snapKind == null) return null;
-
-        LocalDateTime now = TimeUtil.nowTruncatedToMinute();
-        LocalDateTime publishTime = publishSchedule.resolve(now, snapKind);
-        if (publishTime == null) return null;
-
-        String cacheKey = SnapshotKey.of(regionId, snapKind).asCacheKey();
-
-        return snapshotCache.getOrCompute(
-                cacheKey,
-                publishTime,                              // referenceTime
-                cacheProps.recomputeThresholdMinutes(),   // toleranceMinutes
-                () -> fetchSnapshot(regionId, now, publishTime)
-        ).value();
+    public ApiSnapshotReader(
+            SnapshotCacheProperties cacheProps,
+            PublishSchedulePolicy publishSchedule,
+            Clock clock,
+            SnapshotApiClient client,
+            SnapshotApiResponseMapper mapper
+    ) {
+        super(cacheProps, publishSchedule, clock);
+        this.client = client;
+        this.publishSchedule = publishSchedule;
+        this.mapper = mapper;
     }
 
     /**
      * snapshot 조회(hourly + daily 조합)해 WeatherSnapshot 으로 변환
      * 새 발표시각으로 점프하면 즉시 stale 판정.
      */
-    private CacheEntry<WeatherSnapshot> fetchSnapshot(
-            String regionId, LocalDateTime now, LocalDateTime publishTime
+    @Override
+    protected CacheEntry<WeatherSnapshot> doFetch(
+            SnapshotKey key, LocalDateTime now, LocalDateTime publishTime
     ) {
+        String regionId = key.regionId();
+
         // 발표 데이터 접근 가능 여부
         if (!publishSchedule.isAccessible(now, publishTime)) {
             return emptyCacheEntry(now);
@@ -99,9 +78,5 @@ public class ApiSnapshotReader implements SnapshotReader {
     private LocalDate extractBaseDate(HourlySnapshotResponse response, LocalDateTime fallback) {
         LocalDateTime t = (response.announceTime() != null) ? response.announceTime() : fallback;
         return t.toLocalDate();
-    }
-
-    private CacheEntry<WeatherSnapshot> emptyCacheEntry(LocalDateTime now) {
-        return new CacheEntry<>(null, now);
     }
 }

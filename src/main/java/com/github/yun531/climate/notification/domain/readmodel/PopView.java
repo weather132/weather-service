@@ -51,7 +51,7 @@ public record PopView(
             days = (days == null) ? List.of() : List.copyOf(days);
             if (days.size() != DAILY_SIZE) {
                 throw new IllegalArgumentException(
-                        "DailyPopSeries7 must have " + DAILY_SIZE + " days");
+                        "DailyPopSeries7 must have " + DAILY_SIZE + " dailyPoints");
             }
         }
 

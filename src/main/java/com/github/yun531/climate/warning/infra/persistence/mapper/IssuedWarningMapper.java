@@ -2,18 +2,18 @@ package com.github.yun531.climate.warning.infra.persistence.mapper;
 
 import com.github.yun531.climate.warning.infra.persistence.entity.WarningStateEntity;
 import com.github.yun531.climate.warning.domain.model.WarningKind;
-import com.github.yun531.climate.warning.domain.readmodel.WarningStateView;
+import com.github.yun531.climate.warning.domain.readmodel.IssuedWarning;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class WarningStateViewMapper {
+public final class IssuedWarningMapper {
 
-    private WarningStateViewMapper() {}
+    private IssuedWarningMapper() {}
 
-    public static Map<WarningKind, WarningStateView> pickLatestByKind(String regionId, List<WarningStateEntity> rows) {
+    public static Map<WarningKind, IssuedWarning> pickLatestByKind(String regionId, List<WarningStateEntity> rows) {
         if (regionId == null || regionId.isBlank() || rows == null || rows.isEmpty()) return Map.of();
 
         Map<WarningKind, WarningStateEntity> picked = new HashMap<>();
@@ -25,21 +25,21 @@ public final class WarningStateViewMapper {
             WarningKind kind = ws.getKind();
             if (kind == null) continue;
 
-            picked.merge(kind, ws, WarningStateViewMapper::newer);
+            picked.merge(kind, ws, IssuedWarningMapper::newer);
         }
 
         if (picked.isEmpty()) return Map.of();
 
-        Map<WarningKind, WarningStateView> out = new HashMap<>();
+        Map<WarningKind, IssuedWarning> out = new HashMap<>();
         for (var e : picked.entrySet()) {
             out.put(e.getKey(), toView(e.getValue()));
         }
         return out;
     }
 
-    public static WarningStateView toView(WarningStateEntity ws) {
+    public static IssuedWarning toView(WarningStateEntity ws) {
         if (ws == null) return null;
-        return new WarningStateView(
+        return new IssuedWarning(
                 ws.getRegionId(),
                 ws.getKind(),
                 ws.getLevel(),
