@@ -1,7 +1,7 @@
 package com.github.yun531.climate.warning.infra.persistence.entity;
 
-import com.github.yun531.climate.kernel.warning.model.WarningKind;
-import com.github.yun531.climate.kernel.warning.model.WarningLevel;
+import com.github.yun531.climate.warning.domain.model.WarningKind;
+import com.github.yun531.climate.warning.domain.model.WarningLevel;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Generated;

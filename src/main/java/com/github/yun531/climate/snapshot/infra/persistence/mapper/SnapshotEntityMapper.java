@@ -1,8 +1,8 @@
-package com.github.yun531.climate.snapshot.infra.mapper;
+package com.github.yun531.climate.snapshot.infra.persistence.mapper;
 
-import com.github.yun531.climate.kernel.snapshot.readmodel.WeatherSnapshot;
-import com.github.yun531.climate.kernel.snapshot.readmodel.DailyPoint;
-import com.github.yun531.climate.kernel.snapshot.readmodel.HourlyPoint;
+import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
+import com.github.yun531.climate.snapshot.domain.readmodel.DailyPoint;
+import com.github.yun531.climate.snapshot.domain.readmodel.HourlyPoint;
 import com.github.yun531.climate.snapshot.infra.persistence.entity.SnapshotEntity;
 import org.springframework.stereotype.Component;
 

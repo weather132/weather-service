@@ -1,4 +1,4 @@
-package com.github.yun531.climate.kernel.snapshot.readmodel;
+package com.github.yun531.climate.snapshot.domain.readmodel;
 
 import java.time.LocalDateTime;
 

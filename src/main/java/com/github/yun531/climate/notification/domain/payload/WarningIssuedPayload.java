@@ -1,8 +1,8 @@
 package com.github.yun531.climate.notification.domain.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.github.yun531.climate.kernel.warning.model.WarningKind;
-import com.github.yun531.climate.kernel.warning.model.WarningLevel;
+import com.github.yun531.climate.warning.domain.model.WarningKind;
+import com.github.yun531.climate.warning.domain.model.WarningLevel;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 
 import java.util.Map;

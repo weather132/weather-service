@@ -1,14 +1,14 @@
 package com.github.yun531.climate.snapshot.infra.reader;
 
-import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
-import com.github.yun531.climate.kernel.snapshot.reader.SnapshotReader;
-import com.github.yun531.climate.kernel.snapshot.readmodel.WeatherSnapshot;
+import com.github.yun531.climate.snapshot.domain.model.SnapKind;
+import com.github.yun531.climate.snapshot.domain.reader.SnapshotReader;
+import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.shared.cache.CacheEntry;
 import com.github.yun531.climate.shared.cache.KeyCache;
 import com.github.yun531.climate.shared.time.TimeUtil;
 import com.github.yun531.climate.snapshot.domain.policy.PublishSchedulePolicy;
 import com.github.yun531.climate.snapshot.infra.config.SnapshotCacheProperties;
-import com.github.yun531.climate.snapshot.infra.mapper.SnapshotEntityMapper;
+import com.github.yun531.climate.snapshot.infra.persistence.mapper.SnapshotEntityMapper;
 import com.github.yun531.climate.snapshot.infra.persistence.entity.SnapshotEntity;
 import com.github.yun531.climate.snapshot.infra.persistence.repository.SnapshotRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,17 @@ public class JpaSnapshotReader implements SnapshotReader {
 
     @Override
     @Nullable
-    public WeatherSnapshot load(String regionId, SnapKind kind) {
+    public WeatherSnapshot loadCurrent(String regionId) {
+        return load(regionId, SnapKind.CURRENT);
+    }
+
+    @Override
+    @Nullable
+    public WeatherSnapshot loadPrevious(String regionId) {
+        return load(regionId, SnapKind.PREVIOUS);
+    }
+
+    private WeatherSnapshot load(String regionId, SnapKind kind) {
         if (regionId == null || regionId.isBlank() || kind == null) return null;
 
         LocalDateTime now = TimeUtil.nowTruncatedToMinute();
@@ -49,13 +59,9 @@ public class JpaSnapshotReader implements SnapshotReader {
         ).value();
     }
 
-    // =====================================================================
-    //  snapshot 조회
-    // =====================================================================
-
     /**
      * DB 에서 Entity를 조회해 WeatherSnapshot 으로 변환한다.
-     * anchor = reportTime: 새 발표시각으로 점프하면 즉시 stale 판정.
+     * 새 발표시각으로 점프하면 즉시 stale 판정.
      */
     private CacheEntry<WeatherSnapshot> fetchSnapshot(SnapshotKey snapshotKey, LocalDateTime now) {
         SnapshotEntity entity = snapshotRepository.findBySnapIdAndRegionId(

@@ -1,6 +1,6 @@
 package com.github.yun531.climate.snapshot.domain.policy;
 
-import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
+import com.github.yun531.climate.snapshot.domain.model.SnapKind;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;

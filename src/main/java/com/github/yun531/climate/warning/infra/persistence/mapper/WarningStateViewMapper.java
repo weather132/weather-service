@@ -1,8 +1,8 @@
-package com.github.yun531.climate.warning.infra.mapper;
+package com.github.yun531.climate.warning.infra.persistence.mapper;
 
 import com.github.yun531.climate.warning.infra.persistence.entity.WarningStateEntity;
-import com.github.yun531.climate.kernel.warning.model.WarningKind;
-import com.github.yun531.climate.kernel.warning.readmodel.WarningStateView;
+import com.github.yun531.climate.warning.domain.model.WarningKind;
+import com.github.yun531.climate.warning.domain.readmodel.WarningStateView;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;

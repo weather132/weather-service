@@ -1,7 +1,7 @@
 package com.github.yun531.climate.notification.domain.evaluator;
 
-import com.github.yun531.climate.kernel.warning.model.WarningKind;
-import com.github.yun531.climate.kernel.warning.readmodel.WarningStateView;
+import com.github.yun531.climate.warning.domain.model.WarningKind;
+import com.github.yun531.climate.warning.domain.readmodel.WarningStateView;
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 import com.github.yun531.climate.notification.domain.payload.WarningIssuedPayload;

@@ -1,7 +1,7 @@
 package com.github.yun531.climate.notification.application;
 
-import com.github.yun531.climate.kernel.warning.model.WarningKind;
-import com.github.yun531.climate.kernel.warning.reader.WarningStateReader;
+import com.github.yun531.climate.warning.domain.model.WarningKind;
+import com.github.yun531.climate.warning.domain.reader.WarningStateReader;
 import com.github.yun531.climate.notification.domain.adjust.RainForecastAdjuster;
 import com.github.yun531.climate.notification.domain.adjust.RainOnsetAdjuster;
 import com.github.yun531.climate.notification.domain.evaluator.RainForecastEvaluator;

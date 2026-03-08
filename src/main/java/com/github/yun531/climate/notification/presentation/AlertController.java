@@ -4,7 +4,7 @@ import com.github.yun531.climate.notification.application.GenerateAlertsService;
 import com.github.yun531.climate.notification.application.GenerateAlertsCommand;
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
-import com.github.yun531.climate.kernel.warning.model.WarningKind;
+import com.github.yun531.climate.warning.domain.model.WarningKind;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -1,9 +1,9 @@
 package com.github.yun531.climate.warning.infra.reader;
 
 import com.github.yun531.climate.warning.infra.remote.warningapi.api.WarningApiClient;
-import com.github.yun531.climate.kernel.warning.reader.WarningStateReader;
-import com.github.yun531.climate.kernel.warning.readmodel.WarningStateView;
-import com.github.yun531.climate.kernel.warning.model.WarningKind;
+import com.github.yun531.climate.warning.domain.reader.WarningStateReader;
+import com.github.yun531.climate.warning.domain.readmodel.WarningStateView;
+import com.github.yun531.climate.warning.domain.model.WarningKind;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

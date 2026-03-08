@@ -2,11 +2,11 @@ package com.github.yun531.climate.service.query;
 
 import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
-import com.github.yun531.climate.kernel.snapshot.readmodel.WeatherSnapshot;
-import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
-import com.github.yun531.climate.kernel.snapshot.reader.SnapshotReader;
-import com.github.yun531.climate.kernel.snapshot.readmodel.DailyPoint;
-import com.github.yun531.climate.kernel.snapshot.readmodel.HourlyPoint;
+import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
+import com.github.yun531.climate.snapshot.domain.model.SnapKind;
+import com.github.yun531.climate.snapshot.domain.reader.SnapshotReader;
+import com.github.yun531.climate.snapshot.domain.readmodel.DailyPoint;
+import com.github.yun531.climate.snapshot.domain.readmodel.HourlyPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +25,7 @@ public class SnapshotQueryService {
 
     /** 시간대별 온도+POP 예보 (현재 SNAP 기준) */
     public HourlyForecastDto getHourlyForecast(String regionId) {
-        WeatherSnapshot snap = snapshotReader.load(regionId, SNAP_CURRENT);
+        WeatherSnapshot snap = snapshotReader.loadCurrent(regionId);
         if (snap == null) return null;
 
         List<HourlyPoint> src = (snap.hourly() == null) ? List.of() : snap.hourly();
@@ -49,7 +49,7 @@ public class SnapshotQueryService {
 
     /** 일자별 am/pm 온도+POP 예보 (현재 SNAP 기준) */
     public DailyForecastDto getDailyForecast(String regionId) {
-        WeatherSnapshot snap = snapshotReader.load(regionId, SNAP_CURRENT);
+        WeatherSnapshot snap = snapshotReader.loadCurrent(regionId);
         if (snap == null) return null;
 
         List<DailyPoint> src = (snap.daily() == null) ? List.of() : snap.daily();

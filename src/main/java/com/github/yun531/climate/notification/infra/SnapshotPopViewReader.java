@@ -1,8 +1,8 @@
 package com.github.yun531.climate.notification.infra;
 
-import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
-import com.github.yun531.climate.kernel.snapshot.reader.SnapshotReader;
-import com.github.yun531.climate.kernel.snapshot.readmodel.WeatherSnapshot;
+import com.github.yun531.climate.snapshot.domain.model.SnapKind;
+import com.github.yun531.climate.snapshot.domain.reader.SnapshotReader;
+import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
 import com.github.yun531.climate.notification.domain.readmodel.PopViewReader;
 import lombok.RequiredArgsConstructor;
@@ -18,20 +18,20 @@ public class SnapshotPopViewReader implements PopViewReader {
 
     @Override
     public PopView loadCurrent(String regionId) {
-        WeatherSnapshot snap = snapshotReader.load(regionId, SnapKind.CURRENT);
+        WeatherSnapshot snap = snapshotReader.loadCurrent(regionId);
         return mapper.toPopView(snap);
     }
 
     @Override
     public PopView loadPrevious(String regionId) {
-        WeatherSnapshot snap = snapshotReader.load(regionId, SnapKind.PREVIOUS);
+        WeatherSnapshot snap = snapshotReader.loadPrevious(regionId);
         return mapper.toPopView(snap);
     }
 
     @Override
     public PopView.Pair loadCurrentPreviousPair(String regionId) {
-        WeatherSnapshot cur = snapshotReader.load(regionId, SnapKind.CURRENT);
-        WeatherSnapshot prv = snapshotReader.load(regionId, SnapKind.PREVIOUS);
+        WeatherSnapshot cur = snapshotReader.loadCurrent(regionId);
+        WeatherSnapshot prv = snapshotReader.loadPrevious(regionId);
         return mapper.toPair(cur, prv);
     }
 }

@@ -1,12 +1,12 @@
 package com.github.yun531.climate.warning.infra.reader;
 
-import com.github.yun531.climate.kernel.warning.model.WarningKind;
-import com.github.yun531.climate.kernel.warning.reader.WarningStateReader;
-import com.github.yun531.climate.kernel.warning.readmodel.WarningStateView;
+import com.github.yun531.climate.warning.domain.model.WarningKind;
+import com.github.yun531.climate.warning.domain.reader.WarningStateReader;
+import com.github.yun531.climate.warning.domain.readmodel.WarningStateView;
 import com.github.yun531.climate.shared.cache.CacheEntry;
 import com.github.yun531.climate.shared.cache.KeyCache;
 import com.github.yun531.climate.shared.time.TimeUtil;
-import com.github.yun531.climate.warning.infra.mapper.WarningStateViewMapper;
+import com.github.yun531.climate.warning.infra.persistence.mapper.WarningStateViewMapper;
 import com.github.yun531.climate.warning.infra.persistence.repository.WarningStateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

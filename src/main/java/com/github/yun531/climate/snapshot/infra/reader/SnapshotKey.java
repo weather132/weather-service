@@ -1,6 +1,6 @@
 package com.github.yun531.climate.snapshot.infra.reader;
 
-import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
+import com.github.yun531.climate.snapshot.domain.model.SnapKind;
 
 /**
  * Snapshot 식별을 위한 값 객체.

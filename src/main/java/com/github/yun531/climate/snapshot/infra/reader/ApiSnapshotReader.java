@@ -1,14 +1,14 @@
 package com.github.yun531.climate.snapshot.infra.reader;
 
-import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
-import com.github.yun531.climate.kernel.snapshot.reader.SnapshotReader;
-import com.github.yun531.climate.kernel.snapshot.readmodel.WeatherSnapshot;
+import com.github.yun531.climate.snapshot.domain.model.SnapKind;
+import com.github.yun531.climate.snapshot.domain.reader.SnapshotReader;
+import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.shared.cache.CacheEntry;
 import com.github.yun531.climate.shared.cache.KeyCache;
 import com.github.yun531.climate.shared.time.TimeUtil;
 import com.github.yun531.climate.snapshot.domain.policy.PublishSchedulePolicy;
 import com.github.yun531.climate.snapshot.infra.config.SnapshotCacheProperties;
-import com.github.yun531.climate.snapshot.infra.mapper.SnapshotApiResponseMapper;
+import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.mapper.SnapshotApiResponseMapper;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.api.SnapshotApiClient;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.DailyForecastResponse;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.HourlySnapshotResponse;
@@ -32,7 +32,17 @@ public class ApiSnapshotReader implements SnapshotReader {
 
     @Override
     @Nullable
-    public WeatherSnapshot load(String regionId, SnapKind snapKind) {
+    public WeatherSnapshot loadCurrent(String regionId) {
+        return load(regionId, SnapKind.CURRENT);
+    }
+
+    @Override
+    @Nullable
+    public WeatherSnapshot loadPrevious(String regionId) {
+        return load(regionId, SnapKind.PREVIOUS);
+    }
+
+    private WeatherSnapshot load(String regionId, SnapKind snapKind) {
         if (regionId == null || regionId.isBlank() || snapKind == null) return null;
 
         LocalDateTime now = TimeUtil.nowTruncatedToMinute();
@@ -49,11 +59,10 @@ public class ApiSnapshotReader implements SnapshotReader {
         ).value();
     }
 
-    // =====================================================================
-    //  snapshot 조회 (hourly + daily 조합)
-    //  새 발표시각으로 점프하면 즉시 stale 판정.
-    // =====================================================================
-
+    /**
+     * snapshot 조회(hourly + daily 조합)해 WeatherSnapshot 으로 변환
+     * 새 발표시각으로 점프하면 즉시 stale 판정.
+     */
     private CacheEntry<WeatherSnapshot> fetchSnapshot(
             String regionId, LocalDateTime now, LocalDateTime publishTime
     ) {
@@ -74,8 +83,7 @@ public class ApiSnapshotReader implements SnapshotReader {
 
         // 조립
         WeatherSnapshot snapshot = mapper.toSnapshot(regionId, hourlyResponse, dailyResponse, baseDate);
-
-        return new CacheEntry<>(snapshot, snapshot.reportTime());   // anchor = 데이터의 발표시각
+        return new CacheEntry<>(snapshot, snapshot.reportTime());
     }
 
     // =====================================================================

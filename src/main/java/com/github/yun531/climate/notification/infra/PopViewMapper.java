@@ -1,8 +1,8 @@
 package com.github.yun531.climate.notification.infra;
 
-import com.github.yun531.climate.kernel.snapshot.readmodel.DailyPoint;
-import com.github.yun531.climate.kernel.snapshot.readmodel.HourlyPoint;
-import com.github.yun531.climate.kernel.snapshot.readmodel.WeatherSnapshot;
+import com.github.yun531.climate.snapshot.domain.readmodel.DailyPoint;
+import com.github.yun531.climate.snapshot.domain.readmodel.HourlyPoint;
+import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
 import com.github.yun531.climate.notification.domain.readmodel.PopView.HourlyPopSeries26;
 import com.github.yun531.climate.notification.domain.readmodel.PopView.DailyPopSeries7;

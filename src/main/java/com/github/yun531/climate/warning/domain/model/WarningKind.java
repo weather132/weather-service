@@ -1,4 +1,4 @@
-package com.github.yun531.climate.kernel.warning.model;
+package com.github.yun531.climate.warning.domain.model;
 
 import lombok.Getter;
 
