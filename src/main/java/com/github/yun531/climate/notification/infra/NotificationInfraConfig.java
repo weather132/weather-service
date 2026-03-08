@@ -2,9 +2,9 @@ package com.github.yun531.climate.notification.infra;
 
 import com.github.yun531.climate.notification.domain.adjust.RainForecastAdjuster;
 import com.github.yun531.climate.notification.domain.adjust.RainOnsetAdjuster;
-import com.github.yun531.climate.notification.domain.compute.RainForecastComputer;
-import com.github.yun531.climate.notification.domain.compute.RainOnsetComputer;
-import com.github.yun531.climate.notification.domain.compute.WarningIssuedComputer;
+import com.github.yun531.climate.notification.domain.evaluator.RainForecastEvaluator;
+import com.github.yun531.climate.notification.domain.evaluator.RainOnsetEvaluator;
+import com.github.yun531.climate.notification.domain.evaluator.WarningIssuedEvaluator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,24 +15,24 @@ public class NotificationInfraConfig {
     // ---- Computers ----
 
     @Bean
-    public RainOnsetComputer rainOnsetComputer(
+    public RainOnsetEvaluator rainOnsetComputer(
             @Value("${notification.threshold-pop:60}") int thresholdPop,
             @Value("${notification.max-points:26}") int maxHourlyPoints
     ) {
-        return new RainOnsetComputer(thresholdPop, maxHourlyPoints);
+        return new RainOnsetEvaluator(thresholdPop, maxHourlyPoints);
     }
 
     @Bean
-    public RainForecastComputer rainForecastComputer(
+    public RainForecastEvaluator rainForecastComputer(
             @Value("${notification.threshold-pop:60}") int thresholdPop,
             @Value("${notification.max-points:26}") int maxHourlyPoints
     ) {
-        return new RainForecastComputer(thresholdPop, maxHourlyPoints);
+        return new RainForecastEvaluator(thresholdPop, maxHourlyPoints);
     }
 
     @Bean
-    public WarningIssuedComputer warningIssuedComputer() {
-        return new WarningIssuedComputer();
+    public WarningIssuedEvaluator warningIssuedComputer() {
+        return new WarningIssuedEvaluator();
     }
 
     // ---- Adjusters ----

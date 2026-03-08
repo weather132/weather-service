@@ -1,4 +1,4 @@
-package com.github.yun531.climate.notification.domain.compute;
+package com.github.yun531.climate.notification.domain.evaluator;
 
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
@@ -18,14 +18,14 @@ import java.util.List;
  * PopView -> 비 예보 요약 AlertEvent 계산.
  * - 24시간 이내 비 구간(hourlyParts) + 7일 오전/오후 플래그(dayParts)를 산출
  */
-public class RainForecastComputer {
+public class RainForecastEvaluator {
 
-    private static final Logger log = LoggerFactory.getLogger(RainForecastComputer.class);
+    private static final Logger log = LoggerFactory.getLogger(RainForecastEvaluator.class);
 
     private final int rainThreshold;
     private final int maxHourlyPoints;
 
-    public RainForecastComputer(int rainThreshold, int maxHourlyPoints) {
+    public RainForecastEvaluator(int rainThreshold, int maxHourlyPoints) {
         this.rainThreshold = rainThreshold;
         this.maxHourlyPoints = Math.max(0, maxHourlyPoints);
     }
@@ -44,7 +44,7 @@ public class RainForecastComputer {
         if (log.isInfoEnabled()) logInfo(view, hourlyRanges);
 
         RainForecastPayload payload = new RainForecastPayload(
-                AlertTypeEnum.RAIN_FORECAST.ruleId(), hourlyRanges, dayFlags
+                AlertTypeEnum.RAIN_FORECAST, hourlyRanges, dayFlags
         );
 
         LocalDateTime computedAt = TimeUtil.truncateToMinutes(

@@ -1,4 +1,4 @@
-package com.github.yun531.climate.notification.domain.compute;
+package com.github.yun531.climate.notification.domain.evaluator;
 
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
@@ -15,12 +15,12 @@ import java.util.Map;
 /**
  * PopView.Pair(현재/이전 POP) -> "비 시작" AlertEvent 목록 계산.
  */
-public class RainOnsetComputer {
+public class RainOnsetEvaluator {
 
     private final int rainThreshold;
     private final int maxHourlyPoints;
 
-    public RainOnsetComputer(int rainThreshold, int maxHourlyPoints) {
+    public RainOnsetEvaluator(int rainThreshold, int maxHourlyPoints) {
         this.rainThreshold = rainThreshold;
         this.maxHourlyPoints = Math.max(1, maxHourlyPoints);
     }
@@ -54,7 +54,7 @@ public class RainOnsetComputer {
             // 이전 예보의 같은 validAt 시각 POP과 비교(예보 업데이트 전후 변화 감지)
             if (isOnset(p.pop(), prevPopMap.get(at))) {
                 RainOnsetPayload payload = new RainOnsetPayload(
-                        AlertTypeEnum.RAIN_ONSET.ruleId(), at, p.pop()
+                        AlertTypeEnum.RAIN_ONSET, at, p.pop()
                 );
                 out.add(new AlertEvent(AlertTypeEnum.RAIN_ONSET, regionId, computedAt, payload));
             }

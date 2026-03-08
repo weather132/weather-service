@@ -1,7 +1,7 @@
-package com.github.yun531.climate.warning.infra.adapter;
+package com.github.yun531.climate.warning.infra.reader;
 
 import com.github.yun531.climate.warning.infra.remote.warningapi.api.WarningApiClient;
-import com.github.yun531.climate.kernel.warning.port.WarningStateReadPort;
+import com.github.yun531.climate.kernel.warning.reader.WarningStateReader;
 import com.github.yun531.climate.kernel.warning.readmodel.WarningStateView;
 import com.github.yun531.climate.kernel.warning.model.WarningKind;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,7 @@ import java.util.Map;
  */
 @Component
 @RequiredArgsConstructor
-public class ApiWarningStateReadAdapter implements WarningStateReadPort {
+public class ApiWarningStateReader implements WarningStateReader {
 
     private final WarningApiClient client; // 지금은 사용하지 않지만, 전환 준비용으로 주입 유지
 

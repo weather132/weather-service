@@ -1,6 +1,7 @@
 package com.github.yun531.climate.notification.domain.payload;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -12,7 +13,7 @@ import java.util.Map;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RainOnsetPayload(
-        String srcRule,
+        AlertTypeEnum type,
         LocalDateTime validAt,
         int pop
 ) implements AlertPayload {
@@ -20,7 +21,7 @@ public record RainOnsetPayload(
     @Override
     public Map<String, String> toFcmData() {
         return Map.of(
-                "_srcRule", srcRule == null ? "" : srcRule,
+                "_source", type == null ? "" : type.source(),
                 "validAt", validAt == null ? "" : validAt.toString(),
                 "pop", String.valueOf(pop)
         );

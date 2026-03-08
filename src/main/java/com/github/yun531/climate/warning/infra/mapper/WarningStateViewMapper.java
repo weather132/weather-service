@@ -1,6 +1,6 @@
 package com.github.yun531.climate.warning.infra.mapper;
 
-import com.github.yun531.climate.warning.infra.persistence.entity.WarningState;
+import com.github.yun531.climate.warning.infra.persistence.entity.WarningStateEntity;
 import com.github.yun531.climate.kernel.warning.model.WarningKind;
 import com.github.yun531.climate.kernel.warning.readmodel.WarningStateView;
 
@@ -13,12 +13,12 @@ public final class WarningStateViewMapper {
 
     private WarningStateViewMapper() {}
 
-    public static Map<WarningKind, WarningStateView> pickLatestByKind(String regionId, List<WarningState> rows) {
+    public static Map<WarningKind, WarningStateView> pickLatestByKind(String regionId, List<WarningStateEntity> rows) {
         if (regionId == null || regionId.isBlank() || rows == null || rows.isEmpty()) return Map.of();
 
-        Map<WarningKind, WarningState> picked = new HashMap<>();
+        Map<WarningKind, WarningStateEntity> picked = new HashMap<>();
 
-        for (WarningState ws : rows) {
+        for (WarningStateEntity ws : rows) {
             if (ws == null) continue;
             if (!regionId.equals(ws.getRegionId())) continue;
 
@@ -37,7 +37,7 @@ public final class WarningStateViewMapper {
         return out;
     }
 
-    public static WarningStateView toView(WarningState ws) {
+    public static WarningStateView toView(WarningStateEntity ws) {
         if (ws == null) return null;
         return new WarningStateView(
                 ws.getRegionId(),
@@ -48,7 +48,7 @@ public final class WarningStateViewMapper {
     }
 
     /** updatedAt 최신 우선, 동일 시각이면 warningId 큰 쪽 우선 */
-    private static WarningState newer(WarningState a, WarningState b) {
+    private static WarningStateEntity newer(WarningStateEntity a, WarningStateEntity b) {
         if (a == null) return b;
         if (b == null) return a;
 
@@ -65,7 +65,7 @@ public final class WarningStateViewMapper {
         return safeId(a) >= safeId(b) ? a : b;
     }
 
-    private static int safeId(WarningState ws) {
+    private static int safeId(WarningStateEntity ws) {
         return (ws == null || ws.getWarningId() == null) ? -1 : ws.getWarningId();
     }
 }

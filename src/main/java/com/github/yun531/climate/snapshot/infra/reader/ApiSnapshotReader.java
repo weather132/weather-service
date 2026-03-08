@@ -1,7 +1,7 @@
-package com.github.yun531.climate.snapshot.infra.adapter;
+package com.github.yun531.climate.snapshot.infra.reader;
 
 import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
-import com.github.yun531.climate.kernel.snapshot.port.SnapshotPort;
+import com.github.yun531.climate.kernel.snapshot.reader.SnapshotReader;
 import com.github.yun531.climate.kernel.snapshot.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.shared.cache.CacheEntry;
 import com.github.yun531.climate.shared.cache.KeyCache;
@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
-public class ApiSnapshotAdapter implements SnapshotPort {
+public class ApiSnapshotReader implements SnapshotReader {
 
     private final SnapshotApiClient client;
     private final SnapshotCacheProperties cacheProps;

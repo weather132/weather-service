@@ -1,4 +1,4 @@
-package com.github.yun531.climate.notification.domain.compute;
+package com.github.yun531.climate.notification.domain.evaluator;
 
 import com.github.yun531.climate.kernel.warning.model.WarningKind;
 import com.github.yun531.climate.kernel.warning.readmodel.WarningStateView;
@@ -20,7 +20,7 @@ import java.util.Set;
  * -  특보.updatedAt > since → 알림 대상
  * -  특보.updatedAt <= since → 제외
  */
-public class WarningIssuedComputer {
+public class WarningIssuedEvaluator {
 
     public List<AlertEvent> compute(
             String regionId,
@@ -76,7 +76,7 @@ public class WarningIssuedComputer {
         occurredAt = TimeUtil.truncateToMinutes(occurredAt);
 
         WarningIssuedPayload payload = new WarningIssuedPayload(
-                AlertTypeEnum.WARNING_ISSUED.ruleId(), warning.kind(), warning.level()
+                AlertTypeEnum.WARNING_ISSUED, warning.kind(), warning.level()
         );
 
         return new AlertEvent(AlertTypeEnum.WARNING_ISSUED, regionId, occurredAt, payload);

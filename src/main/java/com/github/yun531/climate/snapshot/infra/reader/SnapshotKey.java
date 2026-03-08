@@ -1,4 +1,4 @@
-package com.github.yun531.climate.snapshot.infra.adapter;
+package com.github.yun531.climate.snapshot.infra.reader;
 
 import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
 

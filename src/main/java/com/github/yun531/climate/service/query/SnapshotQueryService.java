@@ -4,7 +4,7 @@ import com.github.yun531.climate.dto.DailyForecastDto;
 import com.github.yun531.climate.dto.HourlyForecastDto;
 import com.github.yun531.climate.kernel.snapshot.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.kernel.snapshot.model.SnapKind;
-import com.github.yun531.climate.kernel.snapshot.port.SnapshotPort;
+import com.github.yun531.climate.kernel.snapshot.reader.SnapshotReader;
 import com.github.yun531.climate.kernel.snapshot.readmodel.DailyPoint;
 import com.github.yun531.climate.kernel.snapshot.readmodel.HourlyPoint;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +19,13 @@ public class SnapshotQueryService {
 
     private static final SnapKind SNAP_CURRENT = SnapKind.CURRENT;
 
-    private final SnapshotPort snapshotPort;
+    private final SnapshotReader snapshotReader;
 
     /* ======================= 일반 일기예보 API용 (임시 유지) ======================= */
 
     /** 시간대별 온도+POP 예보 (현재 SNAP 기준) */
     public HourlyForecastDto getHourlyForecast(String regionId) {
-        WeatherSnapshot snap = snapshotPort.load(regionId, SNAP_CURRENT);
+        WeatherSnapshot snap = snapshotReader.load(regionId, SNAP_CURRENT);
         if (snap == null) return null;
 
         List<HourlyPoint> src = (snap.hourly() == null) ? List.of() : snap.hourly();
@@ -49,7 +49,7 @@ public class SnapshotQueryService {
 
     /** 일자별 am/pm 온도+POP 예보 (현재 SNAP 기준) */
     public DailyForecastDto getDailyForecast(String regionId) {
-        WeatherSnapshot snap = snapshotPort.load(regionId, SNAP_CURRENT);
+        WeatherSnapshot snap = snapshotReader.load(regionId, SNAP_CURRENT);
         if (snap == null) return null;
 
         List<DailyPoint> src = (snap.daily() == null) ? List.of() : snap.daily();

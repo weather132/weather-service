@@ -1,8 +1,6 @@
-package com.github.yun531.climate.notification.domain.port;
+package com.github.yun531.climate.notification.domain.readmodel;
 
-import com.github.yun531.climate.notification.domain.readmodel.PopView;
-
-public interface PopViewReadPort {
+public interface PopViewReader {
 
     PopView loadCurrent(String regionId);
 

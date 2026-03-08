@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * REST 에서도 payload를 "타입" 그대로 내보내기 위한 다형성 payload 루트.
  * JSON 예시:
- *  "payload": { "payloadType":"RAIN_ONSET", "srcRule":"...", ... }
+ *  "payload": { "payloadType":"RAIN_ONSET", "source":"...", ... }
  */
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
@@ -26,10 +26,6 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public sealed interface AlertPayload
         permits RainOnsetPayload, RainForecastPayload, WarningIssuedPayload {
-
-    /** 디버깅/추적용 */
-    String srcRule();
-
     /**
      * FCM data payload용(전부 String)
      * - REST는 타입 payload 그대로 나가고,

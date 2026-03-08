@@ -1,16 +1,16 @@
 package com.github.yun531.climate.notification.application;
 
 import com.github.yun531.climate.kernel.warning.model.WarningKind;
-import com.github.yun531.climate.kernel.warning.port.WarningStateReadPort;
+import com.github.yun531.climate.kernel.warning.reader.WarningStateReader;
 import com.github.yun531.climate.notification.domain.adjust.RainForecastAdjuster;
 import com.github.yun531.climate.notification.domain.adjust.RainOnsetAdjuster;
-import com.github.yun531.climate.notification.domain.compute.RainForecastComputer;
-import com.github.yun531.climate.notification.domain.compute.RainOnsetComputer;
-import com.github.yun531.climate.notification.domain.compute.WarningIssuedComputer;
+import com.github.yun531.climate.notification.domain.evaluator.RainForecastEvaluator;
+import com.github.yun531.climate.notification.domain.evaluator.RainOnsetEvaluator;
+import com.github.yun531.climate.notification.domain.evaluator.WarningIssuedEvaluator;
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
-import com.github.yun531.climate.notification.domain.port.PopViewReadPort;
+import com.github.yun531.climate.notification.domain.readmodel.PopViewReader;
 import com.github.yun531.climate.shared.time.TimeUtil;
 import org.springframework.lang.Nullable;
 
@@ -24,11 +24,11 @@ import static com.github.yun531.climate.shared.time.TimeUtil.nowTruncatedToMinut
  */
 public class GenerateAlertsService {
 
-    private final PopViewReadPort popViewReadPort;
-    private final WarningStateReadPort warningStateReadPort;
-    private final RainOnsetComputer rainOnsetComputer;
-    private final RainForecastComputer rainForecastComputer;
-    private final WarningIssuedComputer warningIssuedComputer;
+    private final PopViewReader popViewReader;
+    private final WarningStateReader warningStateReader;
+    private final RainOnsetEvaluator rainOnsetEvaluator;
+    private final RainForecastEvaluator rainForecastEvaluator;
+    private final WarningIssuedEvaluator warningIssuedEvaluator;
     private final RainOnsetAdjuster rainOnsetAdjuster;
     private final RainForecastAdjuster rainForecastAdjuster;
     private final int maxRegionCount;
@@ -40,21 +40,21 @@ public class GenerateAlertsService {
             .thenComparing(AlertEvent::occurredAt, Comparator.nullsLast(Comparator.naturalOrder()));
 
     public GenerateAlertsService(
-            PopViewReadPort popViewReadPort,
-            WarningStateReadPort warningStateReadPort,
-            RainOnsetComputer rainOnsetComputer,
-            RainForecastComputer rainForecastComputer,
-            WarningIssuedComputer warningIssuedComputer,
+            PopViewReader popViewReader,
+            WarningStateReader warningStateReader,
+            RainOnsetEvaluator rainOnsetEvaluator,
+            RainForecastEvaluator rainForecastEvaluator,
+            WarningIssuedEvaluator warningIssuedEvaluator,
             RainOnsetAdjuster rainOnsetAdjuster,
             RainForecastAdjuster rainForecastAdjuster,
             int maxRegionCount,
             int defaultSinceHours
     ) {
-        this.popViewReadPort = popViewReadPort;
-        this.warningStateReadPort = warningStateReadPort;
-        this.rainOnsetComputer = rainOnsetComputer;
-        this.rainForecastComputer = rainForecastComputer;
-        this.warningIssuedComputer = warningIssuedComputer;
+        this.popViewReader = popViewReader;
+        this.warningStateReader = warningStateReader;
+        this.rainOnsetEvaluator = rainOnsetEvaluator;
+        this.rainForecastEvaluator = rainForecastEvaluator;
+        this.warningIssuedEvaluator = warningIssuedEvaluator;
         this.rainOnsetAdjuster = rainOnsetAdjuster;
         this.rainForecastAdjuster = rainForecastAdjuster;
         this.maxRegionCount = Math.max(0, maxRegionCount);
@@ -115,10 +115,10 @@ public class GenerateAlertsService {
     private List<AlertEvent> evalRainOnset(
             String regionId, @Nullable Integer rainHourLimit, LocalDateTime now
     ) {
-        PopView.Pair pair = popViewReadPort.loadCurrentPreviousPair(regionId);
+        PopView.Pair pair = popViewReader.loadCurrentPreviousPair(regionId);
         if (pair == null) return List.of();
 
-        List<AlertEvent> raw = rainOnsetComputer.compute(regionId, pair, now);
+        List<AlertEvent> raw = rainOnsetEvaluator.compute(regionId, pair, now);
         if (raw.isEmpty()) return List.of();
 
         return rainOnsetAdjuster.adjust(raw, now, rainHourLimit);
@@ -127,10 +127,10 @@ public class GenerateAlertsService {
     // -- RAIN_FORECAST: load current → compute → adjust (time shift + clipping) --
 
     private List<AlertEvent> evalRainForecast(String regionId, LocalDateTime now) {
-        PopView view = popViewReadPort.loadCurrent(regionId);
+        PopView view = popViewReader.loadCurrent(regionId);
         if (view == null) return List.of();
 
-        AlertEvent raw = rainForecastComputer.compute(regionId, view, now);
+        AlertEvent raw = rainForecastEvaluator.compute(regionId, view, now);
         if (raw == null) return List.of();
 
         AlertEvent adjusted = rainForecastAdjuster.adjust(raw, raw.occurredAt(), now);
@@ -143,10 +143,10 @@ public class GenerateAlertsService {
             String regionId, LocalDateTime since,
             @Nullable Set<WarningKind> warningKinds, LocalDateTime now
     ) {
-        var states = warningStateReadPort.loadLatestByKind(regionId);
+        var states = warningStateReader.loadLatestByKind(regionId);
         if (states == null || states.isEmpty()) return List.of();
 
-        return warningIssuedComputer.compute(regionId, states, since, warningKinds, now);
+        return warningIssuedEvaluator.compute(regionId, states, since, warningKinds, now);
     }
 
     // -- 정규화 헬퍼 --

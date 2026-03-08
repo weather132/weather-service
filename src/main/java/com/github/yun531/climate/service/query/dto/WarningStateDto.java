@@ -1,6 +1,6 @@
 package com.github.yun531.climate.service.query.dto;
 
-import com.github.yun531.climate.warning.infra.persistence.entity.WarningState;
+import com.github.yun531.climate.warning.infra.persistence.entity.WarningStateEntity;
 import com.github.yun531.climate.kernel.warning.model.WarningKind;
 import com.github.yun531.climate.kernel.warning.model.WarningLevel;
 
@@ -12,7 +12,7 @@ public record WarningStateDto(
         WarningLevel level,         // 예비특보 / 주의보 / 경보
         LocalDateTime updatedAt     // 특보가 발효되거나 갱신된 시각
 ) {
-    public static WarningStateDto from(WarningState ws) {
+    public static WarningStateDto from(WarningStateEntity ws) {
         if (ws == null) return null;
         return new WarningStateDto(
                 ws.getRegionId(),

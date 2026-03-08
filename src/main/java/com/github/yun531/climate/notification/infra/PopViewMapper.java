@@ -15,7 +15,7 @@ import java.util.*;
  * POP만 뽑아 26시간/7일 규격으로 정규화한다.
  */
 @Component
-public class SnapshotToPopViewMapper {
+public class PopViewMapper {
 
     private static final DailyPopSeries7.DailyPop ZERO_POP = new DailyPopSeries7.DailyPop(0, 0);
     private static final HourlyPopSeries26.Point EMPTY_POINT = new HourlyPopSeries26.Point(null, 0);

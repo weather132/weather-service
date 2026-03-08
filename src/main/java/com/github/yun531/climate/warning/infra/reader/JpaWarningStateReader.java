@@ -1,7 +1,7 @@
-package com.github.yun531.climate.warning.infra.adapter;
+package com.github.yun531.climate.warning.infra.reader;
 
 import com.github.yun531.climate.kernel.warning.model.WarningKind;
-import com.github.yun531.climate.kernel.warning.port.WarningStateReadPort;
+import com.github.yun531.climate.kernel.warning.reader.WarningStateReader;
 import com.github.yun531.climate.kernel.warning.readmodel.WarningStateView;
 import com.github.yun531.climate.shared.cache.CacheEntry;
 import com.github.yun531.climate.shared.cache.KeyCache;
@@ -20,7 +20,7 @@ import java.util.Map;
 @Component
 @Primary
 @RequiredArgsConstructor
-public class JpaWarningStateReadAdapter implements WarningStateReadPort {
+public class JpaWarningStateReader implements WarningStateReader {
 
     private final WarningStateRepository repo;
 

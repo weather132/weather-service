@@ -63,7 +63,7 @@ public class RainForecastAdjuster {
         List<RainInterval> clamped = clampToWindow(p.hourlyParts(), windowStart, windowEnd);
         List<DailyRainFlags> newDays = (dayShift > 0) ? shiftDayParts(p.dayParts(), dayShift) : p.dayParts();
 
-        RainForecastPayload newPayload = new RainForecastPayload(p.srcRule(), clamped, newDays);
+        RainForecastPayload newPayload = new RainForecastPayload(p.type(), clamped, newDays);
         return new AlertEvent(event.type(), event.regionId(), shiftedTime, newPayload);
     }
 

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Table(name = "warning_state")
-public class WarningState {
+public class WarningStateEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
