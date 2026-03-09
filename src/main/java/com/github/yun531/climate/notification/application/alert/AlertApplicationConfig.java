@@ -1,4 +1,4 @@
-package com.github.yun531.climate.notification.application;
+package com.github.yun531.climate.notification.application.alert;
 
 import com.github.yun531.climate.warning.domain.reader.WarningStateReader;
 import com.github.yun531.climate.notification.domain.adjust.RainForecastAdjuster;
@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class NotificationApplicationConfig {
+public class AlertApplicationConfig {
 
     @Bean
     public GenerateAlertsService generateAlertsService(

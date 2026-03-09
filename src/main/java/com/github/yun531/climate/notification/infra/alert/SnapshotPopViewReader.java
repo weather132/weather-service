@@ -1,6 +1,5 @@
-package com.github.yun531.climate.notification.infra;
+package com.github.yun531.climate.notification.infra.alert;
 
-import com.github.yun531.climate.snapshot.domain.model.SnapKind;
 import com.github.yun531.climate.snapshot.domain.reader.SnapshotReader;
 import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.notification.domain.readmodel.PopView;

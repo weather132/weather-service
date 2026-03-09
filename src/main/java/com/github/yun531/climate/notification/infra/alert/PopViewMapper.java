@@ -1,4 +1,4 @@
-package com.github.yun531.climate.notification.infra;
+package com.github.yun531.climate.notification.infra.alert;
 
 import com.github.yun531.climate.snapshot.domain.readmodel.DailyPoint;
 import com.github.yun531.climate.snapshot.domain.readmodel.HourlyPoint;

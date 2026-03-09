@@ -1,6 +1,6 @@
 package com.github.yun531.climate.forecast.domain.adjust;
 
-import com.github.yun531.climate.forecast.domain.readmodel.ForecastHourlyPoint;
+import com.github.yun531.climate.forecast.domain.readmodel.ForecastHourlyEntry;
 import com.github.yun531.climate.forecast.domain.readmodel.ForecastHourlyView;
 import com.github.yun531.climate.shared.time.TimeShiftUtil;
 
@@ -19,8 +19,8 @@ public final class HourlyForecastWindowAdjuster {
 
     private static final Comparator<LocalDateTime> NULLS_LAST_TIME =
             Comparator.nullsLast(Comparator.naturalOrder());
-    private static final Comparator<ForecastHourlyPoint> BY_VALID_AT =
-            Comparator.comparing(ForecastHourlyPoint::validAt, NULLS_LAST_TIME);
+    private static final Comparator<ForecastHourlyEntry> BY_VALID_AT =
+            Comparator.comparing(ForecastHourlyEntry::validAt, NULLS_LAST_TIME);
 
     private final int maxShiftHours;
     private final int windowSize;
@@ -36,7 +36,7 @@ public final class HourlyForecastWindowAdjuster {
     public ForecastHourlyView adjust(ForecastHourlyView base, LocalDateTime now) {
         if (base == null) return null;
 
-        List<ForecastHourlyPoint> sorted = sortByValidAt(base.hourlyPoints());
+        List<ForecastHourlyEntry> sorted = sortByValidAt(base.hourlyPoints());
 
         LocalDateTime reportTime = base.reportTime();
         if (reportTime == null || now == null || sorted.isEmpty()) {
@@ -46,16 +46,16 @@ public final class HourlyForecastWindowAdjuster {
         TimeShiftUtil.ShiftResult shift = TimeShiftUtil.shiftHourly(reportTime, now, maxShiftHours);
 
         LocalDateTime baseTime = (shift.shiftHours() <= 0) ? reportTime : shift.shiftedBaseTime();
-        List<ForecastHourlyPoint> window = buildWindow(sorted, baseTime);
+        List<ForecastHourlyEntry> window = buildWindow(sorted, baseTime);
 
         return new ForecastHourlyView(base.regionId(), baseTime, window);
     }
 
     /** 기준시각(baseTime) 초과(>)인 포인트만 남기고, 최대 windowSize 개로 절단 */
-    private List<ForecastHourlyPoint> buildWindow(List<ForecastHourlyPoint> sorted, LocalDateTime baseTime) {
-        ArrayList<ForecastHourlyPoint> out = new ArrayList<>(windowSize);
+    private List<ForecastHourlyEntry> buildWindow(List<ForecastHourlyEntry> sorted, LocalDateTime baseTime) {
+        ArrayList<ForecastHourlyEntry> out = new ArrayList<>(windowSize);
 
-        for (ForecastHourlyPoint p : sorted) {
+        for (ForecastHourlyEntry p : sorted) {
             if (p == null) continue;
 
             LocalDateTime t = p.validAt();
@@ -70,7 +70,7 @@ public final class HourlyForecastWindowAdjuster {
     }
 
     /** validAt 기준 정렬 + null 제거 */
-    private List<ForecastHourlyPoint> sortByValidAt(List<ForecastHourlyPoint> src) {
+    private List<ForecastHourlyEntry> sortByValidAt(List<ForecastHourlyEntry> src) {
         if (src == null || src.isEmpty()) return List.of();
         return src.stream()
                 .filter(Objects::nonNull)

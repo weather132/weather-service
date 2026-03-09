@@ -1,4 +1,4 @@
-package com.github.yun531.climate.notification.application;
+package com.github.yun531.climate.notification.application.alert;
 
 import com.github.yun531.climate.warning.domain.model.WarningKind;
 import com.github.yun531.climate.warning.domain.reader.WarningStateReader;

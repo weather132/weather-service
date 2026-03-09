@@ -1,4 +1,4 @@
-package com.github.yun531.climate.notification.infra;
+package com.github.yun531.climate.notification.infra.alert;
 
 import com.github.yun531.climate.notification.domain.adjust.RainForecastAdjuster;
 import com.github.yun531.climate.notification.domain.adjust.RainOnsetAdjuster;
@@ -10,12 +10,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class NotificationInfraConfig {
+public class AlertInfraConfig {
 
-    // ---- Computers ----
+    // ---- Evaluators ----
 
     @Bean
-    public RainOnsetEvaluator rainOnsetComputer(
+    public RainOnsetEvaluator rainOnsetEvaluator(
             @Value("${notification.threshold-pop:60}") int thresholdPop,
             @Value("${notification.max-points:26}") int maxHourlyPoints
     ) {
@@ -23,7 +23,7 @@ public class NotificationInfraConfig {
     }
 
     @Bean
-    public RainForecastEvaluator rainForecastComputer(
+    public RainForecastEvaluator rainForecastEvaluator(
             @Value("${notification.threshold-pop:60}") int thresholdPop,
             @Value("${notification.max-points:26}") int maxHourlyPoints
     ) {
@@ -31,7 +31,7 @@ public class NotificationInfraConfig {
     }
 
     @Bean
-    public WarningIssuedEvaluator warningIssuedComputer() {
+    public WarningIssuedEvaluator warningIssuedEvaluator() {
         return new WarningIssuedEvaluator();
     }
 

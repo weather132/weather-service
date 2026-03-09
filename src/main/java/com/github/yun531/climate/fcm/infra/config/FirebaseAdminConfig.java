@@ -1,4 +1,4 @@
-package com.github.yun531.climate.fcm.config;
+package com.github.yun531.climate.fcm.infra.config;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;

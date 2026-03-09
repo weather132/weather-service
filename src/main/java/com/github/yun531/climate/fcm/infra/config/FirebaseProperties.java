@@ -1,4 +1,4 @@
-package com.github.yun531.climate.fcm.config;
+package com.github.yun531.climate.fcm.infra.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

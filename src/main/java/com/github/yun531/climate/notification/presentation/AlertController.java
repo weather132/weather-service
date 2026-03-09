@@ -1,7 +1,7 @@
 package com.github.yun531.climate.notification.presentation;
 
-import com.github.yun531.climate.notification.application.GenerateAlertsService;
-import com.github.yun531.climate.notification.application.GenerateAlertsCommand;
+import com.github.yun531.climate.notification.application.alert.GenerateAlertsService;
+import com.github.yun531.climate.notification.application.alert.GenerateAlertsCommand;
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 import com.github.yun531.climate.warning.domain.model.WarningKind;
