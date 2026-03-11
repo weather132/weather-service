@@ -12,7 +12,11 @@ public record TriggerProperties(
         long ttlSeconds
 ) {
     public TriggerProperties {
-        if (ttlSeconds <= 0) ttlSeconds = 600; // 기본 10분
+        if (ttlSeconds <= 0) ttlSeconds = 600;    // 기본 10분
+    }
+
+    public String dailyTopic(int hour) {
+        return dailyTopicPrefix + String.format("%02d", hour);
     }
 
     public long ttlMillis() {

@@ -3,9 +3,9 @@ package com.github.yun531.climate.notification.application.alert;
 import com.github.yun531.climate.warning.domain.reader.WarningStateReader;
 import com.github.yun531.climate.notification.domain.adjust.RainForecastAdjuster;
 import com.github.yun531.climate.notification.domain.adjust.RainOnsetAdjuster;
-import com.github.yun531.climate.notification.domain.evaluator.RainForecastEvaluator;
-import com.github.yun531.climate.notification.domain.evaluator.RainOnsetEvaluator;
-import com.github.yun531.climate.notification.domain.evaluator.WarningIssuedEvaluator;
+import com.github.yun531.climate.notification.domain.detect.RainForecastDetector;
+import com.github.yun531.climate.notification.domain.detect.RainOnsetDetector;
+import com.github.yun531.climate.notification.domain.detect.WarningIssuedDetector;
 import com.github.yun531.climate.notification.domain.readmodel.PopViewReader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -18,9 +18,9 @@ public class AlertApplicationConfig {
     public GenerateAlertsService generateAlertsService(
             PopViewReader popViewReader,
             WarningStateReader warningStateReader,
-            RainOnsetEvaluator rainOnsetEvaluator,
-            RainForecastEvaluator rainForecastEvaluator,
-            WarningIssuedEvaluator warningIssuedEvaluator,
+            RainOnsetDetector rainOnsetDetector,
+            RainForecastDetector rainForecastDetector,
+            WarningIssuedDetector warningIssuedDetector,
             RainOnsetAdjuster onsetAdjuster,
             RainForecastAdjuster forecastAdjuster,
             @Value("${notification.max-region-count:3}") int maxRegionCount,
@@ -29,9 +29,9 @@ public class AlertApplicationConfig {
         return new GenerateAlertsService(
                 popViewReader,
                 warningStateReader,
-                rainOnsetEvaluator,
-                rainForecastEvaluator,
-                warningIssuedEvaluator,
+                rainOnsetDetector,
+                rainForecastDetector,
+                warningIssuedDetector,
                 onsetAdjuster,
                 forecastAdjuster,
                 maxRegionCount,

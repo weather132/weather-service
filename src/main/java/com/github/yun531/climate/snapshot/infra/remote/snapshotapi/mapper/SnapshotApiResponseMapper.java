@@ -5,8 +5,8 @@ import com.github.yun531.climate.snapshot.domain.readmodel.HourlyPoint;
 import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.DailyForecastItem;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.DailyForecastResponse;
-import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.GridPoint;
-import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.HourlySnapshotResponse;
+import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.HourlyForecastItem;
+import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.HourlyForecastResponse;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -26,7 +26,7 @@ public class SnapshotApiResponseMapper {
 
     public WeatherSnapshot toSnapshot(
             String regionId,
-            HourlySnapshotResponse hourlyResponse,
+            HourlyForecastResponse hourlyResponse,
             DailyForecastResponse dailyResponse,
             LocalDate baseDate
     ) {
@@ -42,15 +42,15 @@ public class SnapshotApiResponseMapper {
     //  시간별: GridPoint 리스트 → HourlyPoint 리스트 (최대 26개)
     // =====================================================================
 
-    private List<HourlyPoint> toHourlyPoints(HourlySnapshotResponse response) {
-        if (response == null || response.gridForecastData() == null) {
+    private List<HourlyPoint> toHourlyPoints(HourlyForecastResponse response) {
+        if (response == null || response.items() == null) {
             return List.of();
         }
 
-        return response.gridForecastData().stream()
+        return response.items().stream()
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(
-                        GridPoint::effectiveTime,
+                        HourlyForecastItem::effectiveTime,
                         Comparator.nullsLast(Comparator.naturalOrder())
                 ))
                 .limit(MAX_HOURLY_POINTS)
@@ -67,18 +67,18 @@ public class SnapshotApiResponseMapper {
     // =====================================================================
 
     private List<DailyPoint> toDailyPoints(DailyForecastResponse response, LocalDate baseDate) {
-        if (baseDate == null || response == null || response.forecasts() == null) {
+        if (baseDate == null || response == null || response.items() == null) {
             return emptyDailyPoints();
         }
 
         // 1) dayOffset별 그루핑
         DailyPoint[] points = new DailyPoint[DAILY_RANGE];
-        Map<Integer, List<DailyForecastItem>> grouped = groupByDayOffset(baseDate, response.forecasts());
+        Map<Integer, List<DailyForecastItem>> grouped = groupByDayOffset(baseDate, response.items());
 
         // 2) 각 offset별 집계
-        for (int d = 0; d < DAILY_RANGE; d++) {
-            List<DailyForecastItem> items = grouped.getOrDefault(d, List.of());
-            points[d] = aggregateDay(d, items);
+        for (int dayOffset = 0; dayOffset < DAILY_RANGE; dayOffset++) {
+            List<DailyForecastItem> items = grouped.getOrDefault(dayOffset, List.of());
+            points[dayOffset] = aggregateDay(dayOffset, items);
         }
 
         return List.of(points);
@@ -92,17 +92,17 @@ public class SnapshotApiResponseMapper {
         for (DailyForecastItem item : items) {
             if (item == null || item.effectiveTime() == null) continue;
 
-            int offset = (int) ChronoUnit.DAYS.between(baseDate, item.effectiveTime().toLocalDate());
-            if (offset < 0 || offset >= DAILY_RANGE) continue;
+            int dayOffset = (int) ChronoUnit.DAYS.between(baseDate, item.effectiveTime().toLocalDate());
+            if (dayOffset < 0 || dayOffset >= DAILY_RANGE) continue;
 
-            grouped.computeIfAbsent(offset, k -> new ArrayList<>()).add(item);
+            grouped.computeIfAbsent(dayOffset, k -> new ArrayList<>()).add(item);
         }
 
         return grouped;
     }
 
     /**
-     * 한 dayOffset에 속하는 item들을 집계해 DailyPoint 하나를 만든다.
+     * 한 dayOffset에 속하는 item 들을 집계해 DailyPoint 하나를 만든다.
      * items가 비어있으면 모든 필드가 null인 DailyPoint를 반환한다.
      */
     private DailyPoint aggregateDay(int dayOffset, List<DailyForecastItem> items) {
@@ -133,7 +133,7 @@ public class SnapshotApiResponseMapper {
 
     private List<DailyPoint> emptyDailyPoints() {
         return IntStream.range(0, DAILY_RANGE)
-                .mapToObj(d -> new DailyPoint(d, null, null, null, null))
+                .mapToObj(dayOffset -> new DailyPoint(dayOffset, null, null, null, null))
                 .toList();
     }
 }

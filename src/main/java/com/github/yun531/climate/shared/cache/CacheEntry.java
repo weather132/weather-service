@@ -12,11 +12,8 @@ public record CacheEntry<T>(
         LocalDateTime anchor
 ) {
     /**
-     * 캐시 엔트리가 낡았는지(stale) 판단한다.
-     *
-     * @param referenceTime    비교 기준 시각 (null 이면 항상 stale)
-     * @param toleranceMinutes anchor 로부터 허용하는 유효 시간(분).
-     *                         referenceTime이 anchor + toleranceMinutes를 넘으면 stale
+     * referenceTime이 anchor + toleranceMinutes를 넘으면 stale.
+     * referenceTime 또는 anchor가 null 이면 항상 stale.
      */
     public boolean isStale(LocalDateTime referenceTime, int toleranceMinutes) {
         if (referenceTime == null || anchor == null) return true;

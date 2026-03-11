@@ -4,9 +4,9 @@ import com.github.yun531.climate.warning.domain.model.WarningKind;
 import com.github.yun531.climate.warning.domain.reader.WarningStateReader;
 import com.github.yun531.climate.notification.domain.adjust.RainForecastAdjuster;
 import com.github.yun531.climate.notification.domain.adjust.RainOnsetAdjuster;
-import com.github.yun531.climate.notification.domain.evaluator.RainForecastEvaluator;
-import com.github.yun531.climate.notification.domain.evaluator.RainOnsetEvaluator;
-import com.github.yun531.climate.notification.domain.evaluator.WarningIssuedEvaluator;
+import com.github.yun531.climate.notification.domain.detect.RainForecastDetector;
+import com.github.yun531.climate.notification.domain.detect.RainOnsetDetector;
+import com.github.yun531.climate.notification.domain.detect.WarningIssuedDetector;
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
@@ -20,15 +20,16 @@ import java.util.*;
 import static com.github.yun531.climate.shared.time.TimeUtil.nowTruncatedToMinute;
 
 /**
- * 흐름: 정규화 → 타입별 분기 → Port 로드 → Computer 계산 → Adjuster 후처리 → dedup/sort
+ * 알림 생성 서비스.
+ * 흐름: 정규화 → 타입별 분기 → Port 로드 → Detector 감지 → Adjuster 보정 → dedup/sort
  */
 public class GenerateAlertsService {
 
     private final PopViewReader popViewReader;
     private final WarningStateReader warningStateReader;
-    private final RainOnsetEvaluator rainOnsetEvaluator;
-    private final RainForecastEvaluator rainForecastEvaluator;
-    private final WarningIssuedEvaluator warningIssuedEvaluator;
+    private final RainOnsetDetector rainOnsetDetector;
+    private final RainForecastDetector rainForecastDetector;
+    private final WarningIssuedDetector warningIssuedDetector;
     private final RainOnsetAdjuster rainOnsetAdjuster;
     private final RainForecastAdjuster rainForecastAdjuster;
     private final int maxRegionCount;
@@ -42,9 +43,9 @@ public class GenerateAlertsService {
     public GenerateAlertsService(
             PopViewReader popViewReader,
             WarningStateReader warningStateReader,
-            RainOnsetEvaluator rainOnsetEvaluator,
-            RainForecastEvaluator rainForecastEvaluator,
-            WarningIssuedEvaluator warningIssuedEvaluator,
+            RainOnsetDetector rainOnsetDetector,
+            RainForecastDetector rainForecastDetector,
+            WarningIssuedDetector warningIssuedDetector,
             RainOnsetAdjuster rainOnsetAdjuster,
             RainForecastAdjuster rainForecastAdjuster,
             int maxRegionCount,
@@ -52,9 +53,9 @@ public class GenerateAlertsService {
     ) {
         this.popViewReader = popViewReader;
         this.warningStateReader = warningStateReader;
-        this.rainOnsetEvaluator = rainOnsetEvaluator;
-        this.rainForecastEvaluator = rainForecastEvaluator;
-        this.warningIssuedEvaluator = warningIssuedEvaluator;
+        this.rainOnsetDetector = rainOnsetDetector;
+        this.rainForecastDetector = rainForecastDetector;
+        this.warningIssuedDetector = warningIssuedDetector;
         this.rainOnsetAdjuster = rainOnsetAdjuster;
         this.rainForecastAdjuster = rainForecastAdjuster;
         this.maxRegionCount = Math.max(0, maxRegionCount);
@@ -66,7 +67,7 @@ public class GenerateAlertsService {
     }
 
     public List<AlertEvent> generate(GenerateAlertsCommand command, @Nullable LocalDateTime now) {
-        if (command == null) return List.of();
+        if (command == null || command.hasNoTypes()) return List.of();
 
         Set<AlertTypeEnum> enabledTypes = command.enabledTypes();
         if (enabledTypes == null || enabledTypes.isEmpty()) return List.of();
@@ -76,10 +77,7 @@ public class GenerateAlertsService {
         List<String> regionIds = normalizeRegionIds(command.regionIds());
         if (regionIds.isEmpty()) return List.of();
 
-        List<AlertEvent> collected = collectEvents(
-                enabledTypes, regionIds, since,
-                command.warningKinds(), command.rainHourLimit(), effectiveNow
-        );
+        List<AlertEvent> collected = collectEvents(command, regionIds, since, effectiveNow);
         if (collected.isEmpty()) return List.of();
 
         List<AlertEvent> deduped = deduplicate(collected);
@@ -87,66 +85,64 @@ public class GenerateAlertsService {
         return deduped;
     }
 
-    // -- 타입별 분기 + 지역 순회 (정규화된 값만 받음) --
+    // =====================================================================
+    //  타입별 분기 + 지역 순회
+    // =====================================================================
 
     private List<AlertEvent> collectEvents(
-            Set<AlertTypeEnum> types, List<String> regionIds, LocalDateTime since,
-            @Nullable Set<WarningKind> warningKinds, @Nullable Integer rainHourLimit,
-            LocalDateTime now
+            GenerateAlertsCommand cmd, List<String> regionIds,
+            LocalDateTime since, LocalDateTime now
     ) {
         ArrayList<AlertEvent> out = new ArrayList<>(16);
 
         for (String regionId : regionIds) {
-            if (types.contains(AlertTypeEnum.RAIN_ONSET))
-                out.addAll(evalRainOnset(regionId, rainHourLimit, now));
+            if (cmd.isEnabled(AlertTypeEnum.RAIN_ONSET))
+                out.addAll(detectRainOnset(regionId, cmd.withinHours(), now));
 
-            if (types.contains(AlertTypeEnum.RAIN_FORECAST))
-                out.addAll(evalRainForecast(regionId, now));
+            if (cmd.isEnabled(AlertTypeEnum.RAIN_FORECAST))
+                out.addAll(detectRainForecast(regionId, now));
 
-            if (types.contains(AlertTypeEnum.WARNING_ISSUED))
-                out.addAll(evalWarning(regionId, since, warningKinds, now));
+            if (cmd.isEnabled(AlertTypeEnum.WARNING_ISSUED))
+                out.addAll(detectWarningIssued(regionId, since, cmd.warningKinds(), now));
         }
 
         return out.isEmpty() ? List.of() : List.copyOf(out);
     }
 
-    // -- RAIN_ONSET: load pair → compute → adjust(validAt window) --
-
-    private List<AlertEvent> evalRainOnset(
-            String regionId, @Nullable Integer rainHourLimit, LocalDateTime now
+    /** load pair → detect onset → adjust(validAt window) */
+    private List<AlertEvent> detectRainOnset(
+            String regionId, @Nullable Integer withinHours, LocalDateTime now
     ) {
         PopView.Pair pair = popViewReader.loadCurrentPreviousPair(regionId);
         if (pair == null) return List.of();
 
-        List<AlertEvent> raw = rainOnsetEvaluator.compute(regionId, pair, now);
+        List<AlertEvent> raw = rainOnsetDetector.detect(regionId, pair, now);
         if (raw.isEmpty()) return List.of();
 
-        return rainOnsetAdjuster.adjust(raw, now, rainHourLimit);
+        return rainOnsetAdjuster.adjust(raw, now, withinHours);
     }
 
-    // -- RAIN_FORECAST: load current → compute → adjust (time shift + clipping) --
-
-    private List<AlertEvent> evalRainForecast(String regionId, LocalDateTime now) {
+    /** load current → detect forecast → adjust (time shift + clipping) */
+    private List<AlertEvent> detectRainForecast(String regionId, LocalDateTime now) {
         PopView view = popViewReader.loadCurrent(regionId);
         if (view == null) return List.of();
 
-        AlertEvent raw = rainForecastEvaluator.compute(regionId, view, now);
+        AlertEvent raw = rainForecastDetector.detect(regionId, view, now);
         if (raw == null) return List.of();
 
         AlertEvent adjusted = rainForecastAdjuster.adjust(raw, raw.occurredAt(), now);
         return (adjusted == null) ? List.of() : List.of(adjusted);
     }
 
-    // -- WARNING_ISSUED: load states → compute --
-
-    private List<AlertEvent> evalWarning(
+    /** load states → detect issued warnings */
+    private List<AlertEvent> detectWarningIssued(
             String regionId, LocalDateTime since,
             @Nullable Set<WarningKind> warningKinds, LocalDateTime now
     ) {
-        var states = warningStateReader.loadLatestByKind(regionId);
-        if (states == null || states.isEmpty()) return List.of();
+        var warningsByKind = warningStateReader.loadLatestByKind(regionId);
+        if (warningsByKind == null || warningsByKind.isEmpty()) return List.of();
 
-        return warningIssuedEvaluator.compute(regionId, states, since, warningKinds, now);
+        return warningIssuedDetector.detect(regionId, warningsByKind, since, warningKinds, now);
     }
 
     // -- 정규화 헬퍼 --
@@ -155,7 +151,7 @@ public class GenerateAlertsService {
         return (now == null) ? nowTruncatedToMinute() : TimeUtil.truncateToMinutes(now);
     }
 
-    /** sinceHours(정수) → LocalDateTime 변환. null 이면 기본값(defaultSinceHours) 적용 */
+    /** sinceHours → LocalDateTime 변환. null 이면 기본값(defaultSinceHours) 적용 */
     private LocalDateTime normalizeSince(@Nullable Integer sinceHours, LocalDateTime now) {
         int hours = (sinceHours != null && sinceHours > 0) ? sinceHours : defaultSinceHours;
         return now.minusHours(hours);

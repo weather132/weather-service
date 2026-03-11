@@ -47,13 +47,13 @@ public class SnapshotEntityMapper {
 
     private List<DailyPoint> toDailyPoints(SnapshotEntity entity) {
         List<DailyPoint> points = new ArrayList<>(DAILY_SIZE);
-        for (int d = 0; d < DAILY_SIZE; d++) {
+        for (int dayOffset = 0; dayOffset < DAILY_SIZE; dayOffset++) {
             points.add(new DailyPoint(
-                    d,
-                    DAILY_MIN_TEMP_GETTERS.get(d).apply(entity),
-                    DAILY_MAX_TEMP_GETTERS.get(d).apply(entity),
-                    DAILY_AM_POP_GETTERS.get(d).apply(entity),
-                    DAILY_PM_POP_GETTERS.get(d).apply(entity)
+                    dayOffset,
+                    DAILY_MIN_TEMP_GETTERS.get(dayOffset).apply(entity),
+                    DAILY_MAX_TEMP_GETTERS.get(dayOffset).apply(entity),
+                    DAILY_AM_POP_GETTERS.get(dayOffset).apply(entity),
+                    DAILY_PM_POP_GETTERS.get(dayOffset).apply(entity)
             ));
         }
         return List.copyOf(points);

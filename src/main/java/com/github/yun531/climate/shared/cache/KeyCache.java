@@ -5,20 +5,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-/** String key 기반 In-memory 캐시 유틸 */
+/**
+ * String key 기반 in-memory 캐시.
+ * stale 판정은 {@link CacheEntry#isStale}에 위임한다.
+ */
 public class KeyCache<T> {
 
     private final Map<String, CacheEntry<T>> entries = new ConcurrentHashMap<>();
 
-    public CacheEntry<T> get(String key) {
-        return entries.get(key);
-    }
-
     /**
-     * referenceTime 기준 캐시 조회.
-     * - referenceTime이 null 이면 무조건 재계산
-     * - getOrCompute = now 인 경우, anchor + toleranceMinutes < now 이면 재계산
-     * - anchor + toleranceMinutes < referenceTime 이면 재계산
+     * 캐시 히트 시 기존 값 반환, stale 이면 loader로 재계산.
+     * stale 판정은 {@link CacheEntry#isStale}에 위임한다.
      */
     public CacheEntry<T> getOrCompute(
             String key,

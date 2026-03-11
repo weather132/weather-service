@@ -4,7 +4,7 @@ import java.util.Map;
 
 /**
  * 토픽 푸시 메시지 값 객체.
- * - "어떤 토픽에, 어떤 데이터를, 얼마간의 TTL로 보낼 것인가"만표현
+ * - "어떤 토픽에, 어떤 데이터를, 얼마간의 TTL로 보낼 것인가" 표현
  */
 public record TopicPushMessage(
         String topic,

@@ -13,11 +13,19 @@ public record GenerateAlertsCommand(
         @Nullable Integer sinceHours,             // 유효한 기상 특보(발효시간)의 ttl
         Set<AlertTypeEnum> enabledTypes,
         @Nullable Set<WarningKind> warningKinds,
-        @Nullable Integer rainHourLimit
+        @Nullable Integer withinHours
 ) {
     public GenerateAlertsCommand {
         enabledTypes = (enabledTypes == null || enabledTypes.isEmpty())
                 ? EnumSet.noneOf(AlertTypeEnum.class)
                 : EnumSet.copyOf(enabledTypes);
+    }
+
+    public boolean hasNoTypes() {
+        return enabledTypes.isEmpty();
+    }
+
+    public boolean isEnabled(AlertTypeEnum type) {
+        return enabledTypes.contains(type);
     }
 }

@@ -1,6 +1,6 @@
 package com.github.yun531.climate.forecast.domain.readmodel;
 
-public record ForecastDailyEntry(
+public record ForecastDailyPoint(
         int dayOffset,
         Integer minTemp,
         Integer maxTemp,

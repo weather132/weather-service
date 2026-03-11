@@ -15,101 +15,112 @@ import static java.time.temporal.ChronoUnit.HOURS;
 
 /**
  * RainForecast AlertEvent의 시간 시프트 + 윈도우 클리핑.
- * - baseTime을 now 기준으로 diffHours(<=maxShiftHours) 시프트
- * - hourlyParts를 window로 클리핑
- * - dayParts는 날짜 경계가 넘어가면 dayShift 만큼 드롭
+ * - occurredAt: 발표시각을 now 기준으로 최대 maxShiftHours만 큼 시프트
+ * - hourlyParts: [nowHour + startOffset, nowHour + horizon] 윈도우로 클리핑
+ * - dayParts: 날짜 경계를 넘으면 dayShift 만큼 앞쪽 드롭
+ * 전제: 스냅샷 hourly 크기(26) = horizon(24) + maxShiftHours(2).
+ * maxShiftHours 범위 내에서 항상 horizon 개의 데이터가 보장된다.
+ * maxShiftHours 초과 시에는 상위 캐싱 레이어가 새 스냅샷을 로드한다.
  */
 public class RainForecastAdjuster {
 
+    private static final DailyRainFlags EMPTY_FLAGS = new DailyRainFlags(false, false);
+
     private final int maxShiftHours;
-    private final int horizonHours;
+    private final int windowHours;
     private final int startOffsetHours;
 
-    public RainForecastAdjuster(int maxShiftHours, int horizonHours) {
-        this(maxShiftHours, horizonHours, 1);
+    public RainForecastAdjuster(int maxShiftHours, int windowHours) {
+        this(maxShiftHours, windowHours, 1);
     }
 
-    public RainForecastAdjuster(int maxShiftHours, int horizonHours, int startOffsetHours) {
-        this.maxShiftHours = Math.max(0, maxShiftHours);        // 0/1/2
-        this.horizonHours = Math.max(1, horizonHours);          // 보통 24
-        this.startOffsetHours = Math.max(0, startOffsetHours);  // 보통 1 (now+1부터)
+    public RainForecastAdjuster(int maxShiftHours, int windowHours, int startOffsetHours) {
+        this.maxShiftHours = Math.max(0, maxShiftHours);
+        this.windowHours = Math.max(1, windowHours);
+        this.startOffsetHours = Math.max(0, startOffsetHours);
     }
 
-    /**
-     * @param event    RainForecast AlertEvent
-     * @param baseTime 데이터 발표시각 (시프트 기준)
-     * @param now      현재 시각
-     * @return 시간 보정된 AlertEvent
-     */
-    public AlertEvent adjust(AlertEvent event, @Nullable LocalDateTime baseTime, LocalDateTime now) {
+    /** 발표시각 기준 시프트 + 윈도우 클리핑을 적용한 AlertEvent를 반환 */
+    public AlertEvent adjust(AlertEvent event, @Nullable LocalDateTime announceTime, LocalDateTime now) {
         if (event == null) return null;
-        if (baseTime == null || now == null) return event;
+        if (announceTime == null || now == null) return event;
 
-        TimeShiftUtil.ShiftResult shift = TimeShiftUtil.shiftHourly(baseTime, now, maxShiftHours);
+        TimeShiftUtil.ShiftResult shift = TimeShiftUtil.shiftHourly(announceTime, now, maxShiftHours);
 
-        int diffHours = Math.max(0, shift.shiftHours());
-        int dayShift  = Math.max(0, shift.dayShift());
-        LocalDateTime shiftedTime = shift.shiftedBaseTime();
-
-        LocalDateTime nowHour = now.truncatedTo(HOURS);
-        LocalDateTime windowStart = nowHour.plusHours(diffHours + (long) startOffsetHours);
-        LocalDateTime windowEnd   = nowHour.plusHours(diffHours + (long) horizonHours);
-
-        if (!(event.payload() instanceof RainForecastPayload p)) {
-            // 타입이 다르면 occurredAt만 보정
-            return new AlertEvent(event.type(), event.regionId(), shiftedTime, event.payload());
+        if (!(event.payload() instanceof RainForecastPayload payload)) {
+            return withShiftedTime(event, shift.shiftedBaseTime());
         }
 
-        List<RainInterval> clamped = clampToWindow(p.hourlyParts(), windowStart, windowEnd);
-        List<DailyRainFlags> newDays = (dayShift > 0) ? shiftDayParts(p.dayParts(), dayShift) : p.dayParts();
+        LocalDateTime nowHour = now.truncatedTo(HOURS);
+        List<RainInterval> clamped = clampToWindow(
+                payload.hourlyParts(),
+                nowHour.plusHours(startOffsetHours),
+                nowHour.plusHours(windowHours));
 
-        RainForecastPayload newPayload = new RainForecastPayload(p.type(), clamped, newDays);
-        return new AlertEvent(event.type(), event.regionId(), shiftedTime, newPayload);
+        List<DailyRainFlags> newDays = shiftDayParts(payload.dayParts(), shift.dayShift());
+
+        RainForecastPayload newPayload = new RainForecastPayload(payload.type(), clamped, newDays);
+        return withShiftedTime(event, shift.shiftedBaseTime(), newPayload);
     }
 
-    // -- hourlyParts 윈도우 클리핑 --
-    // - - 완전히 밖이면 제거, 걸치면 경계로 잘라서 보존
+    // =====================================================================
+    //  hourlyParts 윈도우 클리핑: 밖이면 제거, 걸치면 경계로 잘라서 보존
+    // =====================================================================
 
     private List<RainInterval> clampToWindow(
-            List<RainInterval> parts, LocalDateTime windowStart, LocalDateTime windowEnd
+            List<RainInterval> parts, LocalDateTime start, LocalDateTime end
     ) {
         if (parts == null || parts.isEmpty()) return List.of();
 
-        List<RainInterval> out = new ArrayList<>();
+        List<RainInterval> out = new ArrayList<>(parts.size());
         for (RainInterval r : parts) {
-            if (r == null || r.start() == null || r.end() == null) continue;
-            if (r.end().isBefore(windowStart) || r.start().isAfter(windowEnd)) continue;
-
-            LocalDateTime clampedStart = r.start().isBefore(windowStart) ? windowStart : r.start();
-            LocalDateTime clampedEnd = r.end().isAfter(windowEnd) ? windowEnd : r.end();
-
-            if (!clampedEnd.isBefore(clampedStart)) {
-                out.add(new RainInterval(clampedStart, clampedEnd));
-            }
+            RainInterval clamped = clampInterval(r, start, end);
+            if (clamped != null) out.add(clamped);
         }
         return out.isEmpty() ? List.of() : List.copyOf(out);
     }
 
-    // -- dayParts 시프트 --
+    @Nullable
+    private RainInterval clampInterval(RainInterval r, LocalDateTime start, LocalDateTime end) {
+        if (r == null || r.start() == null || r.end() == null) return null;
+        if (r.end().isBefore(start) || r.start().isAfter(end)) return null;
+
+        LocalDateTime cStart = r.start().isBefore(start) ? start : r.start();
+        LocalDateTime cEnd = r.end().isAfter(end) ? end : r.end();
+        return cEnd.isBefore(cStart) ? null : new RainInterval(cStart, cEnd);
+    }
+
+    // =====================================================================
+    //  dayParts 시프트: 앞쪽 드롭 + 뒤쪽 빈 플래그 패딩
+    // =====================================================================
 
     private List<DailyRainFlags> shiftDayParts(List<DailyRainFlags> days, int dayShift) {
-        if (days == null || days.isEmpty() || dayShift <= 0) return (days == null) ? List.of() : days;
+        if (days == null || days.isEmpty()) return List.of();
+        if (dayShift <= 0) return days;
 
         int n = days.size();
-        if (dayShift >= n) {
-            List<DailyRainFlags> allFalse = new ArrayList<>(n);
-            for (int i = 0; i < n; i++) allFalse.add(new DailyRainFlags(false, false));
-            return List.copyOf(allFalse);
-        }
-
         List<DailyRainFlags> out = new ArrayList<>(n);
+
         for (int i = dayShift; i < n; i++) {
             DailyRainFlags v = days.get(i);
-            out.add(v == null ? new DailyRainFlags(false, false) : v);
+            out.add(v != null ? v : EMPTY_FLAGS);
         }
-        for (int i = 0; i < dayShift; i++) {
-            out.add(new DailyRainFlags(false, false));
+        while (out.size() < n) {
+            out.add(EMPTY_FLAGS);
         }
+
         return List.copyOf(out);
+    }
+
+    // =====================================================================
+    //  AlertEvent 재조립 헬퍼
+    // =====================================================================
+
+    private AlertEvent withShiftedTime(AlertEvent event, LocalDateTime shiftedTime) {
+        return new AlertEvent(event.type(), event.regionId(), shiftedTime, event.payload());
+    }
+
+    private AlertEvent withShiftedTime(AlertEvent event, LocalDateTime shiftedTime, RainForecastPayload payload) {
+        return new AlertEvent(event.type(), event.regionId(), shiftedTime, payload);
     }
 }

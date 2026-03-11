@@ -10,7 +10,7 @@ import java.util.List;
 public record ForecastHourlyView(
         String regionId,
         LocalDateTime reportTime,
-        List<ForecastHourlyEntry> hourlyPoints
+        List<ForecastHourlyPoint> hourlyPoints
 ) {
     public ForecastHourlyView {
         hourlyPoints = (hourlyPoints == null) ? List.of() : List.copyOf(hourlyPoints);

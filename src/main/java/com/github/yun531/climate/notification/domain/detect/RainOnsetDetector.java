@@ -1,4 +1,4 @@
-package com.github.yun531.climate.notification.domain.evaluator;
+package com.github.yun531.climate.notification.domain.detect;
 
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
@@ -15,12 +15,12 @@ import java.util.Map;
 /**
  * PopView.Pair(현재/이전 POP) -> "비 시작" AlertEvent 목록 계산.
  */
-public class RainOnsetEvaluator {
+public class RainOnsetDetector {
 
     private final int rainThreshold;
     private final int maxHourlyPoints;
 
-    public RainOnsetEvaluator(int rainThreshold, int maxHourlyPoints) {
+    public RainOnsetDetector(int rainThreshold, int maxHourlyPoints) {
         this.rainThreshold = rainThreshold;
         this.maxHourlyPoints = Math.max(1, maxHourlyPoints);
     }
@@ -28,7 +28,7 @@ public class RainOnsetEvaluator {
     /**
      * @return 비 예보시각 AlertEvents 목록 (빈 리스트 가능)
      */
-    public List<AlertEvent> compute(String regionId, PopView.Pair pair, LocalDateTime now) {
+    public List<AlertEvent> detect(String regionId, PopView.Pair pair, LocalDateTime now) {
         if (regionId == null || regionId.isBlank()) return List.of();
         if (pair == null || pair.current() == null || pair.previous() == null) return List.of();
         if (now == null) return List.of();
@@ -40,21 +40,24 @@ public class RainOnsetEvaluator {
 
         // cur 순회하면서 비 시작 감지
         List<AlertEvent> out = new ArrayList<>(8);
-        List<PopView.HourlyPopSeries26.Point> points = curView.hourly().points();
+        List<PopView.HourlySeries.Point> points = curView.hourly().points();
 
         // maxHourlyPoints는 리스트 인덱스(i)가 아니라, 실제 처리한 "유효 포인트"(seen) 기준으로 제한
         int seen = 0;
         for (int i = 0; i < points.size() && seen < maxHourlyPoints; i++) {
-            PopView.HourlyPopSeries26.Point p = points.get(i);
+            PopView.HourlySeries.Point p = points.get(i);
             if (p == null) continue;
 
             LocalDateTime at = p.validAt();
             if (at == null) break;
 
+            Integer curPop = p.pop();
+            if (curPop == null) { seen++; continue; }
+
             // 이전 예보의 같은 validAt 시각 POP과 비교(예보 업데이트 전후 변화 감지)
-            if (isOnset(p.pop(), prevPopMap.get(at))) {
+            if (isOnset(curPop, prevPopMap.get(at))) {
                 RainOnsetPayload payload = new RainOnsetPayload(
-                        AlertTypeEnum.RAIN_ONSET, at, p.pop()
+                        AlertTypeEnum.RAIN_ONSET, at, curPop
                 );
                 out.add(new AlertEvent(AlertTypeEnum.RAIN_ONSET, regionId, computedAt, payload));
             }
@@ -75,12 +78,14 @@ public class RainOnsetEvaluator {
     private Map<LocalDateTime, Integer> buildPrevPopMap(PopView prvView) {
         Map<LocalDateTime, Integer> map = new HashMap<>(PopView.HOURLY_SIZE * 2);
 
-        for (PopView.HourlyPopSeries26.Point p : prvView.hourly().points()) {
+        for (PopView.HourlySeries.Point p : prvView.hourly().points()) {
             if (p == null) continue;
 
             LocalDateTime at = p.validAt();
             if (at == null) continue;
-            map.put(at, p.pop());
+
+            Integer pop = p.pop();
+            if (pop != null) map.put(at, pop);
         }
 
         return map;

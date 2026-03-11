@@ -4,8 +4,8 @@ import com.github.yun531.climate.snapshot.domain.readmodel.DailyPoint;
 import com.github.yun531.climate.snapshot.domain.readmodel.HourlyPoint;
 import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
-import com.github.yun531.climate.notification.domain.readmodel.PopView.HourlyPopSeries26;
-import com.github.yun531.climate.notification.domain.readmodel.PopView.DailyPopSeries7;
+import com.github.yun531.climate.notification.domain.readmodel.PopView.HourlySeries;
+import com.github.yun531.climate.notification.domain.readmodel.PopView.DailySeries;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -13,18 +13,19 @@ import java.util.*;
 /**
  * WeatherSnapshot → PopView 변환기.
  * POP만 뽑아 26시간/7일 규격으로 정규화한다.
+ * - 데이터 없음(null) → null 유지 (센티넬 값 사용하지 않음)
  */
 @Component
 public class PopViewMapper {
 
-    private static final DailyPopSeries7.DailyPop ZERO_POP = new DailyPopSeries7.DailyPop(0, 0);
-    private static final HourlyPopSeries26.Point EMPTY_POINT = new HourlyPopSeries26.Point(null, 0);
+    private static final DailySeries.DailyPop EMPTY_DAILY = new DailySeries.DailyPop(null, null);
+    private static final HourlySeries.Point EMPTY_POINT = new HourlySeries.Point(null, null);
 
     public PopView toPopView(WeatherSnapshot snap) {
         if (snap == null) return null;
 
-        PopView.HourlyPopSeries26 hourly = toHourly(snap.hourly());
-        PopView.DailyPopSeries7 daily = toDaily(snap.daily());
+        HourlySeries hourly = toHourly(snap.hourly());
+        DailySeries daily = toDaily(snap.daily());
         return new PopView(hourly, daily, snap.reportTime());
     }
 
@@ -38,19 +39,19 @@ public class PopViewMapper {
 
     // -- Hourly: validAt 정렬 → 최대 26개 + 부족분 패딩 --
 
-    private HourlyPopSeries26 toHourly(List<HourlyPoint> hourly) {
+    private HourlySeries toHourly(List<HourlyPoint> hourly) {
         List<HourlyPoint> sorted = sortByValidAt(hourly);
 
-        List<HourlyPopSeries26.Point> out = new ArrayList<>(PopView.HOURLY_SIZE);
+        List<HourlySeries.Point> out = new ArrayList<>(PopView.HOURLY_SIZE);
         for (int i = 0; i < PopView.HOURLY_SIZE; i++) {
             if (i < sorted.size()) {
                 HourlyPoint p = sorted.get(i);
-                out.add(new HourlyPopSeries26.Point(p.validAt(), orZero(p.pop())));
+                out.add(new HourlySeries.Point(p.validAt(), p.pop()));
             } else {
                 out.add(EMPTY_POINT);
             }
         }
-        return new HourlyPopSeries26(out);
+        return new HourlySeries(out);
     }
 
     // validAt 기준 정렬(없으면 뒤로)
@@ -68,23 +69,19 @@ public class PopViewMapper {
 
     // -- Daily: dayOffset(0~6) 기준으로 슬롯 채움 --
 
-    private DailyPopSeries7 toDaily(List<DailyPoint> daily) {
-        DailyPopSeries7.DailyPop[] slots = new DailyPopSeries7.DailyPop[PopView.DAILY_SIZE];
-        Arrays.fill(slots, ZERO_POP);
+    private DailySeries toDaily(List<DailyPoint> daily) {
+        DailySeries.DailyPop[] slots = new DailySeries.DailyPop[PopView.DAILY_SIZE];
+        Arrays.fill(slots, EMPTY_DAILY);
 
         if (daily != null) {
             for (DailyPoint d : daily) {
                 if (d == null) continue;
                 int off = d.dayOffset();
                 if (off < 0 || off >= PopView.DAILY_SIZE) continue;
-                slots[off] = new DailyPopSeries7.DailyPop(orZero(d.amPop()), orZero(d.pmPop()));
+                slots[off] = new DailySeries.DailyPop(d.amPop(), d.pmPop());
             }
         }
 
-        return new DailyPopSeries7(List.of(slots));
-    }
-
-    private static int orZero(Integer v) {
-        return v == null ? 0 : v;
+        return new DailySeries(List.of(slots));
     }
 }

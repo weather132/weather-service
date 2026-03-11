@@ -5,12 +5,10 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
 /**
- * baseTime을 now 기준으로 재표현하기 위한 시간 시프트 계산 유틸.
- * 규칙:
- * - shiftHours base/now를 시간 단위로 내림(truncatedTo(HOURS))해서 계산
- * - shiftHours = clamp(hoursBetween(baseHour, nowHour), 0..maxShiftHours)
- * - shiftedBaseTime은 "시간 단위 윈도우 기준"이므로 baseHour + shiftHours (시간 경계 정렬)
- * - dayShift는 날짜 경계 이동 (일자 파트 보정용)
+ * baseTime을 now 기준으로 최대 maxShiftHours 만큼 시(정각) 단위로 시프트하는 유틸리티.
+ * - shiftHours      : baseHour~nowHour 차이를 0..maxShiftHours로 클램프
+ * - shiftedBaseTime : baseHour + shiftHours (정각 정렬)
+ * - dayShift        : 시프트로 인한 날짜 경계 이동 횟수
  */
 public final class TimeShiftUtil {
 

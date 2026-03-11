@@ -2,9 +2,9 @@ package com.github.yun531.climate.notification.infra.alert;
 
 import com.github.yun531.climate.notification.domain.adjust.RainForecastAdjuster;
 import com.github.yun531.climate.notification.domain.adjust.RainOnsetAdjuster;
-import com.github.yun531.climate.notification.domain.evaluator.RainForecastEvaluator;
-import com.github.yun531.climate.notification.domain.evaluator.RainOnsetEvaluator;
-import com.github.yun531.climate.notification.domain.evaluator.WarningIssuedEvaluator;
+import com.github.yun531.climate.notification.domain.detect.RainForecastDetector;
+import com.github.yun531.climate.notification.domain.detect.RainOnsetDetector;
+import com.github.yun531.climate.notification.domain.detect.WarningIssuedDetector;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,27 +12,27 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AlertInfraConfig {
 
-    // ---- Evaluators ----
+    // ---- Detectors ----
 
     @Bean
-    public RainOnsetEvaluator rainOnsetEvaluator(
+    public RainOnsetDetector rainOnsetDetector(
             @Value("${notification.threshold-pop:60}") int thresholdPop,
             @Value("${notification.max-points:26}") int maxHourlyPoints
     ) {
-        return new RainOnsetEvaluator(thresholdPop, maxHourlyPoints);
+        return new RainOnsetDetector(thresholdPop, maxHourlyPoints);
     }
 
     @Bean
-    public RainForecastEvaluator rainForecastEvaluator(
+    public RainForecastDetector rainForecastDetector(
             @Value("${notification.threshold-pop:60}") int thresholdPop,
             @Value("${notification.max-points:26}") int maxHourlyPoints
     ) {
-        return new RainForecastEvaluator(thresholdPop, maxHourlyPoints);
+        return new RainForecastDetector(thresholdPop, maxHourlyPoints);
     }
 
     @Bean
-    public WarningIssuedEvaluator warningIssuedEvaluator() {
-        return new WarningIssuedEvaluator();
+    public WarningIssuedDetector warningIssuedDetector() {
+        return new WarningIssuedDetector();
     }
 
     // ---- Adjusters ----

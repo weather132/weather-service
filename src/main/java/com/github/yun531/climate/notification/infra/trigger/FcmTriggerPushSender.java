@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -25,34 +24,25 @@ public class FcmTriggerPushSender implements TriggerPushSender {
 
     private static final DateTimeFormatter ISO_LOCAL = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    private static final String KEY_TYPE = "type";
-    private static final String KEY_TRIGGER_AT_LOCAL = "triggerAtLocal";
-    private static final String KEY_HOUR = "hour";
-
     @Override
     public String sendHourly(LocalDateTime firedAt, int hour, boolean dryRun) {
-        Map<String, String> data = buildData("HOURLY_TRIGGER", firedAt, hour);
-        TopicPushMessage message = new TopicPushMessage(
-                props.hourlyTopic(), data, props.ttlMillis());
-        return pushSender.push(message, dryRun);
+        return send(props.hourlyTopic(), "HOURLY_TRIGGER", firedAt, hour, dryRun);
     }
 
     @Override
     public String sendDaily(LocalDateTime firedAt, int hour, boolean dryRun) {
         if (hour < 0 || hour > 23) throw new IllegalArgumentException("hour must be 0..23");
 
-        String topic = props.dailyTopicPrefix() + String.format("%02d", hour);
-        Map<String, String> data = buildData("DAILY_TRIGGER", firedAt, hour);
-        TopicPushMessage message = new TopicPushMessage(
-                topic, data, props.ttlMillis());
-        return pushSender.push(message, dryRun);
+        return send(props.dailyTopic(hour), "DAILY_TRIGGER", firedAt, hour, dryRun);
     }
 
-    private Map<String, String> buildData(String type, LocalDateTime firedAt, int hour) {
-        Map<String, String> data = new HashMap<>();
-        data.put(KEY_TYPE, type);
-        data.put(KEY_TRIGGER_AT_LOCAL, firedAt.format(ISO_LOCAL));
-        data.put(KEY_HOUR, String.valueOf(hour));
-        return data;
+    private String send(String topic, String type, LocalDateTime firedAt, int hour, boolean dryRun) {
+        Map<String, String> data = Map.of(
+                "type", type,
+                "triggerAtLocal", firedAt.format(ISO_LOCAL),
+                "hour", String.valueOf(hour)
+        );
+        TopicPushMessage message = new TopicPushMessage(topic, data, props.ttlMillis());
+        return pushSender.push(message, dryRun);
     }
 }

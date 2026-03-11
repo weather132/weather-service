@@ -9,56 +9,60 @@ import java.util.List;
  * - ForecastSnap(원본 스냅샷)에서 POP만 뽑아 26시간/7일 규격으로 정규화한다.
  */
 public record PopView(
-        HourlyPopSeries26 hourly,
-        DailyPopSeries7 daily,
+        HourlySeries hourly,
+        DailySeries daily,
         LocalDateTime reportTime
 ) {
     public static final int HOURLY_SIZE = 26;
     public static final int DAILY_SIZE = 7;
 
     public PopView {
-        hourly = (hourly == null) ? HourlyPopSeries26.empty26() : hourly;
-        daily  = (daily  == null) ? DailyPopSeries7.empty7() : daily;
+        hourly = (hourly == null) ? HourlySeries.empty() : hourly;
+        daily  = (daily  == null) ? DailySeries.empty() : daily;
     }
 
     /** ======================= Pair ======================= */
     public record Pair(PopView current, PopView previous) {}
 
     /** ======================= Hourly ======================= */
-    public record HourlyPopSeries26(List<Point> points) {
-        public record Point(LocalDateTime validAt, int pop) {}
+    public record HourlySeries(List<Point> points) {
 
-        public HourlyPopSeries26 {
+        /** @param pop null 이면 "데이터 없음" */
+        public record Point(LocalDateTime validAt, Integer pop) {}
+
+        public HourlySeries {
             points = (points == null) ? List.of() : List.copyOf(points);
             if (points.size() != HOURLY_SIZE) {
                 throw new IllegalArgumentException(
-                        "HourlyPopSeries26 must have " + HOURLY_SIZE + " points");
+                        "HourlySeries must have " + HOURLY_SIZE + " points");
             }
         }
 
-        public static HourlyPopSeries26 empty26() {
+        public static HourlySeries empty() {
             List<Point> out = new ArrayList<>(HOURLY_SIZE);
-            for (int i = 0; i < HOURLY_SIZE; i++) out.add(new Point(null, 0));
-            return new HourlyPopSeries26(out);
+            for (int i = 0; i < HOURLY_SIZE; i++) out.add(new Point(null, null));
+            return new HourlySeries(out);
         }
     }
 
     /** ======================= Daily ======================= */
-    public record DailyPopSeries7(List<DailyPop> days) {
-        public record DailyPop(int am, int pm) {}
+    public record DailySeries(List<DailyPop> days) {
 
-        public DailyPopSeries7 {
+        /** @param am null 이면 "데이터 없음", @param pm null 이면 "데이터 없음" */
+        public record DailyPop(Integer am, Integer pm) {}
+
+        public DailySeries {
             days = (days == null) ? List.of() : List.copyOf(days);
             if (days.size() != DAILY_SIZE) {
                 throw new IllegalArgumentException(
-                        "DailyPopSeries7 must have " + DAILY_SIZE + " dailyPoints");
+                        "DailySeries must have " + DAILY_SIZE + " dailyPoints");
             }
         }
 
-        public static DailyPopSeries7 empty7() {
+        public static DailySeries empty() {
             List<DailyPop> out = new ArrayList<>(DAILY_SIZE);
-            for (int i = 0; i < DAILY_SIZE; i++) out.add(new DailyPop(0, 0));
-            return new DailyPopSeries7(out);
+            for (int i = 0; i < DAILY_SIZE; i++) out.add(new DailyPop(null, null));
+            return new DailySeries(out);
         }
 
         public DailyPop get(int dayOffset0to6) {

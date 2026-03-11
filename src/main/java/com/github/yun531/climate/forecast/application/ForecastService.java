@@ -1,9 +1,10 @@
 package com.github.yun531.climate.forecast.application;
 
-import com.github.yun531.climate.forecast.domain.adjust.HourlyForecastWindowAdjuster;
+import com.github.yun531.climate.forecast.domain.adjust.ForecastWindowAdjuster;
 import com.github.yun531.climate.forecast.domain.reader.ForecastViewReader;
 import com.github.yun531.climate.forecast.domain.readmodel.ForecastDailyView;
 import com.github.yun531.climate.forecast.domain.readmodel.ForecastHourlyView;
+import com.github.yun531.climate.shared.time.TimeUtil;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -16,12 +17,12 @@ import java.time.temporal.ChronoUnit;
 public class ForecastService {
 
     private final ForecastViewReader viewReader;
-    private final HourlyForecastWindowAdjuster windowAdjuster;
+    private final ForecastWindowAdjuster windowAdjuster;
     private final Clock clock;
 
     public ForecastService(
             ForecastViewReader viewReader,
-            HourlyForecastWindowAdjuster windowAdjuster,
+            ForecastWindowAdjuster windowAdjuster,
             Clock clock
     ) {
         this.viewReader = viewReader;
@@ -53,10 +54,10 @@ public class ForecastService {
     // ======================= 시간 헬퍼 =======================
 
     private LocalDateTime normalizeNow(LocalDateTime now) {
-        return (now == null) ? now() : now.truncatedTo(ChronoUnit.MINUTES);
+        return (now == null) ? now() : TimeUtil.truncateToMinutes(now);
     }
 
     private LocalDateTime now() {
-        return LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+        return TimeUtil.truncateToMinutes(LocalDateTime.now(clock));
     }
 }

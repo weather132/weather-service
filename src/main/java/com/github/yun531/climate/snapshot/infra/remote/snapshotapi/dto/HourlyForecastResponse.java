@@ -7,11 +7,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record HourlySnapshotResponse(
+public record HourlyForecastResponse(
         LocalDateTime announceTime,
         Integer coordsX,
         Integer coordsY,
         @JsonProperty("gridForecastData")
-        List<GridPoint> gridForecastData
+        List<HourlyForecastItem> items
 ) {
 }

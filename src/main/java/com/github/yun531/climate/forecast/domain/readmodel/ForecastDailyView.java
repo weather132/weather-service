@@ -10,7 +10,7 @@ import java.util.List;
 public record ForecastDailyView(
         String regionId,
         LocalDateTime reportTime,
-        List<ForecastDailyEntry> dailyPoints
+        List<ForecastDailyPoint> dailyPoints
 ) {
     public ForecastDailyView {
         dailyPoints = (dailyPoints == null) ? List.of() : List.copyOf(dailyPoints);

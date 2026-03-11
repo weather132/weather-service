@@ -7,31 +7,35 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 기상 발표 스케줄 정책.
+ * 발표 시각은 3시간 간격(02,05,08,11,14,17,20,23)이며,
+ * 발표 후 availableDelayMinutes(기본 10분) 경과 시점부터 접근 가능으로 판정.
+ */
 @Component
 public class PublishSchedulePolicy {
 
-    // 발표 시각: 02,05,08,11,14,17,20,23
     private static final List<Integer> ANNOUNCE_HOURS = List.of(2, 5, 8, 11, 14, 17, 20, 23);
 
     private final int availableDelayMinutes;
 
     public PublishSchedulePolicy() {
-        this(10); // “발표 후 10분부터 접근 가능”
+        this(10);
     }
 
     public PublishSchedulePolicy(int availableDelayMinutes) {
         this.availableDelayMinutes = availableDelayMinutes;
     }
 
-    /** now 시각에 announceTime 데이터 접근 가능 여부 */
+    /** now >= announceTime + delay 이면 접근 가능 */
     public boolean isAccessible(LocalDateTime now, LocalDateTime announceTime) {
         return now != null
                 && announceTime != null
                 && !now.isBefore(announceTime.plusMinutes(availableDelayMinutes));
     }
 
-    /** CURRENT / PREVIOUS 에 따른 기준 발표시각 반환 */
-    public LocalDateTime resolve(LocalDateTime now, SnapKind kind) {
+    /** SnapKind에 따른 기준 발표시각. PREVIOUS는 CURRENT 보다 3시간 이전 */
+    public LocalDateTime announceTimeFor(LocalDateTime now, SnapKind kind) {
         LocalDateTime cur = latestAvailableAnnounceTime(now);
         if (cur == null || kind == null) return null;
 
@@ -41,35 +45,23 @@ public class PublishSchedulePolicy {
         };
     }
 
-    /** now 기준 “접근 가능한” 최신 발표시각:
-     *  cutoff = now - delay, cutoff 이하인 발표시각 중 최대 */
+    /** now 기준 접근 가능한 최신 발표시각. cutoff(now - delay) 이하인 후보 중 최대 */
     public LocalDateTime latestAvailableAnnounceTime(LocalDateTime now) {
         if (now == null) return null;
 
         LocalDateTime cutoff = now.minusMinutes(availableDelayMinutes);
-        LocalDate d0 = cutoff.toLocalDate();
-        LocalDate d1 = d0.minusDays(1);
+        LocalDate today = cutoff.toLocalDate();
 
-        LocalDateTime best = null;
+        // cutoff 이하인 가장 늦은 발표시각을 역순 탐색
+        for (int i = ANNOUNCE_HOURS.size() - 1; i >= 0; i--) {
+            LocalDateTime t = today.atTime(ANNOUNCE_HOURS.get(i), 0);
 
-        // 오늘 후보
-        best = maxCandidateUpTo(cutoff, d0, best);
-        // 전날 후보
-        best = maxCandidateUpTo(cutoff, d1, best);
-
-        return best;
-    }
-
-    /** day의 발표시각 후보들 중 cutoff 이하인 최대를, currentBest와 비교해 갱신 */
-    private LocalDateTime maxCandidateUpTo(LocalDateTime cutoff, LocalDate day, LocalDateTime currentBest) {
-        LocalDateTime best = currentBest;
-
-        for (int h : ANNOUNCE_HOURS) {
-            LocalDateTime t = day.atTime(h, 0);
-            if (!t.isAfter(cutoff) && (best == null || t.isAfter(best))) {
-                best = t;
-            }
+            if (!t.isAfter(cutoff)) return t;
         }
-        return best;
+
+        // 오늘 후보가 모두 cutoff 이후 → 전날 마지막 발표시각
+        LocalDate yesterday = today.minusDays(1);
+
+        return yesterday.atTime(ANNOUNCE_HOURS.get(ANNOUNCE_HOURS.size() - 1), 0);
     }
 }

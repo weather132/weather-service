@@ -13,8 +13,13 @@ public final class IssuedWarningMapper {
 
     private IssuedWarningMapper() {}
 
-    public static Map<WarningKind, IssuedWarning> pickLatestByKind(String regionId, List<WarningStateEntity> rows) {
-        if (regionId == null || regionId.isBlank() || rows == null || rows.isEmpty()) return Map.of();
+    /** regionId에 해당하는 row 들에서 kind별 최신 1건을 IssuedWarning 으로 변환 */
+    public static Map<WarningKind, IssuedWarning> mapLatestByKind(
+            String regionId, List<WarningStateEntity> rows
+    ) {
+        if (regionId == null || regionId.isBlank() || rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
 
         Map<WarningKind, WarningStateEntity> picked = new HashMap<>();
 
@@ -30,14 +35,12 @@ public final class IssuedWarningMapper {
 
         if (picked.isEmpty()) return Map.of();
 
-        Map<WarningKind, IssuedWarning> out = new HashMap<>();
-        for (var e : picked.entrySet()) {
-            out.put(e.getKey(), toView(e.getValue()));
-        }
+        Map<WarningKind, IssuedWarning> out = new HashMap<>(picked.size());
+        picked.forEach((kind, entity) -> out.put(kind, fromEntity(entity)));
         return out;
     }
 
-    public static IssuedWarning toView(WarningStateEntity ws) {
+    public static IssuedWarning fromEntity(WarningStateEntity ws) {
         if (ws == null) return null;
         return new IssuedWarning(
                 ws.getRegionId(),
@@ -49,9 +52,6 @@ public final class IssuedWarningMapper {
 
     /** updatedAt 최신 우선, 동일 시각이면 warningId 큰 쪽 우선 */
     private static WarningStateEntity newer(WarningStateEntity a, WarningStateEntity b) {
-        if (a == null) return b;
-        if (b == null) return a;
-
         LocalDateTime ta = a.getUpdatedAt();
         LocalDateTime tb = b.getUpdatedAt();
 
@@ -66,6 +66,6 @@ public final class IssuedWarningMapper {
     }
 
     private static int safeId(WarningStateEntity ws) {
-        return (ws == null || ws.getWarningId() == null) ? -1 : ws.getWarningId();
+        return (ws.getWarningId() == null) ? -1 : ws.getWarningId();
     }
 }

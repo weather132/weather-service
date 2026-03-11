@@ -6,7 +6,7 @@ import com.github.yun531.climate.snapshot.domain.readmodel.WeatherSnapshot;
 import com.github.yun531.climate.snapshot.infra.config.SnapshotCacheProperties;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.api.SnapshotApiClient;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.DailyForecastResponse;
-import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.HourlySnapshotResponse;
+import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.HourlyForecastResponse;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.mapper.SnapshotApiResponseMapper;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Component
 public class ApiSnapshotReader extends CachingSnapshotReader {
@@ -41,24 +42,22 @@ public class ApiSnapshotReader extends CachingSnapshotReader {
      */
     @Override
     protected CacheEntry<WeatherSnapshot> doFetch(
-            SnapshotKey key, LocalDateTime now, LocalDateTime publishTime
+            SnapshotKey key, LocalDateTime now, LocalDateTime announceTime
     ) {
         String regionId = key.regionId();
 
-        // 발표 데이터 접근 가능 여부
-        if (!publishSchedule.isAccessible(now, publishTime)) {
-            return emptyCacheEntry(now);
-        }
-
         // 시간별 예보 조회
-        HourlySnapshotResponse hourlyResponse = client.fetchHourly(regionId, publishTime);
-        if (!hasData(hourlyResponse)) {
-            return emptyCacheEntry(now);
+        HourlyForecastResponse hourlyResponse = client.fetchHourly(regionId, announceTime);
+        if (hourlyResponse == null || isEmptyItems(hourlyResponse.items())) {
+            return null;
         }
 
         // 일별 예보 조회
-        LocalDate baseDate = extractBaseDate(hourlyResponse, publishTime);
+        LocalDate baseDate = extractBaseDate(hourlyResponse, announceTime);
         DailyForecastResponse dailyResponse = client.fetchDaily(regionId);
+        if (dailyResponse == null || isEmptyItems(dailyResponse.items())) {
+            return null;
+        }
 
         // 조립
         WeatherSnapshot snapshot = mapper.toSnapshot(regionId, hourlyResponse, dailyResponse, baseDate);
@@ -69,13 +68,11 @@ public class ApiSnapshotReader extends CachingSnapshotReader {
     //  헬퍼
     // =====================================================================
 
-    private boolean hasData(@Nullable HourlySnapshotResponse response) {
-        return response != null
-                && response.gridForecastData() != null
-                && !response.gridForecastData().isEmpty();
+    private boolean isEmptyItems(@Nullable List<?> items) {
+        return items == null || items.isEmpty();
     }
 
-    private LocalDate extractBaseDate(HourlySnapshotResponse response, LocalDateTime fallback) {
+    private LocalDate extractBaseDate(HourlyForecastResponse response, LocalDateTime fallback) {
         LocalDateTime t = (response.announceTime() != null) ? response.announceTime() : fallback;
         return t.toLocalDate();
     }
