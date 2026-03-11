@@ -38,7 +38,7 @@ public class JpaSnapshotReader extends CachingSnapshotReader {
      */
     @Override
     protected CacheEntry<WeatherSnapshot> doFetch(
-            SnapshotKey key, LocalDateTime now, LocalDateTime publishTime
+            SnapshotKey key, LocalDateTime now, LocalDateTime announceTime
     ) {
         SnapshotEntity entity = snapshotRepository.findBySnapIdAndRegionId(
                 key.asSnapId(), key.regionId()

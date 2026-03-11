@@ -16,29 +16,29 @@ import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/change")
+@RequestMapping("/notification/alerts")
 public class AlertController {
 
     private final GenerateAlertsService service;
 
-    @GetMapping("/climate/3hour")
+    @GetMapping("/rain-onset")
     @Operation(
             summary = "일기예보 변동사항 알림",
             description = "3시간 마다 발표되는 24시간이내의 일기예보의 변동사항에 대한 알림"
     )
     public ResponseEntity<List<AlertEvent>> get3HourIntervalForecast(
             @RequestParam List<String> regionIds,
-            @RequestParam(value = "maxHour", required = false) Integer maxHour
+            @RequestParam(value = "withinHours", required = false) Integer withinHours
     ) {
-        if (maxHour != null && (maxHour < 1 || maxHour > 24)) maxHour = 24;
+        if (withinHours != null && (withinHours < 1 || withinHours > 24)) withinHours = 24;
 
         var cmd = new GenerateAlertsCommand(
-                regionIds, null, EnumSet.of(AlertTypeEnum.RAIN_ONSET), null, maxHour
+                regionIds, null, EnumSet.of(AlertTypeEnum.RAIN_ONSET), null, withinHours
         );
         return ResponseEntity.ok(service.generate(cmd));
     }
 
-    @GetMapping("/climate/day")
+    @GetMapping("/rain-forecast")
     @Operation(
             summary = "일기예보 요약 알림",
             description = "24시간 이내의 비오는 시간대와, 7일이내의 오전/오후 일기예보 알림"
@@ -52,7 +52,7 @@ public class AlertController {
         return ResponseEntity.ok(service.generate(cmd));
     }
 
-    @GetMapping("/warning")
+    @GetMapping("/warning-issued")
     @Operation(
             summary = "기상특보 변동사항 알림",
             description = "1시간마다 발표되는 기상특보의 변동사항에 대한 알림. sinceHours: 최근 N시간 이내 발령 특보만 조회 (기본값 서버 설정)"
@@ -76,13 +76,16 @@ public class AlertController {
     )
     public ResponseEntity<List<AlertEvent>> getSummary(
             @RequestParam List<String> regionIds,
+            @RequestParam(value = "withinHours", required = false) Integer withinHours,
             @RequestParam(value = "sinceHours", required = false) Integer sinceHours,
             @RequestParam(value = "warningKinds", required = false) List<WarningKind> warningKinds
     ) {
+        if (withinHours != null && (withinHours < 1 || withinHours > 24)) withinHours = 24;
+
         var cmd = new GenerateAlertsCommand(
                 regionIds, sinceHours,
                 EnumSet.of(AlertTypeEnum.RAIN_ONSET, AlertTypeEnum.WARNING_ISSUED),
-                toEnumSet(warningKinds), null
+                toEnumSet(warningKinds), withinHours
         );
         return ResponseEntity.ok(service.generate(cmd));
     }

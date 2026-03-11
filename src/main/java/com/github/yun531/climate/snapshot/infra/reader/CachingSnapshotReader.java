@@ -2,6 +2,7 @@ package com.github.yun531.climate.snapshot.infra.reader;
 
 import com.github.yun531.climate.shared.cache.CacheEntry;
 import com.github.yun531.climate.shared.cache.KeyCache;
+import com.github.yun531.climate.shared.time.TimeUtil;
 import com.github.yun531.climate.snapshot.domain.model.SnapKind;
 import com.github.yun531.climate.snapshot.domain.policy.PublishSchedulePolicy;
 import com.github.yun531.climate.snapshot.domain.reader.SnapshotReader;
@@ -51,31 +52,33 @@ public abstract class CachingSnapshotReader implements SnapshotReader {
         if (regionId == null || regionId.isBlank() || kind == null) return null;
 
         LocalDateTime now = now();
-        LocalDateTime publishTime = publishSchedule.resolve(now, kind);
-        if (publishTime == null) return null;
+        LocalDateTime announceTime = publishSchedule.announceTimeFor(now, kind);
+        if (announceTime == null) return null;
 
         SnapshotKey key = SnapshotKey.of(regionId, kind);
 
-        return snapshotCache.getOrCompute(
+        CacheEntry<WeatherSnapshot> entry = snapshotCache.getOrCompute(
                 key.asCacheKey(),
-                publishTime,
+                announceTime,
                 cacheProps.recomputeThresholdMinutes(),
-                () -> doFetch(key, now, publishTime)
-        ).value();
+                () -> doFetch(key, now, announceTime)
+        );
+
+        return (entry == null) ? null : entry.value();
     }
 
     /**
      * 실제 데이터 조회를 수행한다.
-     * @param publishTime 발표시각 (resolve 완료)
+     * 데이터가 없더라도 null을 반환하지 말고 {@link #emptyCacheEntry}를 반환.
      */
     protected abstract CacheEntry<WeatherSnapshot> doFetch(
-            SnapshotKey key, LocalDateTime now, LocalDateTime publishTime);
+            SnapshotKey key, LocalDateTime now, LocalDateTime announceTime);
 
     protected CacheEntry<WeatherSnapshot> emptyCacheEntry(LocalDateTime now) {
         return new CacheEntry<>(null, now);
     }
 
-    protected LocalDateTime now() {
-        return LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+    private LocalDateTime now() {
+        return TimeUtil.truncateToMinutes(LocalDateTime.now(clock));
     }
 }

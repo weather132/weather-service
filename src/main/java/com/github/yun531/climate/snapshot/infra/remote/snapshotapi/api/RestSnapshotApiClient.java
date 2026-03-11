@@ -2,7 +2,7 @@ package com.github.yun531.climate.snapshot.infra.remote.snapshotapi.api;
 
 import com.github.yun531.climate.snapshot.infra.config.SnapshotApiProperties;
 import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.DailyForecastResponse;
-import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.HourlySnapshotResponse;
+import com.github.yun531.climate.snapshot.infra.remote.snapshotapi.dto.HourlyForecastResponse;
 import com.github.yun531.climate.shared.http.UrlQueryUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -38,7 +38,7 @@ public class RestSnapshotApiClient implements SnapshotApiClient {
     }
 
     @Override
-    public HourlySnapshotResponse fetchHourly(String regionCode, LocalDateTime announceTime) {
+    public HourlyForecastResponse fetchHourly(String regionCode, LocalDateTime announceTime) {
         try {
             String uri = UrlQueryUtil.buildUri(
                     "/hourly/snapshot",
@@ -47,7 +47,7 @@ public class RestSnapshotApiClient implements SnapshotApiClient {
                             "announceTime", UrlQueryUtil.formatIso(announceTime)
                     )
             );
-            return rest().getForObject(uri, HourlySnapshotResponse.class);
+            return rest().getForObject(uri, HourlyForecastResponse.class);
         } catch (RestClientException e) {
             return null;
         }

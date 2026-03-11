@@ -1,5 +1,6 @@
 package com.github.yun531.climate.warning.infra.reader;
 
+import com.github.yun531.climate.shared.time.TimeUtil;
 import com.github.yun531.climate.warning.domain.model.WarningKind;
 import com.github.yun531.climate.warning.domain.reader.WarningStateReader;
 import com.github.yun531.climate.warning.domain.readmodel.IssuedWarning;
@@ -41,7 +42,7 @@ public class JpaIssuedWarningReader implements WarningStateReader {
     public Map<WarningKind, IssuedWarning> loadLatestByKind(String regionId) {
         if (regionId == null || regionId.isBlank()) return Map.of();
 
-        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime now = TimeUtil.truncateToMinutes(LocalDateTime.now(clock));
 
         CacheEntry<Map<WarningKind, IssuedWarning>> entry = cache.getOrCompute(
                 regionId,
@@ -49,7 +50,7 @@ public class JpaIssuedWarningReader implements WarningStateReader {
                 ttlMinutes,
                 () -> {
                     var rows = repo.findByRegionIdIn(List.of(regionId));
-                    var map = IssuedWarningMapper.pickLatestByKind(regionId, rows);
+                    var map = IssuedWarningMapper.mapLatestByKind(regionId, rows);
                     return new CacheEntry<>(map, now);
                 }
         );
