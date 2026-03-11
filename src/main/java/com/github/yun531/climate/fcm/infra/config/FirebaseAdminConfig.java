@@ -7,12 +7,14 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import java.io.FileInputStream;
 import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
+@Profile("!test")
 public class FirebaseAdminConfig {
 
     private final FirebaseProperties props;

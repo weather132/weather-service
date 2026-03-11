@@ -1,45 +1,148 @@
+// =========================================================
+// Plugins
+// =========================================================
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.7'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
+
+// =========================================================
+// Project Info
+// =========================================================
 group = 'com.github.yun531'
 version = '0.0.1-SNAPSHOT'
 description = 'climate'
 
+
+// =========================================================
+// Java Configuration
+// =========================================================
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
+
+// =========================================================
+// Gradle Configurations
+// =========================================================
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
 }
 
+
+// =========================================================
+// Repositories
+// =========================================================
 repositories {
     mavenCentral()
 }
 
+
+// =========================================================
+// Dependencies
+// =========================================================
 dependencies {
+
+    // --- Spring Boot
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // --- Database
     runtimeOnly 'com.mysql:mysql-connector-j'
 
+    // --- API Documentation (Swagger / OpenAPI)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
 
+    // --- External Service
     implementation 'com.google.firebase:firebase-admin:9.2.0'
 
+    // --- Development Tools
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
+    // --- Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // --- Test: H2 (JPA 통합 테스트)
+    testRuntimeOnly 'com.h2database:h2'
+
+    // --- Test: WireMock (API 통합 테스트)
+    testImplementation 'org.wiremock:wiremock-standalone:3.12.1'
+
+    // --- Test: Lombok
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+
+// =========================================================
+// Test Task
+// =========================================================
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+
+// =========================================================
+// JaCoCo Configuration
+// =========================================================
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    // 설정 클래스
+                    '**/config/**',
+                    '**/ClimateApplication.class',
+                    // 엔티티, DTO
+                    '**/entity/**',
+                    '**/dto/**',
+                    // Firebase 외부 의존 (통합 테스트 범위 밖)
+                    '**/fcm/infra/firebase/**',
+                    '**/fcm/infra/config/**'
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.70
+            }
+        }
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(jacocoTestReport.classDirectories)
+    }
+}
+
+// 'check' 태스크에 커버리지 검증 연결
+tasks.named('check') {
+    dependsOn jacocoTestCoverageVerification
 }

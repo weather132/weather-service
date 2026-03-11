@@ -38,4 +38,6 @@ out/
 
 ### Local configuration (DB, secrets) ###
 /src/main/resources/application*.properties
-/src/test/resources/application*.properties
+
+### Secrets ###
+secrets/

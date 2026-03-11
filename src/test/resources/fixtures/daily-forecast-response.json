@@ -1,0 +1,18 @@
+{
+  "regionCode": "11B10101",
+  "forecasts": [
+    { "announceTime": "2026-01-22T05:00:00", "effectiveTime": "2026-01-22T09:00:00", "pop": 30, "temp": null },
+    { "announceTime": "2026-01-22T05:00:00", "effectiveTime": "2026-01-22T21:00:00", "pop": 60, "temp": -5 },
+    { "announceTime": "2026-01-22T05:00:00", "effectiveTime": "2026-01-23T09:00:00", "pop": 40, "temp": -12 },
+    { "announceTime": "2026-01-22T05:00:00", "effectiveTime": "2026-01-23T21:00:00", "pop": 70, "temp": -2 },
+    { "announceTime": "2026-01-22T05:00:00", "effectiveTime": "2026-01-24T09:00:00", "pop": 10, "temp": -11 },
+    { "announceTime": "2026-01-22T05:00:00", "effectiveTime": "2026-01-24T21:00:00", "pop": 0, "temp": -2 },
+    { "announceTime": "2026-01-22T05:00:00", "effectiveTime": "2026-01-25T09:00:00", "pop": 0, "temp": -11 },
+    { "announceTime": "2026-01-22T05:00:00", "effectiveTime": "2026-01-25T21:00:00", "pop": 20, "temp": -2 },
+    { "announceTime": "2026-01-20T18:00:00", "effectiveTime": "2026-01-26T09:00:00", "pop": 30, "temp": -8 },
+    { "announceTime": "2026-01-20T18:00:00", "effectiveTime": "2026-01-26T21:00:00", "pop": 30, "temp": -1 },
+    { "announceTime": "2026-01-20T18:00:00", "effectiveTime": "2026-01-27T09:00:00", "pop": 20, "temp": -7 },
+    { "announceTime": "2026-01-20T18:00:00", "effectiveTime": "2026-01-27T21:00:00", "pop": 20, "temp": 0 },
+    { "announceTime": "2026-01-20T18:00:00", "effectiveTime": "2026-01-28T09:00:00", "pop": 10, "temp": -7 }
+  ]
+}
