@@ -26,8 +26,8 @@ class PopViewMapperTest {
 
         PopView view = mapper.toPopView(snap);
 
-        assertThat(view.hourly().points()).hasSize(26);
-        assertThat(view.daily().days()).hasSize(7);
+        assertThat(view.hourly().pops()).hasSize(26);
+        assertThat(view.daily().pops()).hasSize(7);
         assertThat(view.reportTime()).isEqualTo(ANNOUNCE_TIME);
     }
 
@@ -38,10 +38,10 @@ class PopViewMapperTest {
 
         PopView view = mapper.toPopView(snap);
 
-        assertThat(view.hourly().points()).hasSize(26);
+        assertThat(view.hourly().pops()).hasSize(26);
         // 10번째 이후는 패딩 (validAt=null, pop=null)
-        assertThat(view.hourly().points().get(10).validAt()).isNull();
-        assertThat(view.hourly().points().get(10).pop()).isNull();
+        assertThat(view.hourly().pops().get(10).validAt()).isNull();
+        assertThat(view.hourly().pops().get(10).pop()).isNull();
     }
 
     @Test
@@ -81,7 +81,7 @@ class PopViewMapperTest {
 
         PopView view = mapper.toPopView(snap);
 
-        assertThat(view.hourly().points().get(0).pop()).isNull();
+        assertThat(view.hourly().pops().get(0).pop()).isNull();
     }
 
     @Test
@@ -92,9 +92,9 @@ class PopViewMapperTest {
 
         PopView view = mapper.toPopView(snap);
 
-        assertThat(view.daily().days()).hasSize(7);
-        assertThat(view.daily().days().get(0).am()).isNull();
-        assertThat(view.daily().days().get(0).pm()).isNull();
+        assertThat(view.daily().pops()).hasSize(7);
+        assertThat(view.daily().pops().get(0).am()).isNull();
+        assertThat(view.daily().pops().get(0).pm()).isNull();
     }
 
     @Test
@@ -110,8 +110,8 @@ class PopViewMapperTest {
 
         PopView view = mapper.toPopView(snap);
 
-        assertThat(view.daily().days().get(0).am()).isEqualTo(30);
-        assertThat(view.daily().days().get(0).pm()).isEqualTo(60);
+        assertThat(view.daily().pops().get(0).am()).isEqualTo(30);
+        assertThat(view.daily().pops().get(0).pm()).isEqualTo(60);
     }
 
     // -- 헬퍼 --

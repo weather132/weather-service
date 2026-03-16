@@ -2,6 +2,7 @@ package com.github.yun531.climate.forecast.domain.readmodel;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 일자별 AM/PM 예보 DTO
@@ -13,6 +14,7 @@ public record ForecastDailyView(
         List<ForecastDailyPoint> dailyPoints
 ) {
     public ForecastDailyView {
-        dailyPoints = (dailyPoints == null) ? List.of() : List.copyOf(dailyPoints);
+        Objects.requireNonNull(dailyPoints, "dailyPoints must not be null");
+        dailyPoints = List.copyOf(dailyPoints);
     }
 }

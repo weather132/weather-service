@@ -6,8 +6,8 @@ import com.github.yun531.climate.notification.domain.payload.RainForecastPayload
 import com.github.yun531.climate.notification.domain.payload.RainForecastPayload.DailyRainFlags;
 import com.github.yun531.climate.notification.domain.payload.RainForecastPayload.RainInterval;
 import com.github.yun531.climate.notification.domain.readmodel.PopView;
-import com.github.yun531.climate.notification.domain.readmodel.PopView.HourlySeries;
-import com.github.yun531.climate.notification.domain.readmodel.PopView.DailySeries;
+import com.github.yun531.climate.notification.domain.readmodel.PopView.Hourly;
+import com.github.yun531.climate.notification.domain.readmodel.PopView.Daily;
 import com.github.yun531.climate.shared.time.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,41 +58,41 @@ public class RainForecastDetector {
     // =====================================================================
 
     private List<RainInterval> buildHourlyRanges(PopView view) {
-        List<HourlySeries.Point> points = collectValidPoints(view.hourly().points());
-        return points.isEmpty() ? List.of() : toRainSegments(points);
+        List<Hourly.Pop> pops = collectValidPoints(view.hourly().pops());
+        return pops.isEmpty() ? List.of() : toRainIntervals(pops);
     }
 
     /** validAt이 있는 포인트만 최대 maxHourlyPoints개 수집 */
-    private List<HourlySeries.Point> collectValidPoints(List<HourlySeries.Point> raw) {
-        if (raw == null || raw.isEmpty() || maxHourlyPoints == 0) return List.of();
+    private List<Hourly.Pop> collectValidPoints(List<Hourly.Pop> hourlyPops) {
+        if (hourlyPops == null || hourlyPops.isEmpty() || maxHourlyPoints == 0) return List.of();
 
-        List<HourlySeries.Point> out = new ArrayList<>(Math.min(raw.size(), maxHourlyPoints));
-        for (HourlySeries.Point p : raw) {
-            if (p == null) continue;
-            if (p.validAt() == null) break;
-            out.add(p);
-            if (out.size() == maxHourlyPoints) break;
+        List<Hourly.Pop> validHourlyPops = new ArrayList<>(Math.min(hourlyPops.size(), maxHourlyPoints));
+        for (Hourly.Pop pop : hourlyPops) {
+            if (pop == null) continue;
+            if (pop.validAt() == null) continue;
+            validHourlyPops.add(pop);
+            if (validHourlyPops.size() == maxHourlyPoints) break;
         }
-        return out;
+        return validHourlyPops;
     }
 
     /** 연속된 비 구간(pop >= threshold)을 [start, end] 절대시각 구간으로 묶음 */
-    private List<RainInterval> toRainSegments(List<HourlySeries.Point> points) {
-        List<RainInterval> segments = new ArrayList<>();
+    private List<RainInterval> toRainIntervals(List<Hourly.Pop> hourlyPops) {
+        List<RainInterval> rainIntervals  = new ArrayList<>();
         boolean inRain = false;
         LocalDateTime segStart = null;
         LocalDateTime prevAt = null;
 
-        for (HourlySeries.Point p : points) {
-            LocalDateTime at = p.validAt();
+        for (Hourly.Pop pop : hourlyPops) {
+            LocalDateTime at = pop.validAt();
 
-            if (isRainy(p)) {
+            if (isRainy(pop)) {
                 if (!inRain) {
                     inRain = true;
                     segStart = at;
                 }
             } else if (inRain) {
-                segments.add(new RainInterval(segStart, prevAt));
+                rainIntervals .add(new RainInterval(segStart, prevAt));
                 inRain = false;
                 segStart = null;
             }
@@ -101,13 +101,13 @@ public class RainForecastDetector {
 
         // 열린 구간 닫기
         if (inRain && segStart != null && prevAt != null) {
-            segments.add(new RainInterval(segStart, prevAt));
+            rainIntervals .add(new RainInterval(segStart, prevAt));
         }
 
-        return segments.isEmpty() ? List.of() : List.copyOf(segments);
+        return rainIntervals .isEmpty() ? List.of() : List.copyOf(rainIntervals );
     }
 
-    private boolean isRainy(HourlySeries.Point p) {
+    private boolean isRainy(Hourly.Pop p) {
         return p.pop() != null && p.pop() >= rainThreshold;
     }
 
@@ -116,11 +116,11 @@ public class RainForecastDetector {
     // =====================================================================
 
     private List<DailyRainFlags> buildDayFlags(PopView view) {
-        List<DailySeries.DailyPop> days = view.daily().days();
-        if (days == null || days.isEmpty()) return List.of();
+        List<Daily.Pop> dailyPops = view.daily().pops();
+        if (dailyPops == null || dailyPops.isEmpty()) return List.of();
 
-        List<DailyRainFlags> flags = new ArrayList<>(days.size());
-        for (DailySeries.DailyPop d : days) {
+        List<DailyRainFlags> flags = new ArrayList<>(dailyPops.size());
+        for (Daily.Pop d : dailyPops) {
             flags.add(new DailyRainFlags(
                     d.am() != null && d.am() >= rainThreshold,
                     d.pm() != null && d.pm() >= rainThreshold));
@@ -131,16 +131,16 @@ public class RainForecastDetector {
     // -- 로깅 --
 
     private void logSummary(PopView view, List<RainInterval> hourlyRanges) {
-        var pts = view.hourly().points();
+        var pops = view.hourly().pops();
         int nullCount = 0;
         int rainCount = 0;
 
-        for (var p : pts) {
-            if (p == null || p.validAt() == null) { nullCount++; continue; }
-            if (isRainy(p)) rainCount++;
+        for (var pop : pops) {
+            if (pop == null || pop.validAt() == null) { nullCount++; continue; }
+            if (isRainy(pop)) rainCount++;
         }
 
-        log.info("[RAIN_FORECAST] points={}, nullValidAt={}, rainyPoints={}, segments={}",
-                pts.size(), nullCount, rainCount, hourlyRanges.size());
+        log.info("[RAIN_FORECAST] pops={}, nullValidAt={}, rainyPoints={}, segments={}",
+                pops.size(), nullCount, rainCount, hourlyRanges.size());
     }
 }

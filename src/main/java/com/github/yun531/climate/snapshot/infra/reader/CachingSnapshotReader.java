@@ -12,7 +12,6 @@ import org.springframework.lang.Nullable;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 
 /**
  * SnapshotReader 공통 캐싱 골격.
@@ -69,14 +68,9 @@ public abstract class CachingSnapshotReader implements SnapshotReader {
 
     /**
      * 실제 데이터 조회를 수행한다.
-     * 데이터가 없더라도 null을 반환하지 말고 {@link #emptyCacheEntry}를 반환.
      */
     protected abstract CacheEntry<WeatherSnapshot> doFetch(
             SnapshotKey key, LocalDateTime now, LocalDateTime announceTime);
-
-    protected CacheEntry<WeatherSnapshot> emptyCacheEntry(LocalDateTime now) {
-        return new CacheEntry<>(null, now);
-    }
 
     private LocalDateTime now() {
         return TimeUtil.truncateToMinutes(LocalDateTime.now(clock));

@@ -25,6 +25,7 @@ public class KeyCache<T> {
     ) {
         if (loader == null) throw new IllegalArgumentException("loader must not be null");
 
+        // read-compute-write 전체 과정의 atomic 보장
         return entries.compute(key, (k, old) -> {
             if (old == null || old.isStale(referenceTime, toleranceMinutes)) {
                 return loader.get();

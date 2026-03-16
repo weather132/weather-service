@@ -8,7 +8,6 @@ import com.github.yun531.climate.shared.time.TimeUtil;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 
 /**
  * 일기예보 조회 서비스.

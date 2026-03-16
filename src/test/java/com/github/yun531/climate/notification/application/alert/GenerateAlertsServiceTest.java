@@ -7,7 +7,6 @@ import com.github.yun531.climate.notification.domain.detect.RainOnsetDetector;
 import com.github.yun531.climate.notification.domain.detect.WarningIssuedDetector;
 import com.github.yun531.climate.notification.domain.model.AlertEvent;
 import com.github.yun531.climate.notification.domain.model.AlertTypeEnum;
-import com.github.yun531.climate.notification.domain.payload.AlertPayload;
 import com.github.yun531.climate.notification.domain.payload.RainForecastPayload;
 import com.github.yun531.climate.notification.domain.payload.RainOnsetPayload;
 import com.github.yun531.climate.notification.domain.payload.WarningIssuedPayload;

@@ -30,10 +30,6 @@ public class RainForecastAdjuster {
     private final int windowHours;
     private final int startOffsetHours;
 
-    public RainForecastAdjuster(int maxShiftHours, int windowHours) {
-        this(maxShiftHours, windowHours, 1);
-    }
-
     public RainForecastAdjuster(int maxShiftHours, int windowHours, int startOffsetHours) {
         this.maxShiftHours = Math.max(0, maxShiftHours);
         this.windowHours = Math.max(1, windowHours);

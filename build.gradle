@@ -118,7 +118,9 @@ jacocoTestReport {
                     '**/dto/**',
                     // Firebase 외부 의존 (통합 테스트 범위 밖)
                     '**/fcm/infra/firebase/**',
-                    '**/fcm/infra/config/**'
+                    '**/fcm/infra/config/**',
+                    // 내부 테스트 API 컨트롤러
+                    '**/presentation/TriggerTestController.class'
             ])
         }))
     }

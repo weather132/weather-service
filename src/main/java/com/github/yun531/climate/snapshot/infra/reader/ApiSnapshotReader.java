@@ -20,7 +20,6 @@ import java.util.List;
 public class ApiSnapshotReader extends CachingSnapshotReader {
 
     private final SnapshotApiClient client;
-    private final PublishSchedulePolicy publishSchedule;
     private final SnapshotApiResponseMapper mapper;
 
     public ApiSnapshotReader(
@@ -32,7 +31,6 @@ public class ApiSnapshotReader extends CachingSnapshotReader {
     ) {
         super(cacheProps, publishSchedule, clock);
         this.client = client;
-        this.publishSchedule = publishSchedule;
         this.mapper = mapper;
     }
 
@@ -54,7 +52,7 @@ public class ApiSnapshotReader extends CachingSnapshotReader {
 
         // 일별 예보 조회
         LocalDate baseDate = extractBaseDate(hourlyResponse, announceTime);
-        DailyForecastResponse dailyResponse = client.fetchDaily(regionId);
+        DailyForecastResponse dailyResponse = client.fetchDaily(regionId);   //todo : api에 announceTime 전달해서 요총하는 식으로 수정 후, 수정필요
         if (dailyResponse == null || isEmptyItems(dailyResponse.items())) {
             return null;
         }

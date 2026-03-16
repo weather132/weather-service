@@ -39,32 +39,27 @@ public class RainOnsetDetector {
         Map<LocalDateTime, Integer> prevPopMap = buildPrevPopMap(pair.previous());
 
         // cur 순회하면서 비 시작 감지
-        List<AlertEvent> out = new ArrayList<>(8);
-        List<PopView.HourlySeries.Point> points = curView.hourly().points();
+        List<AlertEvent> rainOnsetAlerts = new ArrayList<>(8);
+        List<PopView.Hourly.Pop> hourlyPops = curView.hourly().pops();
 
         // maxHourlyPoints는 리스트 인덱스(i)가 아니라, 실제 처리한 "유효 포인트"(seen) 기준으로 제한
         int seen = 0;
-        for (int i = 0; i < points.size() && seen < maxHourlyPoints; i++) {
-            PopView.HourlySeries.Point p = points.get(i);
-            if (p == null) continue;
+        for (PopView.Hourly.Pop pop : hourlyPops) {
+            if (seen >= maxHourlyPoints) break;
+            if (pop == null || pop.validAt() == null) continue;
 
-            LocalDateTime at = p.validAt();
-            if (at == null) break;
-
-            Integer curPop = p.pop();
+            Integer curPop = pop.pop();
             if (curPop == null) { seen++; continue; }
 
             // 이전 예보의 같은 validAt 시각 POP과 비교(예보 업데이트 전후 변화 감지)
-            if (isOnset(curPop, prevPopMap.get(at))) {
-                RainOnsetPayload payload = new RainOnsetPayload(
-                        AlertTypeEnum.RAIN_ONSET, at, curPop
-                );
-                out.add(new AlertEvent(AlertTypeEnum.RAIN_ONSET, regionId, computedAt, payload));
+            if (isOnset(curPop, prevPopMap.get(pop.validAt()))) {
+                rainOnsetAlerts.add(new AlertEvent(AlertTypeEnum.RAIN_ONSET, regionId, computedAt,
+                        new RainOnsetPayload(AlertTypeEnum.RAIN_ONSET, pop.validAt(), curPop)));
             }
             seen++;
         }
 
-        return out.isEmpty() ? List.of() : List.copyOf(out);
+        return rainOnsetAlerts.isEmpty() ? List.of() : List.copyOf(rainOnsetAlerts);
     }
 
     /** 이전에 비 아님 → 현재 비 = onset. 비교 불가(prev 없음)면 현재 비 여부만 판단 */
@@ -78,7 +73,7 @@ public class RainOnsetDetector {
     private Map<LocalDateTime, Integer> buildPrevPopMap(PopView prvView) {
         Map<LocalDateTime, Integer> map = new HashMap<>(PopView.HOURLY_SIZE * 2);
 
-        for (PopView.HourlySeries.Point p : prvView.hourly().points()) {
+        for (PopView.Hourly.Pop p : prvView.hourly().pops()) {
             if (p == null) continue;
 
             LocalDateTime at = p.validAt();

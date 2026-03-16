@@ -39,7 +39,7 @@ public final class TimeShiftUtil {
     private static int computeShiftHours(LocalDateTime baseHour, LocalDateTime nowHour, int maxShiftHours) {
         long rawHours = ChronoUnit.HOURS.between(baseHour, nowHour);
         if (rawHours <= 0) return 0;
-        return (int) Math.min(rawHours, (long) maxShiftHours);
+        return (int) Math.min(rawHours, maxShiftHours);
     }
 
     private static int computeDayShift(LocalDate baseDate, LocalDate shiftedDate) {

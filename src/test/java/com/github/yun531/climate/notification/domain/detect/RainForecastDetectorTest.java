@@ -126,16 +126,16 @@ class RainForecastDetectorTest {
 
     private PopView buildPopViewWithDaily(LocalDateTime reportTime, Integer[] pops,
                                           Integer day0Am, Integer day0Pm) {
-        List<HourlySeries.Point> points = new ArrayList<>(26);
+        List<Hourly.Pop> hourlyPops = new ArrayList<>(26);
         for (int i = 0; i < 26; i++) {
             Integer pop = (i < pops.length) ? pops[i] : null;
-            points.add(new HourlySeries.Point(reportTime.plusHours(i + 1), pop));
+            hourlyPops.add(new Hourly.Pop(reportTime.plusHours(i + 1), pop));
         }
 
-        List<DailySeries.DailyPop> days = new ArrayList<>(7);
-        days.add(new DailySeries.DailyPop(day0Am, day0Pm));
-        for (int i = 1; i < 7; i++) days.add(new DailySeries.DailyPop(null, null));
+        List<Daily.Pop> days = new ArrayList<>(7);
+        days.add(new Daily.Pop(day0Am, day0Pm));
+        for (int i = 1; i < 7; i++) days.add(new Daily.Pop(null, null));
 
-        return new PopView(new HourlySeries(points), new DailySeries(days), reportTime);
+        return new PopView(new Hourly(hourlyPops), new Daily(days), reportTime);
     }
 }
