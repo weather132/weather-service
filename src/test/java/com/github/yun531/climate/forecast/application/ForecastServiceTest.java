@@ -39,7 +39,7 @@ class ForecastServiceTest {
     }
 
     @Test
-    @DisplayName("getHourlyForecast — reader 로드 → adjuster 적용")
+    @DisplayName("getHourlyForecast — reader 로드 -> adjuster 적용")
     void hourly_readerThenAdjuster() {
         ForecastHourlyView base = new ForecastHourlyView("R1", NOW, List.of(
                 new ForecastHourlyPoint(NOW.plusHours(1), 10, 20),
@@ -59,7 +59,7 @@ class ForecastServiceTest {
     }
 
     @Test
-    @DisplayName("getHourlyForecast — reader가 null 반환 → null")
+    @DisplayName("getHourlyForecast — reader가 null 반환 -> null")
     void hourly_readerReturnsNull() {
         when(viewReader.loadHourly("R1")).thenReturn(null);
 

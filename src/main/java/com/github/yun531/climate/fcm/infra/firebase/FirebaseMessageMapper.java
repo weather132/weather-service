@@ -6,7 +6,7 @@ import com.google.firebase.messaging.Message;
 import org.springframework.stereotype.Component;
 
 /**
- * TopicPushMessage → Firebase Message 변환.
+ * TopicPushMessage -> Firebase Message 변환.
  */
 @Component
 public class FirebaseMessageMapper {

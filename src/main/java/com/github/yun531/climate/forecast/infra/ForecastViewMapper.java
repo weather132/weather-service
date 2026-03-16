@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * WeatherSnapshot → forecast 읽기모델 변환.
+ * WeatherSnapshot -> forecast 읽기모델 변환.
  */
 @Component
 public class ForecastViewMapper {

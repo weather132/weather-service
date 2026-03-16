@@ -62,7 +62,11 @@ public class RainOnsetAdjuster {
         List<AlertEvent> out = new ArrayList<>(events.size());
 
         for (AlertEvent e : events) {
-            if (!(e.payload() instanceof RainOnsetPayload p)) continue;
+            if (!(e.payload() instanceof RainOnsetPayload p)) {
+                throw new IllegalArgumentException(
+                        "RainOnsetAdjuster expects RainOnsetPayload, got: "
+                                + e.payload().getClass().getSimpleName());
+            }
 
             LocalDateTime validAt = p.validAt();
             if (validAt == null) continue;

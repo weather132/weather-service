@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 /**
  * Firebase Admin SDK를 사용한 TopicPushSender 구현.
  *
- * FirebaseMessagingException → PushFailedException 으로 변환하여
+ * FirebaseMessagingException -> PushFailedException 으로 변환하여
  * 소비자가 Firebase SDK에 의존하지 않게 한다.
  */
 @Component

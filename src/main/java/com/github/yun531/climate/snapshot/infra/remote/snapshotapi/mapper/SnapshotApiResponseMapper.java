@@ -39,7 +39,7 @@ public class SnapshotApiResponseMapper {
     }
 
     // =====================================================================
-    //  시간별: GridPoint 리스트 → HourlyPoint 리스트 (최대 26개)
+    //  시간별: GridPoint 리스트 -> HourlyPoint 리스트 (최대 26개)
     // =====================================================================
 
     private List<HourlyPoint> toHourlyPoints(HourlyForecastResponse response) {
@@ -59,11 +59,11 @@ public class SnapshotApiResponseMapper {
     }
 
     // =====================================================================
-    //  일별: DailyForecastItem 리스트 → DailyPoint 7개 (dayOffset 0~6)
+    //  일별: DailyForecastItem 리스트 -> DailyPoint 7개 (dayOffset 0~6)
     //
     //  각 offset별로:
-    //    temp → 구간 내 최소/최대
-    //    pop  → 오전(0~11시) / 오후(12~23시) 각각의 최대
+    //    temp -> 구간 내 최소/최대
+    //    pop  -> 오전(0~11시) / 오후(12~23시) 각각의 최대
     // =====================================================================
 
     private List<DailyPoint> toDailyPoints(DailyForecastResponse response, LocalDate baseDate) {

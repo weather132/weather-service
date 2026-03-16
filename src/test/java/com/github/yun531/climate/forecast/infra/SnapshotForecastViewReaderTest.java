@@ -29,7 +29,7 @@ class SnapshotForecastViewReaderTest {
     private static final LocalDateTime ANNOUNCE_TIME = LocalDateTime.of(2026, 1, 22, 5, 0);
 
     @Test
-    @DisplayName("loadHourly — SnapshotReader.loadCurrent → mapper 변환")
+    @DisplayName("loadHourly — SnapshotReader.loadCurrent -> mapper 변환")
     void loadHourly_delegatesAndMaps() {
         WeatherSnapshot snap = new WeatherSnapshot("R1", ANNOUNCE_TIME,
                 List.of(new HourlyPoint(ANNOUNCE_TIME.plusHours(1), 5, 30)), List.of());
@@ -43,7 +43,7 @@ class SnapshotForecastViewReaderTest {
     }
 
     @Test
-    @DisplayName("loadDaily — SnapshotReader.loadCurrent → mapper 변환")
+    @DisplayName("loadDaily — SnapshotReader.loadCurrent -> mapper 변환")
     void loadDaily_delegatesAndMaps() {
         WeatherSnapshot snap = new WeatherSnapshot("R1", ANNOUNCE_TIME, List.of(), List.of());
         when(snapshotReader.loadCurrent("R1")).thenReturn(snap);
@@ -55,7 +55,7 @@ class SnapshotForecastViewReaderTest {
     }
 
     @Test
-    @DisplayName("스냅샷 null → null 반환")
+    @DisplayName("스냅샷 null -> null 반환")
     void snapshotNull_returnsNull() {
         when(snapshotReader.loadCurrent("R1")).thenReturn(null);
 

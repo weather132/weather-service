@@ -21,7 +21,7 @@ import static com.github.yun531.climate.shared.time.TimeUtil.nowTruncatedToMinut
 
 /**
  * 알림 생성 서비스.
- * 흐름: 정규화 → 타입별 분기 → Port 로드 → Detector 감지 → Adjuster 보정 → dedup/sort
+ * 흐름: 정규화 -> 타입별 분기 -> Port 로드 -> Detector 감지 -> Adjuster 보정 -> dedup/sort
  */
 public class GenerateAlertsService {
 
@@ -103,13 +103,13 @@ public class GenerateAlertsService {
                 out.addAll(detectRainForecast(regionId, now));
 
             if (cmd.isEnabled(AlertTypeEnum.WARNING_ISSUED))
-                out.addAll(detectWarningIssued(regionId, since, cmd.warningKinds(), now));
+                out.addAll(detectWarningIssued(regionId, since, cmd.warningKinds()));
         }
 
         return out.isEmpty() ? List.of() : List.copyOf(out);
     }
 
-    /** load pair → detect onset → adjust(validAt window) */
+    /** load pair -> detect onset -> adjust(validAt window) */
     private List<AlertEvent> detectRainOnset(
             String regionId, @Nullable Integer withinHours, LocalDateTime now
     ) {
@@ -122,7 +122,7 @@ public class GenerateAlertsService {
         return rainOnsetAdjuster.adjust(raw, now, withinHours);
     }
 
-    /** load current → detect forecast → adjust (time shift + clipping) */
+    /** load current -> detect forecast -> adjust (time shift + clipping) */
     private List<AlertEvent> detectRainForecast(String regionId, LocalDateTime now) {
         PopView view = popViewReader.loadCurrent(regionId);
         if (view == null) return List.of();
@@ -134,15 +134,15 @@ public class GenerateAlertsService {
         return (adjusted == null) ? List.of() : List.of(adjusted);
     }
 
-    /** load states → detect issued warnings */
+    /** load states -> detect issued warnings */
     private List<AlertEvent> detectWarningIssued(
             String regionId, LocalDateTime since,
-            @Nullable Set<WarningKind> warningKinds, LocalDateTime now
+            @Nullable Set<WarningKind> warningKinds
     ) {
         var warningsByKind = warningStateReader.loadLatestByKind(regionId);
         if (warningsByKind == null || warningsByKind.isEmpty()) return List.of();
 
-        return warningIssuedDetector.detect(regionId, warningsByKind, since, warningKinds, now);
+        return warningIssuedDetector.detect(regionId, warningsByKind, since, warningKinds);
     }
 
     // -- 정규화 헬퍼 --
@@ -151,7 +151,7 @@ public class GenerateAlertsService {
         return (now == null) ? nowTruncatedToMinute() : TimeUtil.truncateToMinutes(now);
     }
 
-    /** sinceHours → LocalDateTime 변환. null 이면 기본값(defaultSinceHours) 적용 */
+    /** sinceHours -> LocalDateTime 변환. null 이면 기본값(defaultSinceHours) 적용 */
     private LocalDateTime normalizeSince(@Nullable Integer sinceHours, LocalDateTime now) {
         int hours = (sinceHours != null && sinceHours > 0) ? sinceHours : defaultSinceHours;
         return now.minusHours(hours);

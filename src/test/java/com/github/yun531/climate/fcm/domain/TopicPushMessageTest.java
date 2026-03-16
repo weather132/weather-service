@@ -84,7 +84,7 @@ class TopicPushMessageTest {
         }
 
         @Test
-        @DisplayName("data() 반환값 수정 시도 → UnsupportedOperationException")
+        @DisplayName("data() 반환값 수정 시도 -> UnsupportedOperationException")
         void dataMap_unmodifiable() {
             TopicPushMessage msg = new TopicPushMessage("hourly", Map.of("k", "v"), 1000);
 

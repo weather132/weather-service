@@ -30,7 +30,7 @@ class SnapshotPopViewReaderTest {
     private static final LocalDateTime ANNOUNCE_TIME = LocalDateTime.of(2026, 1, 22, 5, 0);
 
     @Test
-    @DisplayName("loadCurrent — SnapshotReader.loadCurrent → PopView 변환")
+    @DisplayName("loadCurrent — SnapshotReader.loadCurrent -> PopView 변환")
     void loadCurrent_delegates() {
         when(snapshotReader.loadCurrent("R1")).thenReturn(buildSnapshot());
 
@@ -42,7 +42,7 @@ class SnapshotPopViewReaderTest {
     }
 
     @Test
-    @DisplayName("loadPrevious — SnapshotReader.loadPrevious → PopView 변환")
+    @DisplayName("loadPrevious — SnapshotReader.loadPrevious -> PopView 변환")
     void loadPrevious_delegates() {
         when(snapshotReader.loadPrevious("R1")).thenReturn(buildSnapshot());
 
@@ -66,7 +66,7 @@ class SnapshotPopViewReaderTest {
     }
 
     @Test
-    @DisplayName("loadCurrentPreviousPair — 하나 null → null")
+    @DisplayName("loadCurrentPreviousPair — 하나 null -> null")
     void loadPair_oneNull() {
         when(snapshotReader.loadCurrent("R1")).thenReturn(null);
         when(snapshotReader.loadPrevious("R1")).thenReturn(buildSnapshot());

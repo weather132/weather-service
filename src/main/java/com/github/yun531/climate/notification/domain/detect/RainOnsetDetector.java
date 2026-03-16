@@ -62,7 +62,7 @@ public class RainOnsetDetector {
         return rainOnsetAlerts.isEmpty() ? List.of() : List.copyOf(rainOnsetAlerts);
     }
 
-    /** 이전에 비 아님 → 현재 비 = onset. 비교 불가(prev 없음)면 현재 비 여부만 판단 */
+    /** 이전에 비 아님 -> 현재 비 = onset. 비교 불가(prev 없음)면 현재 비 여부만 판단 */
     private boolean isOnset(int curPop, Integer prevPop) {
         if (prevPop != null) {
             return prevPop < rainThreshold && curPop >= rainThreshold;

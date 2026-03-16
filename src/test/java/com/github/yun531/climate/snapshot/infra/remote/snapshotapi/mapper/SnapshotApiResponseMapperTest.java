@@ -21,7 +21,7 @@ class SnapshotApiResponseMapperTest {
     private static final LocalDate BASE_DATE         = ANNOUNCE_TIME.toLocalDate();
 
     @Test
-    @DisplayName("hourly + daily 정상 조합 → WeatherSnapshot 생성")
+    @DisplayName("hourly + daily 정상 조합 -> WeatherSnapshot 생성")
     void normalResponse_producesSnapshot() {
         HourlyForecastResponse hourly = new HourlyForecastResponse(
                 ANNOUNCE_TIME, 60, 127,
@@ -55,7 +55,7 @@ class SnapshotApiResponseMapperTest {
     }
 
     @Test
-    @DisplayName("hourly 26개 초과 → 최대 26개로 제한")
+    @DisplayName("hourly 26개 초과 -> 최대 26개로 제한")
     void hourlyExceedsMax_truncatedTo26() {
         List<HourlyForecastItem> points = new java.util.ArrayList<>();
         for (int i = 0; i < 30; i++) {
@@ -70,7 +70,7 @@ class SnapshotApiResponseMapperTest {
     }
 
     @Test
-    @DisplayName("hourly null 응답 → 빈 리스트")
+    @DisplayName("hourly null 응답 -> 빈 리스트")
     void hourlyNull_emptyList() {
         HourlyForecastResponse hourly = new HourlyForecastResponse(ANNOUNCE_TIME, 60, 127, null);
         DailyForecastResponse daily = new DailyForecastResponse("R1", List.of());
@@ -80,7 +80,7 @@ class SnapshotApiResponseMapperTest {
     }
 
     @Test
-    @DisplayName("daily baseDate null → 7개 빈 DailyPoint")
+    @DisplayName("daily baseDate null -> 7개 빈 DailyPoint")
     void dailyBaseDateNull_emptyDailyPoints() {
         HourlyForecastResponse hourly = new HourlyForecastResponse(ANNOUNCE_TIME, 60, 127, List.of());
         DailyForecastResponse daily = new DailyForecastResponse("R1", List.of());
@@ -91,7 +91,7 @@ class SnapshotApiResponseMapperTest {
     }
 
     @Test
-    @DisplayName("daily AM/PM 분리 — hour<12 → amPop, hour>=12 → pmPop")
+    @DisplayName("daily AM/PM 분리 — hour<12 -> amPop, hour>=12 -> pmPop")
     void dailyAmPmSplit() {
         DailyForecastResponse daily = new DailyForecastResponse("R1", List.of(
                 new DailyForecastItem(ANNOUNCE_TIME, BASE_DATE.atTime(9, 0), -5, 30),  // AM

@@ -11,7 +11,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 /**
- * TriggerPushSender → TopicPushSender 어댑터.
+ * TriggerPushSender -> TopicPushSender 어댑터.
  * - "notification이 요구하는 인터페이스"를 "fcm이 제공하는 인터페이스"로 변환
  * - topic 이름, 데이터 구조, TTL 등 전송 세부사항을 여기서 조립
  */

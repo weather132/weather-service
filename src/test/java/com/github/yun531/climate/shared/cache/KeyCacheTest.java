@@ -39,7 +39,7 @@ class KeyCacheTest {
             return new CacheEntry<>("v", T0);
         });
 
-        // tolerance 60분 이내 → stale 아님
+        // tolerance 60분 이내 -> stale 아님
         cache.getOrCompute("k", T0.plusMinutes(30), 60, () -> {
             calls.incrementAndGet();
             return new CacheEntry<>("v2", T0.plusMinutes(30));
@@ -49,7 +49,7 @@ class KeyCacheTest {
     }
 
     @Test
-    @DisplayName("tolerance 초과 시 stale 판정 → loader 재호출")
+    @DisplayName("tolerance 초과 시 stale 판정 -> loader 재호출")
     void exceedsTolerance_recomputed() {
         KeyCache<String> cache = new KeyCache<>();
         AtomicInteger calls = new AtomicInteger();
@@ -70,7 +70,7 @@ class KeyCacheTest {
     }
 
     @Test
-    @DisplayName("referenceTime이 null 이면 항상 stale → loader 호출")
+    @DisplayName("referenceTime이 null 이면 항상 stale -> loader 호출")
     void nullReferenceTime_alwaysStale() {
         KeyCache<String> cache = new KeyCache<>();
         AtomicInteger calls = new AtomicInteger();

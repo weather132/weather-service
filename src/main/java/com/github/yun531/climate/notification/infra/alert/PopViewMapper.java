@@ -11,9 +11,9 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 /**
- * WeatherSnapshot → PopView 변환기.
+ * WeatherSnapshot -> PopView 변환기.
  * POP만 뽑아 26시간/7일 규격으로 정규화한다.
- * - 데이터 없음(null) → null 유지 (센티넬 값 사용하지 않음)
+ * - 데이터 없음(null) -> null 유지 (센티넬 값 사용하지 않음)
  */
 @Component
 public class PopViewMapper {
@@ -37,7 +37,7 @@ public class PopViewMapper {
         return new PopView.Pair(popViewCur, popViewPrev);
     }
 
-    // -- Hourly: validAt 정렬 → 최대 26개 + 부족분 패딩 --
+    // -- Hourly: validAt 정렬 -> 최대 26개 + 부족분 패딩 --
 
     private Hourly toHourly(List<HourlyPoint> hourlyPoints) {
         List<HourlyPoint> sorted = sortByValidAt(hourlyPoints);

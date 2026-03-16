@@ -57,14 +57,14 @@ class ForecastViewMapperTest {
     }
 
     @Test
-    @DisplayName("null 스냅샷 → null 반환")
+    @DisplayName("null 스냅샷 -> null 반환")
     void nullSnapshot_returnsNull() {
         assertThat(mapper.toHourlyView(null)).isNull();
         assertThat(mapper.toDailyView(null)).isNull();
     }
 
     @Test
-    @DisplayName("빈 hourly → 빈 포인트 리스트")
+    @DisplayName("빈 hourly -> 빈 포인트 리스트")
     void emptyHourly_emptyPoints() {
         WeatherSnapshot snap = new WeatherSnapshot("R1", ANNOUNCE_TIME, List.of(), List.of());
         ForecastHourlyView view = mapper.toHourlyView(snap);

@@ -60,7 +60,7 @@ public class SnapshotEntityMapper {
     }
 
     // =====================================================================
-    //  Entity 플랫 컬럼 getter 매핑 (인덱스 → getter function)
+    //  Entity 플랫 컬럼 getter 매핑 (인덱스 -> getter function)
     // =====================================================================
 
     private static final List<Function<SnapshotEntity, Integer>> HOURLY_TEMP_GETTERS = List.of(

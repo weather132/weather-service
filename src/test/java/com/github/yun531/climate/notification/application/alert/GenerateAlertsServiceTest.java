@@ -198,7 +198,7 @@ class GenerateAlertsServiceTest {
             when(warningStateReader.loadLatestByKind("R1")).thenReturn(
                     Map.of(WarningKind.RAIN,
                             new IssuedWarning("R1", WarningKind.RAIN, WarningLevel.WARNING, NOW)));
-            when(warningIssuedDetector.detect(eq("R1"), anyMap(), any(), any(), any()))
+            when(warningIssuedDetector.detect(eq("R1"), anyMap(), any(), any()))
                     .thenReturn(List.of(event));
 
             var cmd = new GenerateAlertsCommand(
@@ -208,7 +208,7 @@ class GenerateAlertsServiceTest {
 
             assertThat(result).hasSize(1);
             verify(warningStateReader).loadLatestByKind("R1");
-            verify(warningIssuedDetector).detect(eq("R1"), anyMap(), any(), any(), any());
+            verify(warningIssuedDetector).detect(eq("R1"), anyMap(), any(), any());
         }
 
         @Test
@@ -220,7 +220,7 @@ class GenerateAlertsServiceTest {
                     List.of("R1"), null, EnumSet.of(AlertTypeEnum.WARNING_ISSUED), null, null);
 
             assertThat(service.generate(cmd, NOW)).isEmpty();
-            verify(warningIssuedDetector, never()).detect(any(), any(), any(), any(), any());
+            verify(warningIssuedDetector, never()).detect(any(), any(), any(), any());
         }
     }
 }

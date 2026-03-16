@@ -15,9 +15,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 기상특보 상태 Map → "신규 발령" AlertEvent 목록 계산.
+ * 기상특보 상태 Map -> "신규 발령" AlertEvent 목록 계산.
  * since(절대시각) 이후에 발령/갱신된 특보만 알림 대상으로 판정한다.
- * since는 Service가 sinceHours → LocalDateTime 으로 변환해서 전달한다.
+ * since는 Service가 sinceHours -> LocalDateTime 으로 변환해서 전달한다.
  */
 public class WarningIssuedDetector {
 
@@ -26,18 +26,16 @@ public class WarningIssuedDetector {
             String regionId,
             Map<WarningKind, IssuedWarning> warningsByKind,
             @Nullable LocalDateTime since,
-            @Nullable Set<WarningKind> warningKinds,
-            LocalDateTime now
+            @Nullable Set<WarningKind> warningKinds
     ) {
         if (regionId == null || regionId.isBlank()) return List.of();
         if (warningsByKind == null || warningsByKind.isEmpty()) return List.of();
-        if (now == null) return List.of();
 
         List<AlertEvent> out = new ArrayList<>(8);
 
         for (IssuedWarning warning : selectCandidates(warningsByKind, warningKinds)) {
             if (isIssuedAfter(warning, since)) {
-                out.add(toAlertEvent(regionId, warning, now));
+                out.add(toAlertEvent(regionId, warning));
             }
         }
 
@@ -66,9 +64,8 @@ public class WarningIssuedDetector {
         return warning.updatedAt().isAfter(since);
     }
 
-    private AlertEvent toAlertEvent(String regionId, IssuedWarning warning, LocalDateTime now) {
-        LocalDateTime occurredAt = TimeUtil.truncateToMinutes(
-                warning.updatedAt() != null ? warning.updatedAt() : now);
+    private AlertEvent toAlertEvent(String regionId, IssuedWarning warning) {
+        LocalDateTime occurredAt = TimeUtil.truncateToMinutes(warning.updatedAt());
 
         WarningIssuedPayload payload = new WarningIssuedPayload(
                 AlertTypeEnum.WARNING_ISSUED, warning.kind(), warning.level());

@@ -44,7 +44,9 @@ public class RainForecastAdjuster {
         TimeShiftUtil.ShiftResult shift = TimeShiftUtil.shiftHourly(announceTime, now, maxShiftHours);
 
         if (!(event.payload() instanceof RainForecastPayload payload)) {
-            return withShiftedTime(event, shift.shiftedBaseTime());
+            throw new IllegalArgumentException(
+                    "RainForecastAdjuster expects RainForecastPayload, got: "
+                            + event.payload().getClass().getSimpleName());
         }
 
         LocalDateTime nowHour = now.truncatedTo(HOURS);
@@ -108,13 +110,7 @@ public class RainForecastAdjuster {
         return List.copyOf(out);
     }
 
-    // =====================================================================
-    //  AlertEvent 재조립 헬퍼
-    // =====================================================================
-
-    private AlertEvent withShiftedTime(AlertEvent event, LocalDateTime shiftedTime) {
-        return new AlertEvent(event.type(), event.regionId(), shiftedTime, event.payload());
-    }
+    //  --- AlertEvent 재조립 헬퍼 ---
 
     private AlertEvent withShiftedTime(AlertEvent event, LocalDateTime shiftedTime, RainForecastPayload payload) {
         return new AlertEvent(event.type(), event.regionId(), shiftedTime, payload);

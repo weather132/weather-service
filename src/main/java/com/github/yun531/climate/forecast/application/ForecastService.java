@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 /**
  * 일기예보 조회 서비스.
- * - ForecastViewReader(포트)에서 로드 → WindowAdjuster 적용
+ * - ForecastViewReader(포트)에서 로드 -> WindowAdjuster 적용
  */
 public class ForecastService {
 

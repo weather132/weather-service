@@ -20,7 +20,7 @@ class PopViewMapperTest {
     private static final LocalDateTime ANNOUNCE_TIME = LocalDateTime.of(2026, 1, 22, 5, 0);
 
     @Test
-    @DisplayName("정상 스냅샷 → PopView 변환: hourly 26개, daily 7개 규격")
+    @DisplayName("정상 스냅샷 -> PopView 변환: hourly 26개, daily 7개 규격")
     void normalSnapshot_correctSizes() {
         WeatherSnapshot snap = buildSnapshot(26, 7);
 
@@ -45,13 +45,13 @@ class PopViewMapperTest {
     }
 
     @Test
-    @DisplayName("null 스냅샷 → null 반환")
+    @DisplayName("null 스냅샷 -> null 반환")
     void nullSnapshot_returnsNull() {
         assertThat(mapper.toPopView(null)).isNull();
     }
 
     @Test
-    @DisplayName("toPair — 둘 다 정상 → Pair 생성")
+    @DisplayName("toPair — 둘 다 정상 -> Pair 생성")
     void toPair_bothValid() {
         WeatherSnapshot cur  = buildSnapshot(26, 7);
         WeatherSnapshot prev = buildSnapshot(26, 7);
@@ -71,7 +71,7 @@ class PopViewMapperTest {
     }
 
     @Test
-    @DisplayName("POP null 값 → null 유지 (0으로 대체하지 않음)")
+    @DisplayName("POP null 값 -> null 유지 (0으로 대체하지 않음)")
     void nullPop_staysNull() {
         List<HourlyPoint> hourly = new ArrayList<>(26);
         for (int i = 0; i < 26; i++) {
@@ -85,7 +85,7 @@ class PopViewMapperTest {
     }
 
     @Test
-    @DisplayName("daily 데이터 없음 → null로 채워진 DailyPop")
+    @DisplayName("daily 데이터 없음 -> null로 채워진 DailyPop")
     void emptyDaily_nullPadded() {
         WeatherSnapshot snap = new WeatherSnapshot("R1", ANNOUNCE_TIME,
                 buildHourlyPoints(26), List.of());
@@ -98,7 +98,7 @@ class PopViewMapperTest {
     }
 
     @Test
-    @DisplayName("daily 실제 데이터 → Integer 값 유지")
+    @DisplayName("daily 실제 데이터 -> Integer 값 유지")
     void dailyWithData_valuesPreserved() {
         List<DailyPoint> daily = new ArrayList<>(7);
         daily.add(new DailyPoint(0, -5, 5, 30, 60));

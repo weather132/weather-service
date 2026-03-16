@@ -44,7 +44,7 @@ public class JpaSnapshotReader extends CachingSnapshotReader {
                 key.asSnapId(), key.regionId()
         );
 
-        if (entity == null) return emptyCacheEntry(now);
+        if (entity == null) return null;
 
         WeatherSnapshot snapshot = mapper.toSnapshot(entity);
         return new CacheEntry<>(snapshot, snapshot.reportTime());

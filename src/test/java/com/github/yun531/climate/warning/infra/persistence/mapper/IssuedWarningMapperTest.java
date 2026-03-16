@@ -33,7 +33,7 @@ class IssuedWarningMapperTest {
     }
 
     @Test
-    @DisplayName("다른 kind → 각각 독립적으로 선택")
+    @DisplayName("다른 kind -> 각각 독립적으로 선택")
     void differentKinds_bothSelected() {
         WarningStateEntity rain = buildEntity(1, "R1", WarningKind.RAIN, WarningLevel.ADVISORY, T1);
         WarningStateEntity heat = buildEntity(2, "R1", WarningKind.HEAT, WarningLevel.WARNING, T2);
@@ -57,20 +57,20 @@ class IssuedWarningMapperTest {
     }
 
     @Test
-    @DisplayName("빈 리스트 → 빈 맵")
+    @DisplayName("빈 리스트 -> 빈 맵")
     void emptyList_emptyMap() {
         assertThat(IssuedWarningMapper.mapLatestByKind("R1", List.of())).isEmpty();
     }
 
     @Test
-    @DisplayName("null regionId → 빈 맵")
+    @DisplayName("null regionId -> 빈 맵")
     void nullRegion_emptyMap() {
         WarningStateEntity entity = buildEntity(1, "R1", WarningKind.RAIN, WarningLevel.ADVISORY, T1);
         assertThat(IssuedWarningMapper.mapLatestByKind(null, List.of(entity))).isEmpty();
     }
 
     @Test
-    @DisplayName("toView — 엔티티 → IssuedWarning 변환")
+    @DisplayName("toView — 엔티티 -> IssuedWarning 변환")
     void fromEntity_correctMapping() {
         WarningStateEntity entity = buildEntity(1, "R1", WarningKind.RAIN, WarningLevel.WARNING, T1);
 

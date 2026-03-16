@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * PopView → 비 예보 요약 AlertEvent 계산.
+ * PopView -> 비 예보 요약 AlertEvent 계산.
  * - hourlyParts: POP >= 임계치인 연속 시간을 구간(RainInterval)으로 묶음
  * - dayParts: 7일 오전/오후별 비 여부 플래그
  */
@@ -68,8 +68,7 @@ public class RainForecastDetector {
 
         List<Hourly.Pop> validHourlyPops = new ArrayList<>(Math.min(hourlyPops.size(), maxHourlyPoints));
         for (Hourly.Pop pop : hourlyPops) {
-            if (pop == null) continue;
-            if (pop.validAt() == null) continue;
+            if (pop == null || pop.validAt() == null) continue;
             validHourlyPops.add(pop);
             if (validHourlyPops.size() == maxHourlyPoints) break;
         }
@@ -78,7 +77,7 @@ public class RainForecastDetector {
 
     /** 연속된 비 구간(pop >= threshold)을 [start, end] 절대시각 구간으로 묶음 */
     private List<RainInterval> toRainIntervals(List<Hourly.Pop> hourlyPops) {
-        List<RainInterval> rainIntervals  = new ArrayList<>();
+        List<RainInterval> rainIntervals = new ArrayList<>();
         boolean inRain = false;
         LocalDateTime segStart = null;
         LocalDateTime prevAt = null;
@@ -90,9 +89,12 @@ public class RainForecastDetector {
                 if (!inRain) {
                     inRain = true;
                     segStart = at;
+                } else if (hasTimeGap(prevAt, at)) {
+                    rainIntervals.add(new RainInterval(segStart, prevAt));
+                    segStart = at;
                 }
             } else if (inRain) {
-                rainIntervals .add(new RainInterval(segStart, prevAt));
+                rainIntervals.add(new RainInterval(segStart, prevAt));
                 inRain = false;
                 segStart = null;
             }
@@ -101,14 +103,19 @@ public class RainForecastDetector {
 
         // 열린 구간 닫기
         if (inRain && segStart != null && prevAt != null) {
-            rainIntervals .add(new RainInterval(segStart, prevAt));
+            rainIntervals.add(new RainInterval(segStart, prevAt));
         }
 
-        return rainIntervals .isEmpty() ? List.of() : List.copyOf(rainIntervals );
+        return rainIntervals.isEmpty() ? List.of() : List.copyOf(rainIntervals);
     }
 
     private boolean isRainy(Hourly.Pop p) {
         return p.pop() != null && p.pop() >= rainThreshold;
+    }
+
+    /** 이전 시각과 현재 시각 사이에 1시간 초과 갭이 있는지 판정 */
+    private boolean hasTimeGap(LocalDateTime prev, LocalDateTime current) {
+        return prev != null && !current.equals(prev.plusHours(1));
     }
 
     // =====================================================================

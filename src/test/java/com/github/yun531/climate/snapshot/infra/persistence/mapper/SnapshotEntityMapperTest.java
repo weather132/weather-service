@@ -18,7 +18,7 @@ class SnapshotEntityMapperTest {
     private static final LocalDateTime SERIES_START_TIME = ANNOUNCE_TIME.plusHours(1);
 
     @Test
-    @DisplayName("정상 엔티티 → WeatherSnapshot 변환: hourly 26개, daily 7개")
+    @DisplayName("정상 엔티티 -> WeatherSnapshot 변환: hourly 26개, daily 7개")
     void normalEntity_producesCorrectSnapshot() throws Exception {
         SnapshotEntity entity = buildEntity();
 

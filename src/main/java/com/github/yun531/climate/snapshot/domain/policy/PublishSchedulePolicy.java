@@ -59,7 +59,7 @@ public class PublishSchedulePolicy {
             if (!t.isAfter(cutoff)) return t;
         }
 
-        // 오늘 후보가 모두 cutoff 이후 → 전날 마지막 발표시각
+        // 오늘 후보가 모두 cutoff 이후 -> 전날 마지막 발표시각
         LocalDate yesterday = today.minusDays(1);
 
         return yesterday.atTime(ANNOUNCE_HOURS.get(ANNOUNCE_HOURS.size() - 1), 0);
