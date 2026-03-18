@@ -17,14 +17,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ApiIssuedWarningReader implements WarningStateReader {
 
-    private final WarningApiClient client; // 지금은 사용하지 않지만, 전환 준비용으로 주입 유지
+    private final WarningApiClient client;     // 지금은 사용하지 않지만, 전환 준비용으로 주입
 
     @Override
     public Map<WarningKind, IssuedWarning> loadLatestByKind(String regionId) {
         // TODO warningapi 구현 후:
-        // - client.fetchLatest(regionId)
-        // - items -> kind별 최신 1개 선택
-        // - WarningStateView로 변환 후 반환
         return Map.of();
     }
 }
