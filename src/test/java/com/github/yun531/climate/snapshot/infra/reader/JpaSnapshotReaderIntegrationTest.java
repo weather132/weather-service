@@ -54,14 +54,14 @@ class JpaSnapshotReaderIntegrationTest {
     }
 
     @Test
-    @DisplayName("loadCurrent / loadPrevious -> 서로 다른 reportTime (다른 snap_id 확인)")
+    @DisplayName("loadCurrent / loadPrevious -> 서로 다른 announceTime (다른 snap_id 확인)")
     void currentAndPrevious_differentReportTime() {
         WeatherSnapshot current = reader.loadCurrent("11B10101");
         WeatherSnapshot previous = reader.loadPrevious("11B10101");
 
         assertThat(current).isNotNull();
         assertThat(previous).isNotNull();
-        assertThat(current.reportTime()).isNotEqualTo(previous.reportTime());
+        assertThat(current.announceTime()).isNotEqualTo(previous.announceTime());
     }
 
     @Test

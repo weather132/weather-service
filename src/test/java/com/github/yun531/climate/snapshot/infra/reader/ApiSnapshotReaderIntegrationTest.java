@@ -82,12 +82,12 @@ class ApiSnapshotReaderIntegrationTest {
 
         assertThat(snap).isNotNull();
         assertThat(snap.regionId()).isEqualTo("11B10101");
-        assertThat(snap.reportTime()).isEqualTo(LocalDateTime.of(2026, 1, 22, 5, 0));
+        assertThat(snap.announceTime()).isEqualTo(LocalDateTime.of(2026, 1, 22, 5, 0));
         assertThat(snap.hourly()).hasSize(26);
         assertThat(snap.daily()).hasSize(7);
 
         // hourly 첫 포인트 검증
-        assertThat(snap.hourly().get(0).validAt())
+        assertThat(snap.hourly().get(0).effectiveTime())
                 .isEqualTo(LocalDateTime.of(2026, 1, 22, 6, 0));
         assertThat(snap.hourly().get(0).pop()).isEqualTo(40);
         assertThat(snap.hourly().get(0).temp()).isEqualTo(1);
@@ -206,7 +206,7 @@ class ApiSnapshotReaderIntegrationTest {
         WeatherSnapshot snap = reader.loadCurrent("11B10101");
 
         // hourly 26번째(마지막) 포인트
-        assertThat(snap.hourly().get(25).validAt())
+        assertThat(snap.hourly().get(25).effectiveTime())
                 .isEqualTo(LocalDateTime.of(2026, 1, 23, 7, 0));
         assertThat(snap.hourly().get(25).pop()).isEqualTo(80);
         assertThat(snap.hourly().get(25).temp()).isEqualTo(5);

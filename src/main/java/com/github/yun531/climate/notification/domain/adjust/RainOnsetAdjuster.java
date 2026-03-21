@@ -11,7 +11,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * RainOnset AlertEvent를 now 기준 validAt 윈도우로 필터링.
+ * RainOnset AlertEvent를 now 기준 effectiveTime 윈도우로 필터링.
  * - window: [nowHour + startOffset, nowHour + endOffset]
  * - 윈도우 밖 이벤트 제거, occurredAt은 nowHour로 통일
  */

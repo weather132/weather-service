@@ -298,7 +298,7 @@ class RainForecastDetectorTest {
     class OccurredAt {
 
         @Test
-        @DisplayName("reportTime 존재 -> truncateToMinutes(reportTime)이 occurredAt")
+        @DisplayName("announceTime 존재 -> truncateToMinutes(announceTime)이 occurredAt")
         void reportTimePresent_usedAsOccurredAt() {
             LocalDateTime reportTime = LocalDateTime.of(2026, 1, 22, 5, 30);
             Integer[] pops = new Integer[26];
@@ -312,7 +312,7 @@ class RainForecastDetectorTest {
         }
 
         @Test
-        @DisplayName("reportTime = null -> now가 occurredAt 으로 대체")
+        @DisplayName("announceTime = null -> now가 occurredAt 으로 대체")
         void reportTimeNull_nowUsed() {
             Integer[] pops = new Integer[26];
             pops[0] = THRESHOLD;

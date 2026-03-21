@@ -26,7 +26,7 @@ public class PopViewMapper {
 
         Hourly hourly = toHourly(snap.hourly());
         Daily daily = toDaily(snap.daily());
-        return new PopView(hourly, daily, snap.reportTime());
+        return new PopView(hourly, daily, snap.announceTime());
     }
 
     public PopView.Pair toPair(WeatherSnapshot cur, WeatherSnapshot prev) {
@@ -37,7 +37,7 @@ public class PopViewMapper {
         return new PopView.Pair(popViewCur, popViewPrev);
     }
 
-    // -- Hourly: validAt 정렬 -> 최대 26개 + 부족분 패딩 --
+    // -- Hourly: effectiveTime 정렬 -> 최대 26개 + 부족분 패딩 --
 
     private Hourly toHourly(List<HourlyPoint> hourlyPoints) {
         List<HourlyPoint> sorted = sortByValidAt(hourlyPoints);
@@ -46,7 +46,7 @@ public class PopViewMapper {
         for (int i = 0; i < PopView.HOURLY_SIZE; i++) {
             if (i < sorted.size()) {
                 HourlyPoint p = sorted.get(i);
-                out.add(new Hourly.Pop(p.validAt(), p.pop()));
+                out.add(new Hourly.Pop(p.effectiveTime(), p.pop()));
             } else {
                 out.add(EMPTY_POP);
             }
@@ -54,20 +54,20 @@ public class PopViewMapper {
         return new Hourly(out);
     }
 
-    // validAt 기준 정렬(없으면 뒤로)
+    // effectiveTime 기준 정렬(없으면 뒤로)
     private List<HourlyPoint> sortByValidAt(List<HourlyPoint> hourly) {
         if (hourly == null || hourly.isEmpty()) return List.of();
 
         return hourly.stream()
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(
-                        HourlyPoint::validAt,
+                        HourlyPoint::effectiveTime,
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .limit(PopView.HOURLY_SIZE)
                 .toList();
     }
 
-    // -- Daily: dayOffset(0~6) 기준으로 슬롯 채움 --
+    // -- Daily: daysAhead(0~6) 기준으로 슬롯 채움 --
 
     private Daily toDaily(List<DailyPoint> dailyPoints) {
         Daily.Pop[] slots = new Daily.Pop[PopView.DAILY_SIZE];
@@ -76,7 +76,7 @@ public class PopViewMapper {
         if (dailyPoints != null) {
             for (DailyPoint d : dailyPoints) {
                 if (d == null) continue;
-                int off = d.dayOffset();
+                int off = d.daysAhead();
                 if (off < 0 || off >= PopView.DAILY_SIZE) continue;
                 slots[off] = new Daily.Pop(d.amPop(), d.pmPop());
             }

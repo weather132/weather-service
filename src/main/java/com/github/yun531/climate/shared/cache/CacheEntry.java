@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 /** 캐시 값 + 기준 시각(anchor)
  *   anchor는 용도에 따라 의미가 달라진다:
  *     TTL 캐시            -> 실제 계산 시각(now)
- *     Reference-time 캐시 -> 데이터 발표시각(reportTime) 등 외부 기준 시각
+ *     Reference-time 캐시 -> 데이터 발표시각(announceTime) 등 외부 기준 시각
  */
 public record CacheEntry<T>(
         T value,

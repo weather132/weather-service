@@ -5,7 +5,7 @@ import java.util.List;
 
 public record WeatherSnapshot(
         String regionId,
-        LocalDateTime reportTime,
+        LocalDateTime announceTime,
         List<HourlyPoint> hourly,
         List<DailyPoint> daily
 ) {

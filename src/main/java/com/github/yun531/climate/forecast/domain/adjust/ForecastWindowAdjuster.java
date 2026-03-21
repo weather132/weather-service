@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * 시간대별 예보를 now 기준으로 윈도우 형태로 재구성한다.
  * - announceTime 기준 최대 maxShiftHours(2)까지 재사용
- * - validAt > shiftedAnnounceTime인 포인트만 최대 windowSize 개로 절단
+ * - effectiveTime > shiftedAnnounceTime인 포인트만 최대 windowSize 개로 절단
  * 전제: 스냅샷 hourly 크기(26) = windowSize(24) + maxShiftHours(2).
  * maxShiftHours 범위 내에서 항상 windowSize 개의 데이터가 보장된다.
  */
@@ -68,7 +68,7 @@ public final class ForecastWindowAdjuster {
         return out.isEmpty() ? List.of() : List.copyOf(out);
     }
 
-    /** validAt 기준 정렬 + null 제거 */
+    /** effectiveTime 기준 정렬 + null 제거 */
     private List<ForecastHourlyPoint> sortByValidAt(List<ForecastHourlyPoint> src) {
         if (src == null || src.isEmpty()) return List.of();
         return src.stream()

@@ -23,36 +23,36 @@ public class ForecastViewMapper {
         if (snap == null) return null;
 
         List<ForecastHourlyPoint> points = mapHourlyPoints(snap.hourly());
-        return new ForecastHourlyView(snap.regionId(), snap.reportTime(), points);
+        return new ForecastHourlyView(snap.regionId(), snap.announceTime(), points);
     }
 
     public ForecastDailyView toDailyView(WeatherSnapshot snap) {
         if (snap == null) return null;
 
         List<ForecastDailyPoint> points = mapDailyPoints(snap.daily());
-        return new ForecastDailyView(snap.regionId(), snap.reportTime(), points);
+        return new ForecastDailyView(snap.regionId(), snap.announceTime(), points);
     }
 
 
-    /**  도메인 중립 포인트를 HourlyPoint 모델로 변환 후 validAt 기준 정렬 */
+    /**  도메인 중립 포인트를 HourlyPoint 모델로 변환 후 effectiveTime 기준 정렬 */
     private List<ForecastHourlyPoint> mapHourlyPoints(List<HourlyPoint> hourlyPoints) {
         if (hourlyPoints == null || hourlyPoints.isEmpty()) return List.of();
         return hourlyPoints.stream()
                 .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(
-                        HourlyPoint::validAt,
+                        HourlyPoint::effectiveTime,
                         Comparator.nullsLast(Comparator.naturalOrder())))
-                .map(p -> new ForecastHourlyPoint(p.validAt(), p.temp(), p.pop()))
+                .map(p -> new ForecastHourlyPoint(p.effectiveTime(), p.temp(), p.pop()))
                 .toList();
     }
 
-        /**  도메인 중립 포인트를 DailyPoint 모델로 변환 후 dayOffset 기준 정렬 */
-    private List<ForecastDailyPoint> mapDailyPoints(List<DailyPoint> dailyPoints) {
+        /**  도메인 중립 포인트를 DailyPoint 모델로 변환 후 daysAhead 기준 정렬 */
+    private List<ForecastDailyPoint> mapDailyPoints(List<DailyPoint> dailyPoints) {   //todo: 7일 기준으로 짜르는거 추가
         if (dailyPoints == null || dailyPoints.isEmpty()) return List.of();
         return dailyPoints.stream()
                 .filter(Objects::nonNull)
-                .sorted(Comparator.comparingInt(DailyPoint::dayOffset))
-                .map(d -> new ForecastDailyPoint(d.dayOffset(), d.minTemp(), d.maxTemp(), d.amPop(), d.pmPop()))
+                .sorted(Comparator.comparingInt(DailyPoint::daysAhead))
+                .map(d -> new ForecastDailyPoint(d.daysAhead(), d.minTemp(), d.maxTemp(), d.amPop(), d.pmPop()))
                 .toList();
     }
 }

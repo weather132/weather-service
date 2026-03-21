@@ -43,13 +43,13 @@ class SnapshotApiResponseMapperTest {
         WeatherSnapshot snap = mapper.toSnapshot("11B10101", hourly, daily, BASE_DATE);
 
         assertThat(snap.regionId()).isEqualTo("11B10101");
-        assertThat(snap.reportTime()).isEqualTo(ANNOUNCE_TIME);
+        assertThat(snap.announceTime()).isEqualTo(ANNOUNCE_TIME);
         assertThat(snap.hourly()).hasSize(3);
         assertThat(snap.daily()).hasSize(7);
 
         // hourly는 effectiveTime 정렬
         HourlyPoint first = snap.hourly().get(0);
-        assertThat(first.validAt()).isEqualTo(ANNOUNCE_TIME.plusHours(1));
+        assertThat(first.effectiveTime()).isEqualTo(ANNOUNCE_TIME.plusHours(1));
         assertThat(first.pop()).isEqualTo(40);
         assertThat(first.temp()).isEqualTo(1);
     }

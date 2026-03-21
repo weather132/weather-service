@@ -176,7 +176,7 @@ class ForecastWindowAdjusterTest {
         class StrictlyAfter {
 
             @Test
-            @DisplayName("validAt == shiftedTime → 제외")
+            @DisplayName("effectiveTime == shiftedTime → 제외")
             void validAtEqualsShiftedTime_excluded() {
                 ForecastHourlyView base = new ForecastHourlyView("R1", ANNOUNCE_TIME, List.of(
                         new ForecastHourlyPoint(ANNOUNCE_TIME, 10, 20),
@@ -210,7 +210,7 @@ class ForecastWindowAdjusterTest {
     class Sorting {
 
         @Test
-        @DisplayName("역순 입력 → validAt 기준 오름차순 정렬")
+        @DisplayName("역순 입력 → effectiveTime 기준 오름차순 정렬")
         void reverseOrder_sortedCorrectly() {
             ForecastHourlyView base = new ForecastHourlyView("R1", ANNOUNCE_TIME, List.of(
                     new ForecastHourlyPoint(ANNOUNCE_TIME.plusHours(3), 30, 50),

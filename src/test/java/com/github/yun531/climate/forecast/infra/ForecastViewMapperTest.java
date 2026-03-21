@@ -20,7 +20,7 @@ class ForecastViewMapperTest {
     private static final LocalDateTime ANNOUNCE_TIME = LocalDateTime.of(2026, 1, 22, 5, 0);
 
     @Test
-    @DisplayName("toHourlyView — 정상 변환 + validAt 정렬")
+    @DisplayName("toHourlyView — 정상 변환 + effectiveTime 정렬")
     void toHourlyView_sortsAndMaps() {
         // 역순으로 제공
         WeatherSnapshot snap = new WeatherSnapshot("R1", ANNOUNCE_TIME, List.of(
@@ -34,13 +34,13 @@ class ForecastViewMapperTest {
         assertThat(view.regionId()).isEqualTo("R1");
         assertThat(view.reportTime()).isEqualTo(ANNOUNCE_TIME);
         assertThat(view.hourlyPoints()).hasSize(3);
-        // validAt 정렬 확인
+        // effectiveTime 정렬 확인
         assertThat(view.hourlyPoints().get(0).validAt()).isEqualTo(ANNOUNCE_TIME.plusHours(1));
         assertThat(view.hourlyPoints().get(2).validAt()).isEqualTo(ANNOUNCE_TIME.plusHours(3));
     }
 
     @Test
-    @DisplayName("toDailyView — dayOffset 정렬 + 필드 매핑")
+    @DisplayName("toDailyView — daysAhead 정렬 + 필드 매핑")
     void toDailyView_sortsAndMaps() {
         WeatherSnapshot snap = new WeatherSnapshot("R1", ANNOUNCE_TIME, List.of(),
                 List.of(

@@ -59,7 +59,7 @@ public class ApiSnapshotReader extends CachingSnapshotReader {
 
         // 조립
         WeatherSnapshot snapshot = mapper.toSnapshot(regionId, hourlyResponse, dailyResponse, baseDate);
-        return new CacheEntry<>(snapshot, snapshot.reportTime());
+        return new CacheEntry<>(snapshot, snapshot.announceTime());
     }
 
     // =====================================================================

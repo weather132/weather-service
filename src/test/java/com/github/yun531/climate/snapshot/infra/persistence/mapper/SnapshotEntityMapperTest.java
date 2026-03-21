@@ -25,7 +25,7 @@ class SnapshotEntityMapperTest {
         WeatherSnapshot snap = mapper.toSnapshot(entity);
 
         assertThat(snap.regionId()).isEqualTo("11B10101");
-        assertThat(snap.reportTime()).isEqualTo(ANNOUNCE_TIME);
+        assertThat(snap.announceTime()).isEqualTo(ANNOUNCE_TIME);
         assertThat(snap.hourly()).hasSize(26);
         assertThat(snap.daily()).hasSize(7);
     }
@@ -37,9 +37,9 @@ class SnapshotEntityMapperTest {
 
         WeatherSnapshot snap = mapper.toSnapshot(entity);
 
-        assertThat(snap.hourly().get(0).validAt()).isEqualTo(SERIES_START_TIME);
-        assertThat(snap.hourly().get(1).validAt()).isEqualTo(SERIES_START_TIME.plusHours(1));
-        assertThat(snap.hourly().get(25).validAt()).isEqualTo(SERIES_START_TIME.plusHours(25));
+        assertThat(snap.hourly().get(0).effectiveTime()).isEqualTo(SERIES_START_TIME);
+        assertThat(snap.hourly().get(1).effectiveTime()).isEqualTo(SERIES_START_TIME.plusHours(1));
+        assertThat(snap.hourly().get(25).effectiveTime()).isEqualTo(SERIES_START_TIME.plusHours(25));
     }
 
     @Test
@@ -50,7 +50,7 @@ class SnapshotEntityMapperTest {
         WeatherSnapshot snap = mapper.toSnapshot(entity);
 
         for (int i = 0; i < 7; i++) {
-            assertThat(snap.daily().get(i).dayOffset()).isEqualTo(i);
+            assertThat(snap.daily().get(i).daysAhead()).isEqualTo(i);
         }
     }
 
@@ -60,7 +60,7 @@ class SnapshotEntityMapperTest {
         SnapshotEntity entity = createEntityViaReflection();
         setField(entity, "snapId", 1);
         setField(entity, "regionId", "11B10101");
-        setField(entity, "reportTime", ANNOUNCE_TIME);
+        setField(entity, "announceTime", ANNOUNCE_TIME);
         setField(entity, "seriesStartTime", SERIES_START_TIME);
 
         // temp A01~A26

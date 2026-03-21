@@ -244,7 +244,7 @@ class RainOnsetDetectorTest {
     class OccurredAt {
 
         @Test
-        @DisplayName("reportTime이 있으면 truncateToMinutes(reportTime)이 occurredAt")
+        @DisplayName("reportTime이 있으면 truncateToMinutes(announceTime)이 occurredAt")
         void reportTimePresent_usedAsOccurredAt() {
             LocalDateTime reportTime = LocalDateTime.of(2026, 1, 22, 5, 30);
             PopView prev = buildPopView(ANNOUNCE_TIME.minusHours(3), SERIES_START_TIME, toIntegers(THRESHOLD-10));

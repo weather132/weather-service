@@ -39,7 +39,7 @@ class PopViewMapperTest {
         PopView view = mapper.toPopView(snap);
 
         assertThat(view.hourly().pops()).hasSize(26);
-        // 10번째 이후는 패딩 (validAt=null, pop=null)
+        // 10번째 이후는 패딩 (effectiveTime=null, pop=null)
         assertThat(view.hourly().pops().get(10).validAt()).isNull();
         assertThat(view.hourly().pops().get(10).pop()).isNull();
     }

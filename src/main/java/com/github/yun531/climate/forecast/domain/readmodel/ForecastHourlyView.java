@@ -6,7 +6,7 @@ import java.util.Objects;
 
 /**
  * 시간대별 예보 DTO
- * - hourlyPoints: (validAt, temp, pop)
+ * - hourlyPoints: (effectiveTime, temp, pop)
  */
 public record ForecastHourlyView(
         String regionId,

@@ -109,7 +109,7 @@ public class GenerateAlertsService {
         return out.isEmpty() ? List.of() : List.copyOf(out);
     }
 
-    /** load pair -> detect onset -> adjust(validAt window) */
+    /** load pair -> detect onset -> adjust(effectiveTime window) */
     private List<AlertEvent> detectRainOnset(
             String regionId, @Nullable Integer withinHours, LocalDateTime now
     ) {

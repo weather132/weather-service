@@ -59,7 +59,7 @@ public class SnapshotApiResponseMapper {
     }
 
     // =====================================================================
-    //  일별: DailyForecastItem 리스트 -> DailyPoint 7개 (dayOffset 0~6)
+    //  일별: DailyForecastItem 리스트 -> DailyPoint 7개 (daysAhead 0~6)
     //
     //  각 offset별로:
     //    temp -> 구간 내 최소/최대

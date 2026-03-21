@@ -82,7 +82,7 @@ class RainOnsetAdjusterTest {
         class WindowBoundary {
 
             @Test
-            @DisplayName("validAt == windowStart(now+1) → 포함")
+            @DisplayName("effectiveTime == windowStart(now+1) → 포함")
             void validAtEqualsWindowStart_included() {
                 AlertEvent atStart = makeEvent(NOW.plusHours(1));
 
@@ -92,7 +92,7 @@ class RainOnsetAdjusterTest {
             }
 
             @Test
-            @DisplayName("validAt == windowEnd(now+24) → 포함")
+            @DisplayName("effectiveTime == windowEnd(now+24) → 포함")
             void validAtEqualsWindowEnd_included() {
                 AlertEvent atEnd = makeEvent(NOW.plusHours(24));
 
@@ -102,7 +102,7 @@ class RainOnsetAdjusterTest {
             }
 
             @Test
-            @DisplayName("validAt == windowStart - 1분 → 제외")
+            @DisplayName("effectiveTime == windowStart - 1분 → 제외")
             void validAtJustBeforeStart_excluded() {
                 AlertEvent justBefore = makeEvent(NOW.plusMinutes(59)); // 05:59 < 06:00
 
@@ -112,7 +112,7 @@ class RainOnsetAdjusterTest {
             }
 
             @Test
-            @DisplayName("validAt == windowEnd + 1분 → 제외")
+            @DisplayName("effectiveTime == windowEnd + 1분 → 제외")
             void validAtJustAfterEnd_excluded() {
                 AlertEvent justAfter = makeEvent(NOW.plusHours(24).plusMinutes(1));
 
@@ -185,7 +185,7 @@ class RainOnsetAdjusterTest {
     class Sorting {
 
         @Test
-        @DisplayName("역순 입력 → validAt 기준 오름차순 정렬")
+        @DisplayName("역순 입력 → effectiveTime 기준 오름차순 정렬")
         void reverseOrder_sortedByValidAt() {
             AlertEvent late  = makeEvent(NOW.plusHours(5));
             AlertEvent early = makeEvent(NOW.plusHours(2));

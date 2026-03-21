@@ -119,7 +119,7 @@ public class RainForecastDetector {
     }
 
     // =====================================================================
-    //  일별: dayOffset(0~6) 오전/오후 비 플래그
+    //  일별: daysAhead(0~6) 오전/오후 비 플래그
     // =====================================================================
 
     private List<DailyRainFlags> buildDayFlags(PopView view) {
